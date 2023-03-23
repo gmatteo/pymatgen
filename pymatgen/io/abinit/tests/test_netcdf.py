@@ -1,6 +1,3 @@
-# Copyright (c) Pymatgen Development Team.
-# Distributed under the terms of the MIT License.
-
 from __future__ import annotations
 
 import os
@@ -98,9 +95,9 @@ class ETSF_Reader_TestCase(PymatgenTest):
 
 
 class TestAbinitHeader(PymatgenTest):
-
     def test_api(self):
         from pymatgen.io.abinit.netcdf import AbinitHeader
+
         head = AbinitHeader(foo=1, bar=2)
         assert head.foo == 1
         assert str(head)
