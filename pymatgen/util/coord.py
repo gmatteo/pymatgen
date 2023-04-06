@@ -289,18 +289,7 @@ def lattice_points_in_supercell(supercell_matrix):
     Returns:
         numpy array of the fractional coordinates
     """
-    diagonals = np.array(
-        [
-            [0, 0, 0],
-            [0, 0, 1],
-            [0, 1, 0],
-            [0, 1, 1],
-            [1, 0, 0],
-            [1, 0, 1],
-            [1, 1, 0],
-            [1, 1, 1],
-        ]
-    )
+    diagonals = np.array([[0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]])
     d_points = np.dot(diagonals, supercell_matrix)
 
     mins = np.min(d_points, axis=0)
@@ -472,7 +461,7 @@ class Simplex(MSONable):
                         break
                 if not found:
                     barys.append(p)
-        assert len(barys) < 3
+        assert len(barys) < 3, "More than 2 intersections found"
         return [self.point_from_bary_coords(b) for b in barys]
 
     def __eq__(self, other: object) -> bool:
@@ -484,16 +473,10 @@ class Simplex(MSONable):
         return len(self._coords)
 
     def __repr__(self):
-        output = [
-            f"{self.simplex_dim}-simplex in {self.space_dim}D space",
-            "Vertices:",
-        ]
+        output = [f"{self.simplex_dim}-simplex in {self.space_dim}D space\nVertices:"]
         for coord in self._coords:
             output.append(f"\t({', '.join(map(str, coord))})")
         return "\n".join(output)
-
-    def __str__(self):
-        return self.__repr__()
 
     @property
     def coords(self):
