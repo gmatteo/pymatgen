@@ -10,12 +10,12 @@ import collections
 import logging
 import os
 import sys
-from collections import defaultdict, namedtuple
-
 import numpy as np
-from monty.collections import AttrDict, Namespace
 
-# from monty.dev import deprecated
+from collections import defaultdict, namedtuple
+from typing import List, Any
+from xml.etree import ElementTree
+from monty.collections import AttrDict, Namespace
 from monty.functools import lazy_property
 from monty.itertools import iterator_from_slice
 from monty.json import MontyDecoder, MSONable
@@ -72,7 +72,7 @@ _l2str = {0: "s", 1: "p", 2: "d", 3: "f", 4: "g", 5: "h", 6: "i"}
 _str2l = {v: k for k, v in _l2str.items()}
 
 
-def l2str(l_ang_mom):
+def l2str(l_ang_mom: str) -> int:
     """Convert the angular momentum l (int) to string."""
     try:
         return _l2str[l_ang_mom]
@@ -102,7 +102,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
         return obj if isinstance(obj, cls) else cls.from_file(obj)
 
     @staticmethod
-    def from_file(filename):
+    def from_file(filename: str) -> Pseudo:
         """
         Build an instance of a concrete Pseudo subclass from filename.
         Note: the parser knows the concrete class that should be instantiated
@@ -129,7 +129,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
     def __str__(self):
         return self.to_string()
 
-    def to_string(self, verbose=0):
+    def to_string(self, verbose: int = 0) -> str:
         """String representation."""
         # pylint: disable=E1101
         lines = []
@@ -154,17 +154,17 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def summary(self):
+    def summary(self) -> str:
         """String summarizing the most important properties."""
 
     @property
-    def filepath(self):
+    def filepath(self) -> str:
         """Absolute path to pseudopotential file."""
         # pylint: disable=E1101
         return os.path.abspath(self.path)
 
     @property
-    def basename(self):
+    def basename(self) -> str:
         """File basename."""
         # pylint: disable=E1101
         return os.path.basename(self.filepath)
@@ -185,7 +185,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
         return type(self).__name__
 
     @property
-    def element(self):
+    def element(self) -> Element:
         """Pymatgen :class:`Element`."""
         try:
             return Element.from_Z(self.Z)
@@ -193,27 +193,27 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
             return Element.from_Z(int(self.Z))
 
     @property
-    def symbol(self):
+    def symbol(self) -> str:
         """Element symbol."""
         return self.element.symbol
 
     @property
     @abc.abstractmethod
-    def l_max(self):
+    def l_max(self) -> int:
         """Maximum angular momentum."""
 
     @property
     @abc.abstractmethod
-    def l_local(self):
+    def l_local(self) -> int:
         """Angular momentum used for the local part."""
 
     @property
-    def isnc(self):
+    def isnc(self) -> bool:
         """True if norm-conserving pseudopotential."""
         return isinstance(self, NcPseudo)
 
     @property
-    def ispaw(self):
+    def ispaw(self) -> bool:
         """True if PAW pseudopotential."""
         return isinstance(self, PawPseudo)
 
@@ -235,13 +235,13 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def supports_soc(self):
+    def supports_soc(self) -> bool:
         """
         True if the pseudo can be used in a calculation with spin-orbit coupling.
         Base classes should provide a concrete implementation that computes this value.
         """
 
-    def as_dict(self, **kwargs):
+    def as_dict(self, **kwargs) -> dict:
         """Return dictionary for MSONable protocol."""
         # pylint: disable=E1101
         return {
@@ -259,7 +259,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
         }
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict):
         """Build instance from dictionary (MSONable protocol)."""
         new = cls.from_file(d["filepath"])
 
@@ -302,13 +302,13 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
         return new
 
     @property
-    def has_dojo_report(self):
+    def has_dojo_report(self) -> bool:
         """True if the pseudo has an associated `DOJO_REPORT` section."""
         # pylint: disable=E1101
         return hasattr(self, "dojo_report") and bool(self.dojo_report)
 
     @property
-    def djrepo_path(self):
+    def djrepo_path(self) -> str:
         """The path of the djrepo file. None if file does not exist."""
         # pylint: disable=E1101
         root, ext = os.path.splitext(self.filepath)
@@ -317,7 +317,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
         # if os.path.exists(path): return path
         # return None
 
-    def hint_for_accuracy(self, accuracy="normal"):
+    def hint_for_accuracy(self, accuracy: str = "normal") -> Hint:
         """
         Returns a :class:`Hint` object with the suggested value of ecut [Ha] and
         pawecutdg [Ha] for the given accuracy.
@@ -338,7 +338,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
         return Hint(ecut=0.0, pawecutdg=0.0)
 
     @property
-    def has_hints(self):
+    def has_hints(self) -> bool:
         """
         True if self provides hints on the cutoff energy.
         """
@@ -407,14 +407,14 @@ class NcPseudo(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def nlcc_radius(self):
+    def nlcc_radius(self) -> float:
         """
         Radius at which the core charge vanish (i.e. cut-off in a.u.).
         Returns 0.0 if nlcc is not used.
         """
 
     @property
-    def has_nlcc(self):
+    def has_nlcc(self) -> bool:
         """True if the pseudo is generated with non-linear core correction."""
         return self.nlcc_radius > 0.0
 
@@ -482,7 +482,7 @@ class AbinitPseudo(Pseudo):
             setattr(self, "_" + attr_name, value)
 
     @property
-    def summary(self):
+    def summary(self) -> str:
         """Summary line reported in the ABINIT header."""
         return self._summary.strip()
 
@@ -588,7 +588,7 @@ class Hint:
             return f"ecut: {self.ecut}, pawecutdg: {self.pawecutdg}"
         return f"ecut: {self.ecut}"
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """Return dictionary for MSONable protocol."""
         return {
             "@module": type(self).__module__,
@@ -598,7 +598,7 @@ class Hint:
         }
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict):
         """Build instance from dictionary (MSONable protocol)."""
         return cls(**{k: v for k, v in d.items() if not k.startswith("@")})
 
@@ -1148,7 +1148,7 @@ class PseudoParser:
 
         return None
 
-    def parse(self, filename):
+    def parse(self, filename: str):
         """
         Read and parse a pseudopotential file. Main entry point for client code.
 
@@ -1161,6 +1161,10 @@ class PseudoParser:
         if filename.endswith(".xml"):
             return PawXmlSetup(path)
 
+        if filename.endswith(".upf"):
+            return UpfPseudo(path)
+
+        # All the other formats supported by Abinit.
         ppdesc = self.read_ppdesc(path)
 
         if ppdesc is None:
@@ -1207,9 +1211,9 @@ class PawXmlSetup(Pseudo, PawPseudo):
     Setup class for PawXml.
     """
 
-    def __init__(self, filepath):
+    def __init__(self, filepath: str):
         """
-        :param filepath:
+        filepath: path to pseudopotential file
         """
         # pylint: disable=E1101
         self.path = os.path.abspath(filepath)
@@ -1285,9 +1289,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
         """
         Root tree of XML.
         """
-        from xml.etree import ElementTree as Et
-
-        tree = Et.parse(self.filepath)
+        tree = ElementTree.parse(self.filepath)
         return tree.getroot()
 
     @property
@@ -1447,7 +1449,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
         ax, fig, plt = get_ax_fig_plt(ax)
 
         ax.grid(True)
-        ax.set_xlabel("r [Bohr]")
+        ax.set_xlabel("r (Bohr)")
         # ax.set_ylabel('density')
 
         for i, den_name in enumerate(["ae_core_density", "pseudo_core_density"]):
@@ -1474,8 +1476,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
         ax, fig, plt = get_ax_fig_plt(ax)
 
         ax.grid(True)
-        ax.set_xlabel("r [Bohr]")
-        ax.set_ylabel(r"$r\phi,\, r\tilde\phi\, [Bohr]^{-\frac{1}{2}}$")
+        ax.set_xlabel("r (Bohr)")
+        ax.set_ylabel(r"$r\phi,\, r\tilde\phi\, (Bohr)^{-\frac{1}{2}}$")
 
         # ax.axvline(x=self.paw_radius, linewidth=2, color='k', linestyle="--")
         # ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))
@@ -1503,8 +1505,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
         # pylint: disable=E1101
         ax, fig, plt = get_ax_fig_plt(ax)
         ax.grid(True)
-        ax.set_xlabel("r [Bohr]")
-        ax.set_ylabel(r"$r\tilde p\, [Bohr]^{-\frac{1}{2}}$")
+        ax.set_xlabel("r (Bohr)")
+        ax.set_ylabel(r"$r\tilde p\, (Bohr)^{-\frac{1}{2}}$")
 
         # ax.axvline(x=self.paw_radius, linewidth=2, color='k', linestyle="--")
         # ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))
@@ -1540,7 +1542,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
 
     #    ax = fig.add_subplot(1,1,1)
     #    ax.grid(True)
-    #    ax.set_xlabel('r [Bohr]')
+    #    ax.set_xlabel('r (Bohr)')
     #    ax.set_ylabel('density')
     #    ax.axvline(x=self.paw_radius, linewidth=2, color='k', linestyle="--")
     #    ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))
@@ -1549,11 +1551,159 @@ class PawXmlSetup(Pseudo, PawPseudo):
     #        ax.plot(rfunc.mesh, rfunc.values, label="TPROJ: " + state)
 
     #    ax.legend(loc="best")
-
-    #    if title is not None: fig.suptitle(title)
-    #    if show: plt.show()
-    #    if savefig: fig.savefig(savefig)
     #    return fig
+
+
+
+class UpfPseudo(Pseudo):
+    """
+    Pseudopotentials in UPF format. See e.g. https://esl.cecam.org/data/upf/
+    """
+    def __init__(self, filepath: str):
+        """
+        filepath: path to pseudopotential file
+        """
+        # pylint: disable=E1101
+        self.path = os.path.abspath(filepath)
+
+        tree = ElementTree.parse(self.path)
+        root = tree.getroot()
+
+        if root.tag != "UPF":
+            raise ValueError(f"This is not a valid UPF file. root.tag is: `{root.tag}`")
+
+        version = root.attrib["version"]
+        major, minor, patch_level = version.split(".")
+
+        is_upf1 = int(major) < 2
+        if is_upf1:
+            raise ValueError(f"Pseudos in UPF1 format are not supported. Found version: `{version}`")
+
+        # Convert attributes in PP_HEADER.
+        float_keys = {
+                "z_valence",
+            }
+        int_keys = {
+                "l_max", "l_local", "mesh_size", "number_of_wfc", "number_of_proj",
+                }
+
+        e = root.find("PP_HEADER")
+        self.pp_header = e.attrib
+
+        for k, v in self.pp_header.items():
+            if v == "F": v = False
+            if v == "T": v = True
+            if k in float_keys: v = float(v)
+            if k in int_keys: v = int(v)
+            self.pp_header[k] = v
+
+        # print("PP_HEADER", self.pp_header)
+        element = Element[self.pp_header["element"]]
+
+        self._zatom = element.Z
+
+        # FIXME: Need to implement mapping QE --> XC
+        functional = self.pp_header["functional"]
+        self.xc = XcFunc.from_abinit_ixc(11)
+
+    @property
+    def nlcc_radius(self) -> float:
+        # FIXME
+        return -1.0
+
+    #def __getstate__(self):
+    #    """
+    #    Return state is pickled as the contents for the instance.
+    #
+    #    In this case we just remove the XML root element process since Element object cannot be pickled.
+    #    """
+    #    return {k: v for k, v in self.__dict__.items() if k not in ["_root"]}
+
+    @property
+    def Z(self):
+        return self._zatom
+
+    @property
+    def Z_val(self):
+        """Number of valence electrons."""
+        return self.pp_header["z_valence"]
+
+    @property
+    def l_max(self):
+        """Maximum angular momentum."""
+        return self.pp_header["l_max"]
+
+    @property
+    def l_local(self):
+        """Angular momentum used for the local part."""
+        return self.pp_header["l_local"]
+
+    @property
+    def summary(self):
+        """String summarizing the most important properties."""
+        return ""
+
+    @property
+    def supports_soc(self):
+        """
+        Here I assume that the ab-initio code can treat the SOC within the on-site approximation
+        """
+        return self.pp_header["has_so"]
+
+    @property
+    def isnc(self) -> bool:
+        """True if norm-conserving pseudopotential."""
+        return self.pp_header["pseudo_type"] == "NC"
+
+    @property
+    def ispaw(self) -> bool:
+       """True if PAW pseudopotential."""
+       return self.pp_header["pseudo_type"] == "PAW"
+
+    @add_fig_kwargs
+    def plot_vlocr(self, ax=None, **kwargs):
+        """
+        Plot the local part of the UPF pseudo in r-space.
+
+        Args:
+            ax: matplotlib :class:`Axes` or None if a new figure should be created.
+
+        Returns: `matplotlib` figure
+        """
+        tree = ElementTree.parse(self.path)
+        root = tree.getroot()
+
+        pp_r = root.find("PP_MESH").find("PP_R")
+        #size, columns = pp_r.attrib["size"], pp_r.attrib["columns"]
+        rmesh = np.fromstring(pp_r.text, sep=" ")
+        #print(rmesh.shape, "\n", rmesh)
+        pp_local = root.find("PP_LOCAL")
+        #size, columns = pp_local.attrib["size"], pp_local.attrib["columns"]
+
+        # convert vloc from Rydberg to Ha.
+        vloc = 0.5 * np.fromstring(pp_local.text, sep=" ")
+
+        # pylint: disable=E1101
+        ax, fig, plt = get_ax_fig_plt(ax)
+        ax.grid(True)
+        ax.set_xlabel("r (Bohr)")
+        ax.set_ylabel(r"$rv_{loc}\,$ (Ha)")
+
+        from monty.bisect import find_gt
+        rcut = min(2, rmesh.max() - 1)
+        st = 0
+        st = find_gt(rmesh, rcut)
+
+        vcoul = np.where(rmesh > rcut,  -self.Z_val / rmesh, 0)
+        #ax.plot(rmesh[st:], (vloc-vcoul)[st:]) #, label=label, lw=2)
+
+        ax.plot(rmesh[st:], vloc[st:]) #, label=label, lw=2)
+        ax.plot(rmesh[st:], vcoul[st:]) #, label=label, lw=2)
+        #ax.legend(loc="best", shadow=True, fontsize=fontsize)
+
+        return fig
+
+
 
 
 class PseudoTable(collections.abc.Sequence, MSONable):

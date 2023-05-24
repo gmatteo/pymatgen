@@ -171,6 +171,30 @@ class PseudoTestCase(PymatgenTest):
         assert pb.l_local == 4
         assert pb.supports_soc
 
+    def test_upf_pseudo(self):
+        """
+        Test UPF pseudo for Cu (scalar-relativistic).
+        """
+        cu = Pseudo.from_file(ref_file("Cu.upf"))
+        repr(cu)
+        str(cu)
+
+        # Data persistence
+        self.serialize_with_pickle(cu, test_eq=False)
+        self.assertMSONable(cu)
+
+        assert cu.symbol == "Cu"
+        assert cu.Z == 29.0
+        assert cu.Z_val == 19.0
+        assert cu.isnc
+        assert not cu.ispaw
+        # FIXME
+        #assert pseudo.nlcc_radius >= 0.0
+        #assert pseudo.has_nlcc
+        assert cu.l_max == 2
+        assert cu.l_local == -1
+        assert not cu.supports_soc
+
 
 class PseudoTableTest(PymatgenTest):
     def test_methods(self):
