@@ -17,17 +17,7 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from fnmatch import fnmatch
 from io import StringIO
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    Literal,
-    Sequence,
-    SupportsIndex,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Literal, Sequence, SupportsIndex, cast
 
 import numpy as np
 from monty.dev import deprecated
@@ -46,10 +36,12 @@ from pymatgen.core.units import Length, Mass
 from pymatgen.electronic_structure.core import Magmom
 from pymatgen.symmetry.maggroups import MagneticSpaceGroup
 from pymatgen.util.coord import all_distances, get_angle, lattice_points_in_supercell
-from pymatgen.util.typing import ArrayLike, CompositionLike, SpeciesLike
 
 if TYPE_CHECKING:
     from m3gnet.models._dynamics import TrajectoryObserver
+    from numpy.typing import ArrayLike
+
+    from pymatgen.util.typing import CompositionLike, SpeciesLike
 
 
 class Neighbor(Site):
@@ -444,7 +436,7 @@ class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
             (bool) True if SiteCollection does not contain atoms that are too
             close together.
         """
-        if len(self.sites) == 1:
+        if len(self) == 1:
             return True
         all_dists = self.distance_matrix[np.triu_indices(len(self), 1)]
         return bool(np.min(all_dists) > tol)
@@ -488,7 +480,7 @@ class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
             values (list): A sequence of values. Must be same length as
                 number of sites.
         """
-        if len(values) != len(self.sites):
+        if len(values) != len(self):
             raise ValueError("Values must be same length as sites.")
         for site, val in zip(self.sites, values):
             site.properties[property_name] = val
@@ -559,8 +551,11 @@ class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
             oxidation_states (list): List of oxidation states.
                 E.g., [1, 1, 1, 1, 2, 2, 2, 2, 5, 5, 5, 5, -2, -2, -2, -2]
         """
-        if len(oxidation_states) != len(self.sites):
-            raise ValueError("Oxidation states of all sites must be specified.")
+        if len(oxidation_states) != len(self):
+            raise ValueError(
+                f"Oxidation states of all sites must be specified, expected {len(self)} values, "
+                f"got {len(oxidation_states)}"
+            )
         for site, ox in zip(self.sites, oxidation_states):
             new_sp = {}
             for el, occu in site.species.items():
@@ -621,8 +616,8 @@ class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
             spins (list): List of spins
                 E.g., [+5, -5, 0, 0]
         """
-        if len(spins) != len(self.sites):
-            raise ValueError("Spin of all sites must be specified in the dictionary.")
+        if len(spins) != len(self):
+            raise ValueError(f"Spins for all sites must be specified, expected {len(self)} spins, got {len(spins)}")
 
         for site, spin in zip(self.sites, spins):
             new_sp = {}
@@ -781,17 +776,17 @@ class IStructure(SiteCollection, MSONable):
         prop_keys: list[str] = []
         props = {}
         lattice = sites[0].lattice
-        for i, site in enumerate(sites):
+        for idx, site in enumerate(sites):
             if site.lattice != lattice:
                 raise ValueError("Sites must belong to the same lattice")
-            for k, v in site.properties.items():
-                if k not in prop_keys:
-                    prop_keys.append(k)
-                    props[k] = [None] * len(sites)
-                props[k][i] = v
-        for k, v in props.items():
-            if any(vv is None for vv in v):
-                warnings.warn(f"Not all sites have property {k}. Missing values are set to None.")
+            for key, val in site.properties.items():
+                if key not in prop_keys:
+                    prop_keys.append(key)
+                    props[key] = [None] * len(sites)
+                props[key][idx] = val
+        for key, val in props.items():
+            if any(vv is None for vv in val):
+                warnings.warn(f"Not all sites have property {key}. Missing values are set to None.")
         return cls(
             lattice,
             [site.species for site in sites],
@@ -1034,7 +1029,7 @@ class IStructure(SiteCollection, MSONable):
     @property
     def density(self) -> float:
         """
-        Returns the density in units of g/cc
+        Returns the density in units of g/cm^3.
         """
         m = Mass(self.composition.weight, "amu")
         return m.to("g") / (self.volume * Length(1, "ang").to("cm") ** 3)
@@ -2353,13 +2348,13 @@ class IStructure(SiteCollection, MSONable):
                 dist_matrix = subset_structure.distance_matrix
                 dists = sorted(set(dist_matrix.ravel()))
                 unique_dists = []
-                for i in range(1, len(dists)):
-                    if dists[i] - dists[i - 1] > 0.1:
-                        unique_dists.append(dists[i])
+                for idx in range(1, len(dists)):
+                    if dists[idx] - dists[idx - 1] > 0.1:
+                        unique_dists.append(dists[idx])
                 clusters = {(i + 2): d + 0.01 for i, d in enumerate(unique_dists) if i < 2}
                 kwargs["clusters"] = clusters
             return [run_mcsqs(self, **kwargs).bestsqs]
-        raise ValueError()
+        raise ValueError("Invalid mode!")
 
     def as_dict(self, verbosity=1, fmt=None, **kwargs):
         """
@@ -2491,19 +2486,19 @@ class IStructure(SiteCollection, MSONable):
             from pymatgen.io.cssr import Cssr
 
             writer = Cssr(self)  # type: ignore
-        elif fmt == "json" or fnmatch(filename.lower(), "*.json"):
-            s = json.dumps(self.as_dict())
+        elif fmt == "json" or fnmatch(filename.lower(), "*.json*"):
+            dct = json.dumps(self.as_dict())
             if filename:
-                with zopen(filename, "wt") as f:
-                    f.write(s)
-            return s
+                with zopen(filename, "wt") as file:
+                    file.write(dct)
+            return dct
         elif fmt == "xsf" or fnmatch(filename.lower(), "*.xsf*"):
             from pymatgen.io.xcrysden import XSF
 
             s = XSF(self).to_string()
             if filename:
-                with zopen(filename, "wt", encoding="utf8") as f:
-                    f.write(s)
+                with zopen(filename, "wt", encoding="utf8") as file:
+                    file.write(s)
             return s
         elif (
             fmt == "mcsqs"
@@ -2515,8 +2510,8 @@ class IStructure(SiteCollection, MSONable):
 
             s = Mcsqs(self).to_string()
             if filename:
-                with zopen(filename, "wt", encoding="ascii") as f:
-                    f.write(s)
+                with zopen(filename, "wt", encoding="ascii") as file:
+                    file.write(s)
             return s
         elif fmt == "prismatic" or fnmatch(filename, "*prismatic*"):
             from pymatgen.io.prismatic import Prismatic
@@ -2526,8 +2521,8 @@ class IStructure(SiteCollection, MSONable):
         elif fmt == "yaml" or fnmatch(filename, "*.yaml*") or fnmatch(filename, "*.yml*"):
             yaml = YAML()
             if filename:
-                with zopen(filename, "wt") as f:
-                    yaml.dump(self.as_dict(), f)
+                with zopen(filename, "wt") as file:
+                    yaml.dump(self.as_dict(), file)
                 return None
             sio = StringIO()
             yaml.dump(self.as_dict(), sio)
@@ -2541,12 +2536,12 @@ class IStructure(SiteCollection, MSONable):
 
             s = ResIO.structure_to_str(self)
             if filename:
-                with zopen(filename, "wt", encoding="utf8") as f:
-                    f.write(s)
+                with zopen(filename, "wt", encoding="utf8") as file:
+                    file.write(s)
                 return None
             return s
         else:
-            raise ValueError(f"Invalid format: `{str(fmt)}`")
+            raise ValueError(f"Invalid format: `{fmt!s}`")
 
         if filename:
             writer.write_file(filename)
@@ -2634,7 +2629,7 @@ class IStructure(SiteCollection, MSONable):
         return cls.from_sites(s)
 
     @classmethod
-    def from_file(cls, filename, primitive=False, sort=False, merge_tol=0.0, **kwargs):
+    def from_file(cls, filename, primitive=False, sort=False, merge_tol=0.0, **kwargs) -> Structure | IStructure:
         """
         Reads a structure from a file. For example, anything ending in
         a "cif" is assumed to be a Crystallographic Information Format file.
@@ -2647,8 +2642,8 @@ class IStructure(SiteCollection, MSONable):
             sort (bool): Whether to sort sites. Default to False.
             merge_tol (float): If this is some positive number, sites that are within merge_tol from each other will be
                 merged. Usually 0.01 should be enough to deal with common numerical issues.
-            **kwargs: Passthrough to relevant reader. E.g., if it is CIF, the kwargs will be passed through to
-                CifParser.
+            kwargs: Passthrough to relevant reader. E.g. if the file has CIF format, the kwargs will be passed
+                through to CifParser.
 
         Returns:
             Structure.
@@ -2668,7 +2663,7 @@ class IStructure(SiteCollection, MSONable):
         from pymatgen.io.vasp import Chgcar, Vasprun
 
         fname = os.path.basename(filename)
-        with zopen(filename, "rt") as f:
+        with zopen(filename, "rt", errors="replace") as f:
             contents = f.read()
         if fnmatch(fname.lower(), "*.cif*") or fnmatch(fname.lower(), "*.mcif*"):
             return cls.from_str(contents, fmt="cif", primitive=primitive, sort=sort, merge_tol=merge_tol, **kwargs)
@@ -3452,15 +3447,14 @@ class Structure(IStructure, collections.abc.MutableSequence):
                 if len(indices) != 1:
                     raise ValueError("Site assignments makes sense only for single int indices!")
                 self._sites[ii] = site
+            elif isinstance(site, str) or (not isinstance(site, collections.abc.Sequence)):
+                self._sites[ii].species = site  # type: ignore
             else:
-                if isinstance(site, str) or (not isinstance(site, collections.abc.Sequence)):
-                    self._sites[ii].species = site  # type: ignore
-                else:
-                    self._sites[ii].species = site[0]  # type: ignore
-                    if len(site) > 1:
-                        self._sites[ii].frac_coords = site[1]  # type: ignore
-                    if len(site) > 2:
-                        self._sites[ii].properties = site[2]  # type: ignore
+                self._sites[ii].species = site[0]  # type: ignore
+                if len(site) > 1:
+                    self._sites[ii].frac_coords = site[1]  # type: ignore
+                if len(site) > 2:
+                    self._sites[ii].properties = site[2]  # type: ignore
 
     def __delitem__(self, idx: SupportsIndex | slice) -> None:
         """Deletes a site from the Structure."""
@@ -3766,8 +3760,8 @@ class Structure(IStructure, collections.abc.MutableSequence):
                 modify_lattice with a lattice with lattice parameters that
                 are 1% larger.
         """
-        s = (1 + np.array(strain)) * np.eye(3)
-        self.lattice = Lattice(np.dot(self._lattice.matrix.T, s).T)
+        strain_matrix = (1 + np.array(strain)) * np.eye(3)
+        self.lattice = Lattice(np.dot(self._lattice.matrix.T, strain_matrix).T)
 
     def sort(self, key: Callable | None = None, reverse: bool = False) -> None:
         """
@@ -4187,15 +4181,14 @@ class Molecule(IMolecule, collections.abc.MutableSequence):
         for ii in indices:
             if isinstance(site, Site):
                 self._sites[ii] = site
+            elif isinstance(site, str) or not isinstance(site, collections.abc.Sequence):
+                self._sites[ii].species = site  # type: ignore
             else:
-                if isinstance(site, str) or not isinstance(site, collections.abc.Sequence):
-                    self._sites[ii].species = site  # type: ignore
-                else:
-                    self._sites[ii].species = site[0]  # type: ignore
-                    if len(site) > 1:
-                        self._sites[ii].coords = site[1]  # type: ignore
-                    if len(site) > 2:
-                        self._sites[ii].properties = site[2]  # type: ignore
+                self._sites[ii].species = site[0]  # type: ignore
+                if len(site) > 1:
+                    self._sites[ii].coords = site[1]  # type: ignore
+                if len(site) > 2:
+                    self._sites[ii].properties = site[2]  # type: ignore
 
     def __delitem__(self, idx: SupportsIndex | slice) -> None:
         """Deletes a site from the Structure."""

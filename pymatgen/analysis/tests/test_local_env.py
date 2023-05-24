@@ -1265,12 +1265,12 @@ class CrystalNNTest(PymatgenTest):
         warnings.filters = self.prev_warnings
 
     def test_sanity(self):
+        cnn = CrystalNN()
         with pytest.raises(ValueError):
-            cnn = CrystalNN()
             cnn.get_cn(self.lifepo4, 0, use_weights=True)
 
+        cnn = CrystalNN(weighted_cn=True)
         with pytest.raises(ValueError):
-            cnn = CrystalNN(weighted_cn=True)
             cnn.get_cn(self.lifepo4, 0, use_weights=False)
 
     def test_discrete_cn(self):
@@ -1317,9 +1317,9 @@ class CrystalNNTest(PymatgenTest):
 
     def test_fixed_length(self):
         cnn = CrystalNN(fingerprint_length=30)
-        nndata = cnn.get_nn_data(self.lifepo4, 0)
-        assert len(nndata.cn_weights) == 30
-        assert len(nndata.cn_nninfo) == 30
+        nn_data = cnn.get_nn_data(self.lifepo4, 0)
+        assert len(nn_data.cn_weights) == 30
+        assert len(nn_data.cn_nninfo) == 30
 
     def test_cation_anion(self):
         cnn = CrystalNN(weighted_cn=True, cation_anion=True)

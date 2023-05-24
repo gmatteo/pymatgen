@@ -11,9 +11,8 @@ from pymatgen.io.xtb.outputs import CRESTOutput
 from pymatgen.util.testing import PymatgenTest
 
 try:
-    from openbabel import openbabel
+    from openbabel import openbabel as openbabel
 
-    openbabel  # reference openbabel so it's not unused import
     have_babel = True
 except ImportError:
     have_babel = False
@@ -35,49 +34,7 @@ class TestCRESTOutput(PymatgenTest):
 
     def test_all(self):
         expected_cmd_options = {"g": "H2O", "c": "2"}
-        expected_energies = [
-            [
-                "-13.66580",
-                "-13.66580",
-                "-13.66580",
-                "-13.66580",
-                "-13.66580",
-                "-13.66580",
-                "-13.66580",
-                "-13.66580",
-                "-13.66580",
-                "-13.66580",
-            ],
-            [
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-                "-13.66479",
-            ],
-        ]
+        expected_energies = [["-13.66580"] * 10, ["-13.66479"] * 27]
         expected_sorted_structures = [[], []]
         for f in os.listdir(expected_output_dir):
             if f.endswith("xyz") and "_r" in f:

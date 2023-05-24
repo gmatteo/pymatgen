@@ -18,31 +18,19 @@ from pymatgen.analysis.chemenv.coordination_environments.chemenv_strategies impo
     SelfCSMNbSetWeight,
     SimplestChemenvStrategy,
 )
-from pymatgen.analysis.chemenv.coordination_environments.coordination_geometry_finder import (
-    LocalGeometryFinder,
-)
+from pymatgen.analysis.chemenv.coordination_environments.coordination_geometry_finder import LocalGeometryFinder
 from pymatgen.analysis.chemenv.coordination_environments.structure_environments import (
     LightStructureEnvironments,
     StructureEnvironments,
 )
-from pymatgen.analysis.chemenv.coordination_environments.voronoi import (
-    DetailedVoronoiContainer,
-)
+from pymatgen.analysis.chemenv.coordination_environments.voronoi import DetailedVoronoiContainer
 from pymatgen.core.structure import Structure
 from pymatgen.util.testing import PymatgenTest
 
 __author__ = "waroquiers"
 
-json_files_dir = os.path.join(
-    PymatgenTest.TEST_FILES_DIR,
-    "chemenv",
-    "json_test_files",
-)
-se_files_dir = os.path.join(
-    PymatgenTest.TEST_FILES_DIR,
-    "chemenv",
-    "structure_environments_files",
-)
+json_files_dir = os.path.join(PymatgenTest.TEST_FILES_DIR, "chemenv", "json_test_files")
+se_files_dir = os.path.join(PymatgenTest.TEST_FILES_DIR, "chemenv", "structure_environments_files")
 
 
 class ReadWriteChemenvTest(unittest.TestCase):

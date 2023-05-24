@@ -87,7 +87,7 @@ class GaussianInput:
 
     # Commonly used regex patterns
     _zmat_patt = re.compile(r"^(\w+)*([\s,]+(\w+)[\s,]+(\w+))*[\-\.\s,\w]*$")
-    _xyz_patt = re.compile(r"^(\w+)[\s,]+([\d\.eE\-]+)[\s,]+([\d\.eE\-]+)[\s,]+" r"([\d\.eE\-]+)[\-\.\s,\w.]*$")
+    _xyz_patt = re.compile(r"^(\w+)[\s,]+([\d\.eE\-]+)[\s,]+([\d\.eE\-]+)[\s,]+([\d\.eE\-]+)[\-\.\s,\w.]*$")
 
     def __init__(
         self,
@@ -313,6 +313,9 @@ class GaussianInput:
             # This condition allows for route cards spanning multiple lines
             elif (line == "" or line.isspace()) and route_index:
                 break
+            if route_index:
+                route += f" {line}"
+                route_index = idx
         functional, basis_set, route_paras, dieze_tag = read_route_line(route)
         ind = 2
         title = []
@@ -748,7 +751,7 @@ class GaussianOutput:
         start_patt = re.compile(r" \(Enter \S+l101\.exe\)")
         route_patt = re.compile(r" #[pPnNtT]*.*")
         link0_patt = re.compile(r"^\s(%.+)\s*=\s*(.+)")
-        charge_mul_patt = re.compile(r"Charge\s+=\s*([-\d]+)\s+" r"Multiplicity\s+=\s*(\d+)")
+        charge_mul_patt = re.compile(r"Charge\s+=\s*([-\d]+)\s+Multiplicity\s+=\s*(\d+)")
         num_basis_func_patt = re.compile(r"([0-9]+)\s+basis functions")
         num_elec_patt = re.compile(r"(\d+)\s+alpha electrons\s+(\d+)\s+beta electrons")
         pcm_patt = re.compile(r"Polarizable Continuum Model")
@@ -764,7 +767,7 @@ class GaussianOutput:
         std_orientation_patt = re.compile(r"Standard orientation")
         input_orientation_patt = re.compile(r"Input orientation|Z-Matrix orientation")
         orbital_patt = re.compile(r"(Alpha|Beta)\s*\S+\s*eigenvalues --(.*)")
-        thermo_patt = re.compile(r"(Zero-point|Thermal) correction(.*)=" r"\s+([\d\.-]+)")
+        thermo_patt = re.compile(r"(Zero-point|Thermal) correction(.*)=\s+([\d\.-]+)")
         forces_on_patt = re.compile(r"Center\s+Atomic\s+Forces\s+\(Hartrees/Bohr\)")
         forces_off_patt = re.compile(r"Cartesian\s+Forces:\s+Max.*RMS.*")
         forces_patt = re.compile(r"\s+(\d+)\s+(\d+)\s+([0-9\.-]+)\s+([0-9\.-]+)\s+([0-9\.-]+)")
@@ -821,7 +824,7 @@ class GaussianOutput:
         geom_orientation = None
         opt_structures = []
 
-        with zopen(filename) as f:
+        with zopen(filename, mode="rt") as f:
             for line in f:
                 if parse_stage == 0:
                     if start_patt.search(line):
@@ -839,7 +842,8 @@ class GaussianOutput:
                             self.dieze_tag = params[3]
                             parse_stage = 1
                         else:
-                            routeline += line.strip()
+                            line = line.replace(" ", "", 1).rstrip("\n")
+                            routeline += line
                 elif parse_stage == 1:
                     if set(line.strip()) == {"-"} and self.title is None:
                         self.title = ""
@@ -1167,9 +1171,9 @@ class GaussianOutput:
             warnings.warn("\n" + self.filename + ": Termination error or bad Gaussian output file !")
 
     def _check_pcm(self, line):
-        energy_patt = re.compile(r"(Dispersion|Cavitation|Repulsion) energy" r"\s+\S+\s+=\s+(\S*)")
-        total_patt = re.compile(r"with all non electrostatic terms\s+\S+\s+" r"=\s+(\S*)")
-        parameter_patt = re.compile(r"(Eps|Numeral density|RSolv|Eps" r"\(inf[inity]*\))\s+=\s*(\S*)")
+        energy_patt = re.compile(r"(Dispersion|Cavitation|Repulsion) energy\s+\S+\s+=\s+(\S*)")
+        total_patt = re.compile(r"with all non electrostatic terms\s+\S+\s+=\s+(\S*)")
+        parameter_patt = re.compile(r"(Eps|Numeral density|RSolv|Eps\(inf[inity]*\))\s+=\s*(\S*)")
 
         if energy_patt.search(line):
             m = energy_patt.search(line)
@@ -1246,7 +1250,7 @@ class GaussianOutput:
         """
 
         def floatList(lst):
-            """return a list of float from a list of string"""
+            """Return a list of float from a list of string"""
             return [float(val) for val in lst]
 
         scan_patt = re.compile(r"^\sSummary of the potential surface scan:")

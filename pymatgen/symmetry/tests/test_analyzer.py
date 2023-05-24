@@ -11,12 +11,7 @@ from pymatgen.core.structure import Molecule, Structure
 from pymatgen.io.cif import CifParser
 from pymatgen.io.vasp.inputs import Poscar
 from pymatgen.io.vasp.outputs import Vasprun
-from pymatgen.symmetry.analyzer import (
-    PointGroupAnalyzer,
-    SpacegroupAnalyzer,
-    cluster_sites,
-    iterative_symmetrize,
-)
+from pymatgen.symmetry.analyzer import PointGroupAnalyzer, SpacegroupAnalyzer, cluster_sites, iterative_symmetrize
 from pymatgen.util.testing import PymatgenTest
 
 test_dir_mol = os.path.join(PymatgenTest.TEST_FILES_DIR, "molecules")
@@ -85,12 +80,12 @@ class SpacegroupAnalyzerTest(PymatgenTest):
         assert self.sg.get_point_group_symbol() == "mmm"
         assert self.disordered_sg.get_point_group_symbol() == "4/mmm"
 
-    def test_get_symmetry_operations(self):
+    def test_get_point_group_operations(self):
         for sg, structure in [(self.sg, self.structure), (self.sg4, self.structure4)]:
             pg_ops = sg.get_point_group_operations()
-            frac_symmops = sg.get_symmetry_operations()
-            symmops = sg.get_symmetry_operations(True)
-            for fop, op, pgop in zip(frac_symmops, symmops, pg_ops):
+            frac_symm_ops = sg.get_symmetry_operations()
+            symm_ops = sg.get_symmetry_operations(True)
+            for fop, op, pgop in zip(frac_symm_ops, symm_ops, pg_ops):
                 # translation vector values should all be 0 or 0.5
                 t = fop.translation_vector * 2
                 self.assertArrayAlmostEqual(t - np.round(t), 0)
@@ -101,9 +96,9 @@ class SpacegroupAnalyzerTest(PymatgenTest):
                     new_cart = op.operate(site.coords)
                     assert np.allclose(structure.lattice.get_fractional_coords(new_cart), new_frac)
                     found = False
-                    newsite = PeriodicSite(site.species, new_cart, structure.lattice, coords_are_cartesian=True)
-                    for testsite in structure:
-                        if newsite.is_periodic_image(testsite, 1e-3):
+                    new_site = PeriodicSite(site.species, new_cart, structure.lattice, coords_are_cartesian=True)
+                    for test_site in structure:
+                        if new_site.is_periodic_image(test_site, 1e-3):
                             found = True
                             break
                     assert found
@@ -116,6 +111,12 @@ class SpacegroupAnalyzerTest(PymatgenTest):
                 new_cart = op.operate(random_ccoord)
                 assert np.allclose(structure.lattice.get_fractional_coords(new_cart), new_frac)
 
+    def test_get_point_group_operations_uniq(self):
+        # https://github.com/materialsproject/pymatgen/pull/2942
+        struct = Structure.from_spacegroup(223, np.eye(3), ["Ni"], [[0.0, 0.0, 0.0]])
+        pg_ops = SpacegroupAnalyzer(struct).get_point_group_operations(cartesian=True)
+        assert len(pg_ops) == 48
+
     def test_get_symmetry_dataset(self):
         ds = self.sg.get_symmetry_dataset()
         assert ds["international"] == "Pnma"
@@ -125,14 +126,14 @@ class SpacegroupAnalyzerTest(PymatgenTest):
         Co8 = Structure.from_file(os.path.join(PymatgenTest.TEST_FILES_DIR, "Co8.cif"))
         symprec = 1e-1
 
+        sga = SpacegroupAnalyzer(Co8, symprec=symprec)
+        magmoms = [0] * len(Co8)  # bad magmoms, see https://github.com/materialsproject/pymatgen/pull/2727
+        sga._cell = (*sga._cell, magmoms)
         with pytest.raises(
             ValueError,
             match=f"Symmetry detection failed for structure with formula {Co8.formula}. "
             f"Try setting {symprec=} to a different value.",
         ):
-            sga = SpacegroupAnalyzer(Co8, symprec=symprec)
-            magmoms = [0] * len(Co8)  # bad magmoms, see https://github.com/materialsproject/pymatgen/pull/2727
-            sga._cell = (*sga._cell, magmoms)
             sga._get_symmetry()
 
     def test_get_crystal_system(self):
@@ -142,12 +143,10 @@ class SpacegroupAnalyzerTest(PymatgenTest):
 
         orig_spg = self.sg._space_group_data["number"]
         self.sg._space_group_data["number"] = 0
-        try:
-            crystal_system = self.sg.get_crystal_system()
-        except ValueError as exc:
-            assert str(exc) == "Received invalid space group 0"
-        finally:
-            self.sg._space_group_data["number"] = orig_spg
+        with pytest.raises(ValueError, match="Received invalid space group 0"):
+            self.sg.get_crystal_system()
+
+        self.sg._space_group_data["number"] = orig_spg
 
     def test_get_refined_structure(self):
         for a in self.sg.get_refined_structure().lattice.angles:
