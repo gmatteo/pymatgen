@@ -183,7 +183,7 @@ class PseudoTestCase(PymatgenTest):
 
         # Data persistence
         self.serialize_with_pickle(cu, test_eq=False)
-        self.assertMSONable(cu)
+        self.assert_msonable(cu)
 
         assert cu.symbol == "Cu"
         assert cu.Z == 29.0

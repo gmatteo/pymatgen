@@ -13,7 +13,7 @@ import sys
 import numpy as np
 
 from collections import defaultdict, namedtuple
-from typing import List, Any
+from typing import List, Any, Union
 from xml.etree import ElementTree
 from monty.collections import AttrDict, Namespace
 from monty.functools import lazy_property
@@ -42,14 +42,14 @@ __maintainer__ = "Matteo Giantomassi"
 # Tools and helper functions.
 
 
-def straceback():
+def straceback() -> str:
     """Returns a string with the traceback."""
     import traceback
 
     return "\n".join((traceback.format_exc(), str(sys.exc_info()[0])))
 
 
-def _read_nlines(filename, nlines):
+def _read_nlines(filename: str, nlines: int) -> list[str]:
     """
     Read at most nlines lines from file filename.
     If nlines is < 0, the entire file is read.
@@ -80,7 +80,7 @@ def l2str(l_ang_mom: str) -> int:
         return f"Unknown angular momentum, received {l_ang_mom = }"
 
 
-def str2l(s):
+def str2l(s: str) -> str:
     """Convert a string to the angular momentum l (int)"""
     return _str2l[s]
 
@@ -92,7 +92,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
     """
 
     @classmethod
-    def as_pseudo(cls, obj):
+    def as_pseudo(cls, obj: Union[Pseudo, str]):
         """
         Convert obj into a pseudo. Accepts:
 
@@ -419,7 +419,7 @@ class NcPseudo(metaclass=abc.ABCMeta):
         return self.nlcc_radius > 0.0
 
     @property
-    def rcore(self):
+    def rcore(self) -> Union[float, None]:
         """Radius of the pseudization sphere in a.u."""
         try:
             return self._core
@@ -448,11 +448,11 @@ class PawPseudo(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def paw_radius(self):
+    def paw_radius(self) -> float:
         """Radius of the PAW sphere in a.u."""
 
     @property
-    def rcore(self):
+    def rcore(self) -> float:
         """Alias of paw_radius."""
         return self.paw_radius
 
@@ -462,7 +462,7 @@ class AbinitPseudo(Pseudo):
     An AbinitPseudo is a pseudopotential whose file contains an abinit header.
     """
 
-    def __init__(self, path, header):
+    def __init__(self, path: str, header):
         """
         Args:
             path: Filename.
@@ -497,17 +497,17 @@ class AbinitPseudo(Pseudo):
         return self._zion
 
     @property
-    def l_max(self):
+    def l_max(self) -> int:
         # pylint: disable=E1101
         return self._lmax
 
     @property
-    def l_local(self):
+    def l_local(self) -> int:
         # pylint: disable=E1101
         return self._lloc
 
     @property
-    def supports_soc(self):
+    def supports_soc(self) -> bool:
         # Treat ONCVPSP pseudos
         # pylint: disable=E1101
         if self._pspcod == 8:
@@ -528,7 +528,7 @@ class NcAbinitPseudo(NcPseudo, AbinitPseudo):
     """Norm-conserving pseudopotential in the Abinit format."""
 
     @property
-    def summary(self):
+    def summary(self) -> str:
         return self._summary.strip()
 
     @property
@@ -543,17 +543,17 @@ class NcAbinitPseudo(NcPseudo, AbinitPseudo):
         return self._zion
 
     @property
-    def l_max(self):
+    def l_max(self) -> int:
         # pylint: disable=E1101
         return self._lmax
 
     @property
-    def l_local(self):
+    def l_local(self) -> int:
         # pylint: disable=E1101
         return self._lloc
 
     @property
-    def nlcc_radius(self):
+    def nlcc_radius(self) -> float:
         # pylint: disable=E1101
         return self._rchrg
 
@@ -562,14 +562,14 @@ class PawAbinitPseudo(PawPseudo, AbinitPseudo):
     """Paw pseudopotential in the Abinit format."""
 
     @property
-    def paw_radius(self):
+    def paw_radius(self) -> float:
         # pylint: disable=E1101
         return self._r_cut
 
     # def orbitals(self):
 
     @property
-    def supports_soc(self):
+    def supports_soc(self) -> bool:
         return True
 
 
@@ -579,7 +579,7 @@ class Hint:
     and the cutoff energy for the dense grid (only for PAW pseudos).
     """
 
-    def __init__(self, ecut, pawecutdg=None):
+    def __init__(self, ecut: float, pawecutdg=None):
         self.ecut = ecut
         self.pawecutdg = ecut if pawecutdg is None else pawecutdg
 
@@ -603,7 +603,7 @@ class Hint:
         return cls(**{k: v for k, v in d.items() if not k.startswith("@")})
 
 
-def _dict_from_lines(lines, key_nums, sep=None):
+def _dict_from_lines(lines: list[str], key_nums: list[int], sep=None):
     """
     Helper function to parse formatted text structured like:
 
@@ -671,7 +671,7 @@ class AbinitHeader(dict):
                 raise AttributeError(str(exc))
 
 
-def _int_from_str(string):
+def _int_from_str(string: str) -> int:
     """
     Convert string into integer
 
@@ -741,7 +741,7 @@ class NcAbinitHeader(AbinitHeader):
             self.update(kwargs)
 
     @staticmethod
-    def fhi_header(filename, ppdesc):
+    def fhi_header(filename, ppdesc) -> NcAbinitHeader:
         """
         Parse the FHI abinit header. Example:
 
@@ -763,7 +763,7 @@ class NcAbinitHeader(AbinitHeader):
         return NcAbinitHeader(summary, **header)
 
     @staticmethod
-    def hgh_header(filename, ppdesc):
+    def hgh_header(filename, ppdesc) -> NcAbinitHeader:
         """
         Parse the HGH abinit header. Example:
 
@@ -779,7 +779,7 @@ class NcAbinitHeader(AbinitHeader):
         return NcAbinitHeader(summary, **header)
 
     @staticmethod
-    def gth_header(filename, ppdesc):
+    def gth_header(filename, ppdesc) -> NcAbinitHeader:
         """
         Parse the GTH abinit header. Example:
 
@@ -799,7 +799,7 @@ class NcAbinitHeader(AbinitHeader):
         return NcAbinitHeader(summary, **header)
 
     @staticmethod
-    def oncvpsp_header(filename, ppdesc):
+    def oncvpsp_header(filename, ppdesc) -> NcAbinitHeader:
         """
         Parse the ONCVPSP abinit header. Example:
 
@@ -828,7 +828,7 @@ class NcAbinitHeader(AbinitHeader):
         return NcAbinitHeader(summary, **header)
 
     @staticmethod
-    def tm_header(filename, ppdesc):
+    def tm_header(filename, ppdesc) -> NcAbinitHeader:
         """
         Parse the TM abinit header. Example:
 
@@ -939,7 +939,7 @@ class PawAbinitHeader(AbinitHeader):
             raise RuntimeError(f"kwargs should be empty but got {kwargs!s}")
 
     @staticmethod
-    def paw_header(filename, ppdesc):
+    def paw_header(filename: str, ppdesc):
         """
         Parse the PAW abinit header. Examples:
 
@@ -1065,7 +1065,7 @@ class PseudoParser:
         # List of files that could not been parsed.
         self._wrong_paths = []
 
-    def scan_directory(self, dirname, exclude_exts=(), exclude_fnames=()):
+    def scan_directory(self, dirname: str, exclude_exts=(), exclude_fnames=()):
         """
         Analyze the files contained in directory dirname.
 
@@ -1106,7 +1106,7 @@ class PseudoParser:
 
         return pseudos
 
-    def read_ppdesc(self, filename):
+    def read_ppdesc(self, filename: str):
         """
         Read the pseudopotential descriptor from file filename.
 
@@ -1148,7 +1148,7 @@ class PseudoParser:
 
         return None
 
-    def parse(self, filename: str):
+    def parse(self, filename: str) -> Union[Pseudo, None]:
         """
         Read and parse a pseudopotential file. Main entry point for client code.
 
@@ -1557,8 +1557,10 @@ class PawXmlSetup(Pseudo, PawPseudo):
 
 class UpfPseudo(Pseudo):
     """
-    Pseudopotentials in UPF format. See e.g. https://esl.cecam.org/data/upf/
+    Pseudopotentials in UPF format. 
+    See e.g. https://esl.cecam.org/data/upf/
     """
+
     def __init__(self, filepath: str):
         """
         filepath: path to pseudopotential file
@@ -1726,7 +1728,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
     """
 
     @classmethod
-    def as_table(cls, items):
+    def as_table(cls, items) -> PseudoTable:
         """
         Return an instance of :class:`PseudoTable` from the iterable items.
         """
@@ -1735,7 +1737,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
         return cls(items)
 
     @classmethod
-    def from_dir(cls, top, exts=None, exclude_dirs="_*"):
+    def from_dir(cls, top: str, exts=None, exclude_dirs="_*") -> PseudoTable:
         """
         Find all pseudos in the directory tree starting from top.
 
@@ -1835,17 +1837,17 @@ class PseudoTable(collections.abc.Sequence, MSONable):
         return self.to_table()
 
     @property
-    def allnc(self):
+    def allnc(self) -> bool:
         """True if all pseudos are norm-conserving."""
         return all(p.isnc for p in self)
 
     @property
-    def allpaw(self):
+    def allpaw(self) -> bool:
         """True if all pseudos are PAW."""
         return all(p.ispaw for p in self)
 
     @property
-    def zlist(self):
+    def zlist(self) -> list:
         """Ordered list with the atomic numbers available in the table."""
         return sorted(list(self._pseudos_with_z))
 
@@ -1855,7 +1857,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
     #    pawecutdg = max(p.hint_for_accuracy(accuracy=accuracy).pawecutdg for p in self)
     #    return ecut, pawecutdg
 
-    def as_dict(self, **kwargs):
+    def as_dict(self, **kwargs) -> dict:
         """Return dictionary for MSONable protocol."""
         dct = {}
         for p in self:
@@ -1871,7 +1873,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
         return dct
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> PseudoTable:
         """Build instance from dictionary (MSONable protocol)."""
         pseudos = []
         dec = MontyDecoder()
@@ -1904,7 +1906,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
 
         return list(product(*dct.values()))
 
-    def pseudo_with_symbol(self, symbol, allow_multi=False):
+    def pseudo_with_symbol(self, symbol: str, allow_multi=False) -> Pseudo:
         """
         Return the pseudo with the given chemical symbol.
 
@@ -1924,7 +1926,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
             return pseudos[0]
         return pseudos
 
-    def pseudos_with_symbols(self, symbols):
+    def pseudos_with_symbols(self, symbols: list[str]) -> PseudoTable:
         """
         Return the pseudos with the given chemical symbols.
 
@@ -1944,7 +1946,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
 
         return pseudos
 
-    def select_symbols(self, symbols, ret_list=False):
+    def select_symbols(self, symbols, ret_list=False) -> PseudoTable:
         """
         Return a :class:`PseudoTable` with the pseudopotentials with the given list of chemical symbols.
 
@@ -1989,7 +1991,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
         """
         return self.pseudos_with_symbols(structure.symbol_set)
 
-    def print_table(self, stream=sys.stdout, filter_function=None):
+    def print_table(self, stream=sys.stdout, filter_function=None) -> None:
         """
         A pretty ASCII printer for the periodic table, based on some filter_function.
 
@@ -2015,7 +2017,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
             tablefmt="grid",
         )
 
-    def sorted(self, attrname, reverse=False):
+    def sorted(self, attrname, reverse=False) -> PseudoTable:
         """
         Sort the table according to the value of attribute attrname.
 
@@ -2033,7 +2035,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
         # Sort attrs, and build new table with sorted pseudos.
         return self.__class__([self[a[0]] for a in sorted(attrs, key=lambda t: t[1], reverse=reverse)])
 
-    def sort_by_z(self):
+    def sort_by_z(self) -> PseudoTable:
         """Return a new :class:`PseudoTable` with pseudos sorted by Z"""
         return self.__class__(sorted(self, key=lambda p: p.Z))
 
@@ -2049,11 +2051,11 @@ class PseudoTable(collections.abc.Sequence, MSONable):
         """
         return self.__class__([p for p in self if condition(p)])
 
-    def with_dojo_report(self):
+    def with_dojo_report(self) -> PseudoTable:
         """Select pseudos containing the DOJO_REPORT section. Return new class:`PseudoTable` object."""
         return self.select(condition=lambda p: p.has_dojo_report)
 
-    def select_rows(self, rows):
+    def select_rows(self, rows) -> PseudoTable:
         """
         Return new class:`PseudoTable` object with pseudos in the given rows of the periodic table.
         rows can be either a int or a list of integers.
@@ -2062,7 +2064,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
             rows = [rows]
         return self.__class__([p for p in self if p.element.row in rows])
 
-    def select_family(self, family):
+    def select_family(self, family: str) -> PseudoTable:
         """
         Return PseudoTable with element belonging to the specified family, e.g. family="alkaline"
         """

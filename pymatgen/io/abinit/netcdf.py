@@ -93,7 +93,7 @@ class NetcdfReader:
     Error = NetcdfReaderError
 
     @requires(netCDF4 is not None, "netCDF4 must be installed to use this class")
-    def __init__(self, path):
+    def __init__(self, path: str):
         """Open the Netcdf file specified by path (read mode)."""
         self.path = os.path.abspath(path)
 
@@ -118,7 +118,7 @@ class NetcdfReader:
         """Activated at the end of the with statement. It automatically closes the file."""
         self.rootgrp.close()
 
-    def close(self):
+    def close(self) -> None:
         """Close the file."""
         try:
             self.rootgrp.close()
@@ -138,13 +138,13 @@ class NetcdfReader:
         for value in top.groups.values():
             yield from self.walk_tree(value)
 
-    def print_tree(self):
+    def print_tree(self) -> None:
         """Print all the groups in the file."""
         for children in self.walk_tree():
             for child in children:
                 print(child)
 
-    def read_dimvalue(self, dimname, path="/", default=NO_DEFAULT):
+    def read_dimvalue(self, dimname: str, path="/", default=NO_DEFAULT) -> int:
         """
         Returns the value of a dimension.
 
@@ -160,16 +160,16 @@ class NetcdfReader:
         except self.Error:
             if default is NO_DEFAULT:
                 raise
-            return default
+            return int(default)
 
-    def read_varnames(self, path="/"):
+    def read_varnames(self, path="/") -> list[str]:
         """List of variable names stored in the group specified by path."""
         if path == "/":
             return list(self.rootgrp.variables)
         group = self.path2group[path]
         return list(group.variables)
 
-    def read_value(self, varname, path="/", cmode=None, default=NO_DEFAULT):
+    def read_value(self, varname: str, path="/", cmode=None, default=NO_DEFAULT) -> np.ndarray:
         """
         Returns the values of variable with name varname in the group specified by path.
 
@@ -204,11 +204,11 @@ class NetcdfReader:
             return var[..., 0] + 1j * var[..., 1]
         raise ValueError(f"Wrong value for cmode {cmode}")
 
-    def read_variable(self, varname, path="/"):
+    def read_variable(self, varname: str, path="/"):
         """Returns the variable with name varname in the group specified by path."""
         return self._read_variables(varname, path=path)[0]
 
-    def _read_dimensions(self, *dimnames, **kwargs):
+    def _read_dimensions(self, *dimnames, **kwargs) -> list[int]:
         path = kwargs.get("path", "/")
         try:
             if path == "/":
@@ -262,7 +262,7 @@ class ETSF_Reader(NetcdfReader):
     """
 
     @lazy_property
-    def chemical_symbols(self):
+    def chemical_symbols(self) -> list[str]:
         """Chemical symbols char [number of atom species][symbol length]."""
         charr = self.read_value("chemical_symbols")
         symbols = []
@@ -272,7 +272,7 @@ class ETSF_Reader(NetcdfReader):
 
         return symbols
 
-    def typeidx_from_symbol(self, symbol):
+    def typeidx_from_symbol(self, symbol: str) -> int:
         """Returns the type index from the chemical symbol. Note python convention."""
         return self.chemical_symbols.index(symbol)
 
@@ -280,14 +280,14 @@ class ETSF_Reader(NetcdfReader):
         """Returns the crystalline structure stored in the rootgrp."""
         return structure_from_ncdata(self, cls=cls)
 
-    def read_abinit_xcfunc(self):
+    def read_abinit_xcfunc(self) -> XcFunc:
         """
         Read ixc from an Abinit file. Return :class:`XcFunc` object.
         """
         ixc = int(self.read_value("ixc"))
         return XcFunc.from_abinit_ixc(ixc)
 
-    def read_abinit_hdr(self):
+    def read_abinit_hdr(self) -> AbinitHeader:
         """
         Read the variables associated to the Abinit header.
 
@@ -480,7 +480,7 @@ class AbinitHeader(AttrDict):
     def __str__(self):
         return self.to_string()
 
-    def to_string(self, verbose=0, title=None, **kwargs):
+    def to_string(self, verbose=0, title=None, **kwargs) -> str:
         """
         String representation. kwargs are passed to `pprint.pformat`.
 
