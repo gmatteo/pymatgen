@@ -12,12 +12,7 @@ import pytest
 from monty.serialization import loadfn
 from pytest import approx
 
-from pymatgen.analysis.graphs import (
-    MoleculeGraph,
-    MolGraphSplitError,
-    PeriodicSite,
-    StructureGraph,
-)
+from pymatgen.analysis.graphs import MoleculeGraph, MolGraphSplitError, PeriodicSite, StructureGraph
 from pymatgen.analysis.local_env import (
     CovalentBondNN,
     CutOffDictNN,
@@ -293,8 +288,8 @@ from    to  to_image      bond_length (A)
         # don't care about testing Py 2.7 unicode support,
         # change Å to A
         self.mos2_sg.graph.graph["edge_weight_units"] = "A"
-        self.assertStrContentEqual(str(self.square_sg), square_sg_str_ref)
-        self.assertStrContentEqual(str(self.mos2_sg), mos2_sg_str_ref)
+        self.assert_str_content_equal(str(self.square_sg), square_sg_str_ref)
+        self.assert_str_content_equal(str(self.mos2_sg), mos2_sg_str_ref)
 
     def test_mul(self):
         square_sg_mul = self.square_sg * (2, 1, 1)
@@ -328,7 +323,7 @@ from    to  to_image
         square_sg_mul_ref_str = "\n".join(square_sg_mul_ref_str.splitlines()[11:])
         square_sg_mul_actual_str = "\n".join(square_sg_mul_actual_str.splitlines()[11:])
 
-        self.assertStrContentEqual(square_sg_mul_actual_str, square_sg_mul_ref_str)
+        self.assert_str_content_equal(square_sg_mul_actual_str, square_sg_mul_ref_str)
 
         # test sequential multiplication
         sq_sg_1 = self.square_sg * (2, 2, 1)
@@ -528,12 +523,7 @@ class MoleculeGraphTest(unittest.TestCase):
         self.cyclohexene.add_edge(5, 14, weight=1.0)
         self.cyclohexene.add_edge(5, 15, weight=1.0)
 
-        butadiene = Molecule.from_file(
-            os.path.join(
-                PymatgenTest.TEST_FILES_DIR,
-                "graphs/butadiene.xyz",
-            )
-        )
+        butadiene = Molecule.from_file(os.path.join(PymatgenTest.TEST_FILES_DIR, "graphs/butadiene.xyz"))
         self.butadiene = MoleculeGraph.with_empty_graph(butadiene, edge_weight_name="strength", edge_weight_units="")
         self.butadiene.add_edge(0, 1, weight=2.0)
         self.butadiene.add_edge(1, 2, weight=1.0)
@@ -545,12 +535,7 @@ class MoleculeGraphTest(unittest.TestCase):
         self.butadiene.add_edge(3, 8, weight=1.0)
         self.butadiene.add_edge(3, 9, weight=1.0)
 
-        ethylene = Molecule.from_file(
-            os.path.join(
-                PymatgenTest.TEST_FILES_DIR,
-                "graphs/ethylene.xyz",
-            )
-        )
+        ethylene = Molecule.from_file(os.path.join(PymatgenTest.TEST_FILES_DIR, "graphs/ethylene.xyz"))
         self.ethylene = MoleculeGraph.with_empty_graph(ethylene, edge_weight_name="strength", edge_weight_units="")
         self.ethylene.add_edge(0, 1, weight=2.0)
         self.ethylene.add_edge(0, 2, weight=1.0)
@@ -669,16 +654,17 @@ class MoleculeGraphTest(unittest.TestCase):
         assert self.cyclohexene.get_coordination_of_site(0) == 4
 
     def test_edge_editing(self):
-        self.cyclohexene.alter_edge(0, 1, new_weight=0.0, new_edge_properties={"foo": "bar"})
-        new_edge = self.cyclohexene.graph.get_edge_data(0, 1)[0]
+        cyclohexene = copy.deepcopy(self.cyclohexene)
+        cyclohexene.alter_edge(0, 1, new_weight=0.0, new_edge_properties={"foo": "bar"})
+        new_edge = cyclohexene.graph.get_edge_data(0, 1)[0]
         assert new_edge["weight"] == 0.0
         assert new_edge["foo"] == "bar"
 
-        self.cyclohexene.break_edge(0, 1)
-        assert self.cyclohexene.graph.get_edge_data(0, 1) is None
+        cyclohexene.break_edge(0, 1)
+        assert cyclohexene.graph.get_edge_data(0, 1) is None
 
         # Replace the now-broken edge
-        self.cyclohexene.add_edge(0, 1, weight=1.0)
+        cyclohexene.add_edge(0, 1, weight=1.0)
 
     def test_insert_remove(self):
         mol_copy = copy.deepcopy(self.ethylene.molecule)
@@ -849,17 +835,13 @@ class MoleculeGraphTest(unittest.TestCase):
 
     def test_find_rings(self):
         rings = self.cyclohexene.find_rings(including=[0])
-        assert sorted(rings[0]) == [(0, 5), (1, 0), (2, 1), (3, 2), (4, 3), (5, 4)]
+        assert sorted(rings[0]) == [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
         no_rings = self.butadiene.find_rings()
         assert no_rings == []
 
     def test_isomorphic(self):
-        ethylene = Molecule.from_file(
-            os.path.join(
-                PymatgenTest.TEST_FILES_DIR,
-                "graphs/ethylene.xyz",
-            )
-        )
+        ethyl_xyz_path = os.path.join(PymatgenTest.TEST_FILES_DIR, "graphs/ethylene.xyz")
+        ethylene = Molecule.from_file(ethyl_xyz_path)
         # switch carbons
         ethylene[0], ethylene[1] = ethylene[1], ethylene[0]
 

@@ -14,7 +14,7 @@ import math
 import os
 import warnings
 from itertools import combinations
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import numpy as np
 from monty.json import MontyDecoder, MontyEncoder, MSONable
@@ -22,8 +22,10 @@ from scipy.interpolate import interp1d
 from uncertainties import ufloat
 
 from pymatgen.core.composition import Composition
-from pymatgen.core.structure import Structure
 from pymatgen.entries import Entry
+
+if TYPE_CHECKING:
+    from pymatgen.core import Structure
 
 __author__ = "Ryan Kingsbury, Matt McDermott, Shyue Ping Ong, Anubhav Jain"
 __copyright__ = "Copyright 2011-2020, The Materials Project"
@@ -645,7 +647,7 @@ class ComputedStructureEntry(ComputedEntry):
 
     def as_dict(self) -> dict:
         """
-        :return: MSONAble dict.
+        :return: MSONable dict.
         """
         d = super().as_dict()
         d["structure"] = self.structure.as_dict()
@@ -986,7 +988,7 @@ class GibbsComputedStructureEntry(ComputedStructureEntry):
 
     def as_dict(self) -> dict:
         """
-        :return: MSONAble dict.
+        :return: MSONable dict.
         """
         d = super().as_dict()
         d["formation_enthalpy_per_atom"] = self.formation_enthalpy_per_atom

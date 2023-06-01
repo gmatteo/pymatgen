@@ -7,21 +7,24 @@ Atoms object and pymatgen Structure objects.
 from __future__ import annotations
 
 import warnings
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pymatgen.core.structure import Molecule, Structure
 
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike
+
+
 try:
     from ase import Atoms
+    from ase.calculators.singlepoint import SinglePointDFTCalculator
+    from ase.constraints import FixAtoms
 
     ase_loaded = True
 except ImportError:
     ase_loaded = False
-
-if ase_loaded:
-    from ase.calculators.singlepoint import SinglePointDFTCalculator
-    from ase.constraints import FixAtoms
 
 __author__ = "Shyue Ping Ong, Andrew S. Rosen"
 __copyright__ = "Copyright 2012, The Materials Project"
@@ -37,33 +40,31 @@ class AseAtomsAdaptor:
     """
 
     @staticmethod
-    def get_atoms(structure, **kwargs):
+    def get_atoms(structure: Structure | Molecule, **kwargs) -> Atoms:
         """
         Returns ASE Atoms object from pymatgen structure or molecule.
 
         Args:
-            structure: pymatgen.core.structure.Structure or pymatgen.core.structure.Molecule
-            **kwargs: other keyword args to pass into the ASE Atoms constructor
+            structure (Structure | Molecule): Input structure or molecule
+            **kwargs: passed to the ASE Atoms constructor
 
         Returns:
-            ASE Atoms object
+            Atoms: ASE Atoms object
         """
         if not structure.is_ordered:
             raise ValueError("ASE Atoms only supports ordered structures")
         if not ase_loaded:
             raise ImportError(
-                "AseAtomsAdaptor requires the ASE package.\nUse `pip install ase` or `conda install ase -c conda-forge`"
+                "AseAtomsAdaptor requires the ASE package.\n"
+                "Use `pip install ase` or `conda install ase -c conda-forge`"
             )
 
         # Construct the base ASE Atoms object
         symbols = [str(site.specie.symbol) for site in structure]
         positions = [site.coords for site in structure]
-        if hasattr(structure, "lattice"):
-            cell = structure.lattice.matrix
-            pbc = True
-        else:
-            cell = None
-            pbc = None
+        is_struct = hasattr(structure, "lattice")
+        pbc = True if is_struct else None
+        cell = structure.lattice.matrix if is_struct else None
 
         atoms = Atoms(symbols=symbols, positions=positions, pbc=pbc, cell=cell, **kwargs)
 
@@ -87,15 +88,15 @@ class AseAtomsAdaptor:
         charges = structure.site_properties["final_charge"] if "final_charge" in structure.site_properties else None
         if magmoms or charges:
             if magmoms and charges:
-                calc = SinglePointDFTCalculator(atoms, **{"magmoms": magmoms, "charges": charges})
+                calc = SinglePointDFTCalculator(atoms, magmoms=magmoms, charges=charges)
             elif magmoms:
-                calc = SinglePointDFTCalculator(atoms, **{"magmoms": magmoms})
+                calc = SinglePointDFTCalculator(atoms, magmoms=magmoms)
             elif charges:
-                calc = SinglePointDFTCalculator(atoms, **{"charges": charges})
+                calc = SinglePointDFTCalculator(atoms, charges=charges)
             atoms.calc = calc
 
         # Get the oxidation states from the structure
-        oxi_states = [getattr(site.specie, "oxi_state", None) for site in structure]
+        oxi_states: list[float | None] = [getattr(site.specie, "oxi_state", None) for site in structure]
 
         # Read in selective dynamics if present. Note that the ASE FixAtoms class fixes (x,y,z), so
         # here we make sure that [False, False, False] or [True, True, True] is set for the site selective
@@ -103,11 +104,12 @@ class AseAtomsAdaptor:
         if "selective_dynamics" in structure.site_properties:
             fix_atoms = []
             for site in structure:
-                site_prop = site.properties["selective_dynamics"]
-                if site_prop not in [[True, True, True], [False, False, False]]:
+                selective_dynamics: ArrayLike = site.properties.get("selective_dynamics")  # type: ignore[assignment]
+                if not (np.all(selective_dynamics) or not np.any(selective_dynamics)):
+                    # should be [True, True, True] or [False, False, False]
                     raise ValueError(
-                        "ASE FixAtoms constraint does not support selective dynamics in only some dimensions."
-                        "Remove the selective dynamics and try again if you do not need them."
+                        "ASE FixAtoms constraint does not support selective dynamics in only some dimensions. "
+                        f"Remove the {selective_dynamics=} and try again if you do not need them."
                     )
                 is_fixed = bool(~np.all(site.properties["selective_dynamics"]))
                 fix_atoms.append(is_fixed)
@@ -123,26 +125,24 @@ class AseAtomsAdaptor:
         for prop in structure.site_properties:
             if prop not in ["magmom", "charge", "final_magmom", "final_charge", "selective_dynamics"]:
                 atoms.set_array(prop, np.array(structure.site_properties[prop]))
-        if np.any(oxi_states):
+        if any(oxi_states):
             atoms.set_array("oxi_states", np.array(oxi_states))
 
         return atoms
 
     @staticmethod
-    def get_structure(atoms, cls=None, **cls_kwargs):
+    def get_structure(atoms: Atoms, cls: type[Structure] = Structure, **cls_kwargs) -> Structure:
         """
         Returns pymatgen structure from ASE Atoms.
 
         Args:
             atoms: ASE Atoms object
-            cls: The Structure class to instantiate (defaults to pymatgen structure)
+            cls: The Structure class to instantiate (defaults to pymatgen Structure)
             **cls_kwargs: Any additional kwargs to pass to the cls
 
         Returns:
             Equivalent pymatgen.core.structure.Structure
         """
-        cls = Structure if cls is None else cls
-
         symbols = atoms.get_chemical_symbols()
         positions = atoms.get_positions()
         lattice = atoms.get_cell()
@@ -224,7 +224,7 @@ class AseAtomsAdaptor:
         return structure
 
     @staticmethod
-    def get_molecule(atoms, cls=None, **cls_kwargs):
+    def get_molecule(atoms: Atoms, cls: type[Molecule] = Molecule, **cls_kwargs) -> Molecule:
         """
         Returns pymatgen molecule from ASE Atoms.
 
@@ -234,12 +234,11 @@ class AseAtomsAdaptor:
             **cls_kwargs: Any additional kwargs to pass to the cls
 
         Returns:
-            Equivalent pymatgen.core.structure.Molecule
+            Molecule: Equivalent pymatgen.core.structure.Molecule
         """
-        cls = Molecule if cls is None else cls
         molecule = AseAtomsAdaptor.get_structure(atoms, cls=cls, **cls_kwargs)
         charge = round(np.sum(atoms.get_initial_charges())) if atoms.has("initial_charges") else 0
-        mult = round(np.sum(atoms.get_initial_magnetic_moments())) + 1 if atoms.has("initial_magmoms") else 1
-        molecule.set_charge_and_spin(charge, spin_multiplicity=mult)
+        spin_mult = round(np.sum(atoms.get_initial_magnetic_moments())) + 1 if atoms.has("initial_magmoms") else 1
+        molecule.set_charge_and_spin(charge, spin_multiplicity=spin_mult)
 
         return molecule

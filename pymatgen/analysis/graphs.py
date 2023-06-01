@@ -1330,10 +1330,10 @@ class StructureGraph(MSONable):
 
         if print_weights:
             for u, v, data in edges:
-                s += f"{u:4}  {v:4}  {str(data.get('to_jimage', (0, 0, 0))):12}  {data.get('weight', 0):.3e}\n"
+                s += f"{u:4}  {v:4}  {data.get('to_jimage', (0, 0, 0))!s:12}  {data.get('weight', 0):.3e}\n"
         else:
             for u, v, data in edges:
-                s += f"{u:4}  {v:4}  {str(data.get('to_jimage', (0, 0, 0))):12}\n"
+                s += f"{u:4}  {v:4}  {data.get('to_jimage', (0, 0, 0))!s:12}\n"
 
         return s
 
@@ -1940,7 +1940,7 @@ class MoleculeGraph(MSONable):
         # ensure that edge exists before attempting to change it
         if not existing_edge:
             raise ValueError(
-                f"Edge between {from_index} and {to_index} cannot be altered; " f"no edge exists between those sites."
+                f"Edge between {from_index} and {to_index} cannot be altered; no edge exists between those sites."
             )
 
         # Third index should always be 0 because there should only be one edge between any two nodes
@@ -2067,7 +2067,7 @@ class MoleculeGraph(MSONable):
             sub_mols.append(MoleculeGraph(new_mol, graph_data=graph_data))
 
         if return_index_map:
-            return sub_mols, {new: old for new, old in enumerate(new_to_old_index)}
+            return sub_mols, dict(enumerate(new_to_old_index))
         return sub_mols
 
     def split_molecule_subgraphs(self, bonds, allow_reverse=False, alterations=None):
@@ -2412,19 +2412,19 @@ class MoleculeGraph(MSONable):
                 strategy_params=strategy_params,
             )
 
-    def find_rings(self, including=None):
+    def find_rings(self, including=None) -> list[list[tuple[int, int]]]:
         """
         Find ring structures in the MoleculeGraph.
 
-        :param including: list of site indices. If
-            including is not None, then find_rings will
-            only return those rings including the specified
-            sites. By default, this parameter is None, and
-            all rings will be returned.
-        :return: dict {index:cycle}. Each
-            entry will be a ring (cycle, in graph theory terms) including the index
-            found in the Molecule. If there is no cycle including an index, the
-            value will be an empty list.
+        Args:
+            including (list[int]): list of site indices. If including is not None, then find_rings
+            will only return those rings including the specified sites. By default, this parameter
+            is None, and all rings will be returned.
+
+        Returns:
+            list[list[tuple[int, int]]]: Each entry will be a ring (cycle, in graph theory terms)
+                including the index found in the Molecule. If there is no cycle including an index, the
+                value will be an empty list.
         """
         # Copies self.graph such that all edges (u, v) matched by edges (v, u)
         undirected = self.graph.to_undirected()
@@ -2434,29 +2434,29 @@ class MoleculeGraph(MSONable):
         cycles_edges = []
 
         # Remove all two-edge cycles
-        all_cycles = [c for c in nx.simple_cycles(directed) if len(c) > 2]
+        all_cycles = [sorted(cycle) for cycle in nx.simple_cycles(directed) if len(cycle) > 2]
 
         # Using to_directed() will mean that each cycle always appears twice
         # So, we must also remove duplicates
         unique_sorted = []
         unique_cycles = []
         for cycle in all_cycles:
-            if sorted(cycle) not in unique_sorted:
-                unique_sorted.append(sorted(cycle))
+            if cycle not in unique_sorted:
+                unique_sorted.append(cycle)
                 unique_cycles.append(cycle)
 
         if including is None:
             cycles_nodes = unique_cycles
         else:
-            for i in including:
+            for incl in including:
                 for cycle in unique_cycles:
-                    if i in cycle and cycle not in cycles_nodes:
+                    if incl in cycle and cycle not in cycles_nodes:
                         cycles_nodes.append(cycle)
 
         for cycle in cycles_nodes:
             edges = []
-            for i, e in enumerate(cycle):
-                edges.append((cycle[i - 1], e))
+            for idx, itm in enumerate(cycle):
+                edges.append((cycle[idx - 1], itm))
             cycles_edges.append(edges)
 
         return cycles_edges
@@ -2688,24 +2688,20 @@ class MoleculeGraph(MSONable):
         with using `to_dict_of_dicts` from NetworkX
         to store graph information.
         """
-        d = {
-            "@module": type(self).__module__,
-            "@class": type(self).__name__,
-            "molecule": self.molecule.as_dict(),
-            "graphs": json_graph.adjacency_data(self.graph),
-        }
-
-        return d
+        dct = {"@module": type(self).__module__, "@class": type(self).__name__}
+        dct["molecule"] = self.molecule.as_dict()
+        dct["graphs"] = json_graph.adjacency_data(self.graph)
+        return dct
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, dct):
         """
         As in :class:`pymatgen.core.Molecule` except
         restoring graphs using `from_dict_of_dicts`
         from NetworkX to restore graph information.
         """
-        m = Molecule.from_dict(d["molecule"])
-        return cls(m, d["graphs"])
+        m = Molecule.from_dict(dct["molecule"])
+        return cls(m, dct["graphs"])
 
     @classmethod
     def _edges_to_string(cls, g):
@@ -2732,10 +2728,10 @@ class MoleculeGraph(MSONable):
 
         if print_weights:
             for u, v, data in edges:
-                s += f"{u:4}  {v:4}  {str(data.get('to_jimage', (0, 0, 0))):12}  {data.get('weight', 0):.3e}\n"
+                s += f"{u:4}  {v:4}  {data.get('to_jimage', (0, 0, 0))!s:12}  {data.get('weight', 0):.3e}\n"
         else:
             for u, v, data in edges:
-                s += f"{u:4}  {v:4}  {str(data.get('to_jimage', (0, 0, 0))):12}\n"
+                s += f"{u:4}  {v:4}  {data.get('to_jimage', (0, 0, 0))!s:12}\n"
 
         return s
 

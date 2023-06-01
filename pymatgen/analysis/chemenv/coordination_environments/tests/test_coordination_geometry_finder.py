@@ -6,9 +6,7 @@ import unittest
 import numpy as np
 import pytest
 
-from pymatgen.analysis.chemenv.coordination_environments.coordination_geometries import (
-    AllCoordinationGeometries,
-)
+from pymatgen.analysis.chemenv.coordination_environments.coordination_geometries import AllCoordinationGeometries
 from pymatgen.analysis.chemenv.coordination_environments.coordination_geometry_finder import (
     AbstractGeometry,
     LocalGeometryFinder,
@@ -41,9 +39,9 @@ class CoordinationGeometryFinderTest(PymatgenTest):
         cg_ts3 = self.lgf.allcg["TS:3"]
         cg_tet = self.lgf.allcg["T:4"]
         abstract_geom = AbstractGeometry.from_cg(cg=cg_ts3, centering_type="central_site")
-        self.assertArrayAlmostEqual(abstract_geom.centre, [0.0, 0.0, 0.0])
+        self.assert_all_close(abstract_geom.centre, [0.0, 0.0, 0.0])
         abstract_geom = AbstractGeometry.from_cg(cg=cg_ts3, centering_type="centroid")
-        self.assertArrayAlmostEqual(abstract_geom.centre, [0.0, 0.0, 0.33333333333])
+        self.assert_all_close(abstract_geom.centre, [0.0, 0.0, 0.33333333333])
         with pytest.raises(ValueError) as exc_info:
             AbstractGeometry.from_cg(
                 cg=cg_ts3,
@@ -57,7 +55,7 @@ class CoordinationGeometryFinderTest(PymatgenTest):
         abstract_geom = AbstractGeometry.from_cg(
             cg=cg_ts3, centering_type="centroid", include_central_site_in_centroid=True
         )
-        self.assertArrayAlmostEqual(abstract_geom.centre, [0.0, 0.0, 0.25])
+        self.assert_all_close(abstract_geom.centre, [0.0, 0.0, 0.25])
 
         # WHY ARE WE TESTING STRINGS????
         # self.assertEqual(str(abstract_geom)),
@@ -242,8 +240,7 @@ class CoordinationGeometryFinderTest(PymatgenTest):
             get_from_hints=True,
         )
         with pytest.raises(KeyError):
-            abc = se_nohints.ce_list[0][12]
-            abc.minimum_geometries()
+            se_nohints.ce_list[0][12]
         assert se_hints.ce_list[0][13][0] == se_nohints.ce_list[0][13][0]
         assert set(se_nohints.ce_list[0]).issubset(set(se_hints.ce_list[0]))
 

@@ -155,11 +155,10 @@ class PotcarCorrection(Correction):
                 psp_settings = {d.get("hash") for d in entry.parameters["potcar_spec"] if d}
             else:
                 raise ValueError("Cannot check hash without potcar_spec field")
+        elif entry.parameters.get("potcar_spec"):
+            psp_settings = {d.get("titel").split()[1] for d in entry.parameters["potcar_spec"] if d}
         else:
-            if entry.parameters.get("potcar_spec"):
-                psp_settings = {d.get("titel").split()[1] for d in entry.parameters["potcar_spec"] if d}
-            else:
-                psp_settings = {sym.split()[1] for sym in entry.parameters["potcar_symbols"] if sym}
+            psp_settings = {sym.split()[1] for sym in entry.parameters["potcar_symbols"] if sym}
 
         if {self.valid_potcars.get(str(el)) for el in entry.composition.elements} != psp_settings:
             raise CompatibilityError("Incompatible potcar")
@@ -771,7 +770,7 @@ class MaterialsProjectCompatibility(CorrectionsList):
     """
     This class implements the GGA/GGA+U mixing scheme, which allows mixing of
     entries. Note that this should only be used for VASP calculations using the
-    MaterialsProject parameters (see pymatgen.io.vaspio_set.MPVaspInputSet).
+    MaterialsProject parameters (see pymatgen.io.vasp.sets.MPVaspInputSet).
     Using this compatibility scheme on runs with different parameters is not
     valid.
     """
@@ -791,7 +790,13 @@ class MaterialsProjectCompatibility(CorrectionsList):
             correct_peroxide: Specify whether peroxide/superoxide/ozonide
                 corrections are to be applied or not.
             check_potcar_hash (bool): Use potcar hash to verify potcars are correct.
+            silence_deprecation (bool): Silence deprecation warning. Defaults to False.
         """
+        warnings.warn(  # added by @janosh on 2023-05-25
+            "MaterialsProjectCompatibility is deprecated, Materials Project formation energies "
+            "use the newer MaterialsProject2020Compatibility scheme.",
+            DeprecationWarning,
+        )
         self.compat_type = compat_type
         self.correct_peroxide = correct_peroxide
         self.check_potcar_hash = check_potcar_hash
@@ -1101,7 +1106,7 @@ class MITCompatibility(CorrectionsList):
     """
     This class implements the GGA/GGA+U mixing scheme, which allows mixing of
     entries. Note that this should only be used for VASP calculations using the
-    MIT parameters (see pymatgen.io.vaspio_set MITVaspInputSet). Using
+    MIT parameters (see pymatgen.io.vasp.sets MITVaspInputSet). Using
     this compatibility scheme on runs with different parameters is not valid.
     """
 
@@ -1142,7 +1147,7 @@ class MITAqueousCompatibility(CorrectionsList):
     """
     This class implements the GGA/GGA+U mixing scheme, which allows mixing of
     entries. Note that this should only be used for VASP calculations using the
-    MIT parameters (see pymatgen.io.vaspio_set MITVaspInputSet). Using
+    MIT parameters (see pymatgen.io.vasp.sets MITVaspInputSet). Using
     this compatibility scheme on runs with different parameters is not valid.
     """
 

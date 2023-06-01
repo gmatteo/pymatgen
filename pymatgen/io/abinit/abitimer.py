@@ -9,10 +9,10 @@ import collections
 import logging
 import os
 import sys
-
+import pandas as pd
 import numpy as np
-from monty.string import is_string, list_strings
 
+from monty.string import is_string, list_strings
 from pymatgen.util.num import minloc
 from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig_plt
 
@@ -95,11 +95,11 @@ class AbinitTimerParser(collections.abc.Iterable):
         return len(self._timers)
 
     @property
-    def filenames(self):
+    def filenames(self) -> list[str]:
         """List of files that have been parsed successfully."""
         return self._filenames
 
-    def parse(self, filenames):
+    def parse(self, filenames) -> list[str]:
         """
         Read and parse a filename or a list of filenames.
         Files that cannot be opened are ignored. A single filename may also be given.
@@ -111,7 +111,7 @@ class AbinitTimerParser(collections.abc.Iterable):
         read_ok = []
         for fname in filenames:
             try:
-                fh = open(fname)  # pylint: disable=R1732
+                fh = open(fname)  # noqa: SIM115
             except OSError:
                 logger.warning(f"Cannot open file {fname}")
                 continue
@@ -176,11 +176,11 @@ class AbinitTimerParser(collections.abc.Iterable):
                 line = line[1:].strip()
 
                 if inside == 2:
-                    d = {}
+                    dct = {}
                     for tok in line.split(","):
                         key, val = (s.strip() for s in tok.split("="))
-                        d[key] = float(val)
-                    cpu_time, wall_time = d["cpu_time"], d["wall_time"]
+                        dct[key] = float(val)
+                    cpu_time, wall_time = dct["cpu_time"], dct["wall_time"]
 
                 elif inside > 5:
                     sections.append(parse_line(line))
@@ -200,7 +200,7 @@ class AbinitTimerParser(collections.abc.Iterable):
         # Add it to the dict
         self._timers[fname] = data
 
-    def timers(self, filename=None, mpi_rank="0"):
+    def timers(self, filename=None, mpi_rank="0") -> list[AbinitTimer]:
         """
         Return the list of timers associated to the given `filename` and MPI rank mpi_rank.
         """
@@ -215,7 +215,7 @@ class AbinitTimerParser(collections.abc.Iterable):
         """
         section_names = []
 
-        # FIXME this is not trivial
+        # TODO this is not trivial
         for idx, timer in enumerate(self.timers()):
             if idx == 0:
                 section_names = [s.name for s in timer.order_sections(ordkey)]
@@ -247,7 +247,7 @@ class AbinitTimerParser(collections.abc.Iterable):
 
         return sections
 
-    def pefficiency(self):
+    def pefficiency(self) -> ParallelEfficiency:
         """
         Analyze the parallel efficiency.
 
@@ -298,30 +298,22 @@ class AbinitTimerParser(collections.abc.Iterable):
 
         return ParallelEfficiency(self._filenames, min_idx, peff)
 
-    def summarize(self, **kwargs):
+    def summarize(self, **kwargs) -> pd.DataFrame:
         """
         Return pandas DataFrame with the most important results stored in the timers.
         """
-        import pandas as pd
 
-        colnames = [
-            "fname",
-            "wall_time",
-            "cpu_time",
-            "mpi_nprocs",
-            "omp_nthreads",
-            "mpi_rank",
-        ]
+        col_names = ["fname", "wall_time", "cpu_time", "mpi_nprocs", "omp_nthreads", "mpi_rank"]
 
-        frame = pd.DataFrame(columns=colnames)
+        frame = pd.DataFrame(columns=col_names)
         for timer in self.timers():
-            frame = frame.append({k: getattr(timer, k) for k in colnames}, ignore_index=True)
+            frame = frame.append({key: getattr(timer, key) for key in col_names}, ignore_index=True)
         frame["tot_ncpus"] = frame["mpi_nprocs"] * frame["omp_nthreads"]
 
         # Compute parallel efficiency (use the run with min number of cpus to normalize).
-        i = frame["tot_ncpus"].values.argmin()
-        ref_wtime = frame.iloc[i]["wall_time"]
-        ref_ncpus = frame.iloc[i]["tot_ncpus"]
+        idx = frame["tot_ncpus"].argmin()
+        ref_wtime = frame.iloc[idx]["wall_time"]
+        ref_ncpus = frame.iloc[idx]["tot_ncpus"]
         frame["peff"] = (ref_ncpus * ref_wtime) / (frame["wall_time"] * frame["tot_ncpus"])
 
         return frame
@@ -513,7 +505,7 @@ class ParallelEfficiency(dict):
     def __init__(self, filenames, ref_idx, *args, **kwargs):
         """
         Args:
-            filennames: List of filenames
+            filenames: List of filenames
             ref_idx: Index of the Reference time (calculation done with the smallest number of cpus)
         """
         self.update(*args, **kwargs)
@@ -542,7 +534,7 @@ class ParallelEfficiency(dict):
         data.sort(key=lambda t: t[1], reverse=reverse)
         return tuple(sect_name for (sect_name, e) in data)
 
-    def totable(self, stop=None, reverse=True):
+    def totable(self, stop=None, reverse=True) -> list[list[str]]:
         """
         Return table (list of lists) with timing results.
 
@@ -597,7 +589,7 @@ class AbinitTimerSection:
     FIELDS = tuple(STR_FIELDS + NUMERIC_FIELDS)
 
     @classmethod
-    def fake(cls):
+    def fake(cls) -> AbinitTimerSection:
         """Return a fake section. Mainly used to fill missing entries if needed."""
         return AbinitTimerSection("fake", 0.0, 0.0, 0.0, 0.0, -1, 0.0)
 
@@ -620,15 +612,15 @@ class AbinitTimerSection:
         self.ncalls = int(ncalls)
         self.gflops = float(gflops)
 
-    def to_tuple(self):
+    def to_tuple(self) -> tuple:
         """Convert object to tuple."""
         return tuple(self.__dict__[at] for at in AbinitTimerSection.FIELDS)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """Convert object to dictionary."""
         return {at: self.__dict__[at] for at in AbinitTimerSection.FIELDS}
 
-    def to_csvline(self, with_header=False):
+    def to_csvline(self, with_header=False) -> str:
         """Return a string with data in CSV format. Add header if `with_header`"""
         string = ""
 
@@ -676,12 +668,12 @@ class AbinitTimer:
         )
 
     @property
-    def ncpus(self):
+    def ncpus(self) -> int:
         """Total number of CPUs employed."""
         return self.mpi_nprocs * self.omp_nthreads
 
-    def get_section(self, section_name):
-        """Return section associated to `section_name`."""
+    def get_section(self, section_name: str):
+        """Return the section associated to `section_name`."""
         try:
             idx = self.section_names.index(section_name)
         except Exception:
@@ -690,12 +682,12 @@ class AbinitTimer:
         assert sect.name == section_name
         return sect
 
-    def to_csv(self, fileobj=sys.stdout):
+    def to_csv(self, fileobj=sys.stdout) -> None:
         """Write data on file fileobj using CSV format."""
         openclose = is_string(fileobj)
 
         if openclose:
-            fileobj = open(fileobj, "w")  # pylint: disable=R1732
+            fileobj = open(fileobj, "w")  # noqa: SIM115
 
         for idx, section in enumerate(self.sections):
             fileobj.write(section.to_csvline(with_header=(idx == 0)))
@@ -704,7 +696,7 @@ class AbinitTimer:
         if openclose:
             fileobj.close()
 
-    def to_table(self, sort_key="wall_time", stop=None):
+    def to_table(self, sort_key="wall_time", stop=None) -> list[list[str]]:
         """Return a table (list of lists) with timer data"""
         table = [list(AbinitTimerSection.FIELDS)]
         ord_sections = self.order_sections(sort_key)
@@ -721,12 +713,10 @@ class AbinitTimer:
     # Maintain old API
     totable = to_table
 
-    def get_dataframe(self, sort_key="wall_time", **kwargs):
+    def get_dataframe(self, sort_key="wall_time", **kwargs) -> pd.DataFrame:
         """
         Return a pandas DataFrame with entries sorted according to `sort_key`.
         """
-        import pandas as pd
-
         frame = pd.DataFrame(columns=AbinitTimerSection.FIELDS)
 
         for osect in self.order_sections(sort_key):

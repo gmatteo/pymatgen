@@ -5,7 +5,7 @@ import os
 import unittest
 import warnings
 
-import numpy
+import numpy as np
 import pytest
 from monty.serialization import loadfn
 from pytest import approx
@@ -44,8 +44,8 @@ class KpointTest(unittest.TestCase):
     def test_as_dict(self):
         assert isinstance(self.kpoint.as_dict()["fcoords"], list)
         assert isinstance(self.kpoint.as_dict()["ccoords"], list)
-        assert not isinstance(self.kpoint.as_dict()["fcoords"][0], numpy.float64)
-        assert not isinstance(self.kpoint.as_dict()["ccoords"][0], numpy.float64)
+        assert not isinstance(self.kpoint.as_dict()["fcoords"][0], np.float64)
+        assert not isinstance(self.kpoint.as_dict()["ccoords"][0], np.float64)
         assert self.kpoint.as_dict()["fcoords"] == [0.1, 0.4, -0.5]
         assert self.kpoint.as_dict()["ccoords"] == [1.0, 4.0, -5.0]
 
@@ -81,8 +81,8 @@ class BandStructureSymmLineTest(PymatgenTest):
         warnings.simplefilter("default")
 
     def test_basic(self):
-        self.assertArrayAlmostEqual(self.bs.projections[Spin.up][10][12][0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        self.assertArrayAlmostEqual(
+        self.assert_all_close(self.bs.projections[Spin.up][10][12][0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assert_all_close(
             self.bs.projections[Spin.up][25][0][Orbital.dyz.value],
             [0.0, 0.0, 0.0011, 0.0219, 0.0219, 0.069],
         )

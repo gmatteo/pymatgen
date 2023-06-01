@@ -8,6 +8,7 @@ import warnings
 
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal
 from pytest import approx
 
 from pymatgen.core.structure import Structure
@@ -44,36 +45,38 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 
 class CohpcarTest(PymatgenTest):
     def setUp(self):
-        self.cohp_bise = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.BiSe"))
+        self.cohp_bise = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.BiSe.gz"))
         self.coop_bise = Cohpcar(
-            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COOPCAR.lobster.BiSe"),
+            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COOPCAR.lobster.BiSe.gz"),
             are_coops=True,
         )
-        self.cohp_fe = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COOPCAR.lobster"))
+        self.cohp_fe = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COOPCAR.lobster.gz"))
         self.coop_fe = Cohpcar(
-            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COOPCAR.lobster"),
+            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COOPCAR.lobster.gz"),
             are_coops=True,
         )
-        self.orb = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.orbitalwise"))
+        self.orb = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.orbitalwise.gz"))
         self.orb_notot = Cohpcar(
-            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.notot.orbitalwise")
+            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.notot.orbitalwise.gz")
         )
 
         # Lobster 3.1 (Test data is from prerelease of Lobster 3.1)
-        self.cohp_KF = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.KF"))
+        self.cohp_KF = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.KF.gz"))
         self.coop_KF = Cohpcar(
-            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.KF"),
+            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.KF.gz"),
             are_coops=True,
         )
 
         # example with f electrons
-        self.cohp_Na2UO4 = Cohpcar(filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.Na2UO4"))
+        self.cohp_Na2UO4 = Cohpcar(
+            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COHPCAR.lobster.Na2UO4.gz")
+        )
         self.coop_Na2UO4 = Cohpcar(
-            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COOPCAR.lobster.Na2UO4"),
+            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COOPCAR.lobster.Na2UO4.gz"),
             are_coops=True,
         )
         self.cobi = Cohpcar(
-            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COBICAR.lobster"),
+            filename=os.path.join(PymatgenTest.TEST_FILES_DIR, "cohp", "COBICAR.lobster.gz"),
             are_cobis=True,
         )
 
@@ -365,12 +368,12 @@ class CohpcarTest(PymatgenTest):
             [self.orb.orb_res_cohp["1"][orbs]["COHP"][Spin.up] for orbs in self.orb.orb_res_cohp["1"]],
             axis=0,
         )
-        self.assertArrayAlmostEqual(tot, cohp, decimal=3)
+        self.assert_all_close(tot, cohp, decimal=3)
         tot = np.sum(
             [self.orb.orb_res_cohp["1"][orbs]["ICOHP"][Spin.up] for orbs in self.orb.orb_res_cohp["1"]],
             axis=0,
         )
-        self.assertArrayAlmostEqual(tot, icohp, decimal=3)
+        self.assert_all_close(tot, icohp, decimal=3)
 
         # Lobster 3.1
         cohp_KF = self.cohp_KF.cohp_data["1"]["COHP"][Spin.up]
@@ -379,12 +382,12 @@ class CohpcarTest(PymatgenTest):
             [self.cohp_KF.orb_res_cohp["1"][orbs]["COHP"][Spin.up] for orbs in self.cohp_KF.orb_res_cohp["1"]],
             axis=0,
         )
-        self.assertArrayAlmostEqual(tot_KF, cohp_KF, decimal=3)
+        self.assert_all_close(tot_KF, cohp_KF, decimal=3)
         tot_KF = np.sum(
             [self.cohp_KF.orb_res_cohp["1"][orbs]["ICOHP"][Spin.up] for orbs in self.cohp_KF.orb_res_cohp["1"]],
             axis=0,
         )
-        self.assertArrayAlmostEqual(tot_KF, icohp_KF, decimal=3)
+        self.assert_all_close(tot_KF, icohp_KF, decimal=3)
 
         # d and f orbitals
         cohp_Na2UO4 = self.cohp_Na2UO4.cohp_data["49"]["COHP"][Spin.up]
@@ -396,7 +399,7 @@ class CohpcarTest(PymatgenTest):
             ],
             axis=0,
         )
-        self.assertArrayAlmostEqual(tot_Na2UO4, cohp_Na2UO4, decimal=3)
+        self.assert_all_close(tot_Na2UO4, cohp_Na2UO4, decimal=3)
         tot_Na2UO4 = np.sum(
             [
                 self.cohp_Na2UO4.orb_res_cohp["49"][orbs]["ICOHP"][Spin.up]
@@ -404,7 +407,7 @@ class CohpcarTest(PymatgenTest):
             ],
             axis=0,
         )
-        self.assertArrayAlmostEqual(tot_Na2UO4, icohp_Na2UO4, decimal=3)
+        self.assert_all_close(tot_Na2UO4, icohp_Na2UO4, decimal=3)
 
 
 class IcohplistTest(unittest.TestCase):
@@ -491,66 +494,77 @@ class IcohplistTest(unittest.TestCase):
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -2.18042},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "2": {
                 "length": 3.10144,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -1.14347},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "3": {
                 "length": 2.88231,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -2.18042},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "4": {
                 "length": 3.10144,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -1.14348},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "5": {
                 "length": 3.05001,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -1.30006},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "6": {
                 "length": 2.91676,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -1.96843},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "7": {
                 "length": 3.05001,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -1.30006},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "8": {
                 "length": 2.91676,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -1.96843},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "9": {
                 "length": 3.37522,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -0.47531},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "10": {
                 "length": 3.07294,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -2.38796},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "11": {
                 "length": 3.37522,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -0.47531},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
         }
         icooplist_bise = {
@@ -559,66 +573,77 @@ class IcohplistTest(unittest.TestCase):
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: 0.14245},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "2": {
                 "length": 3.10144,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -0.04118},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "3": {
                 "length": 2.88231,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: 0.14245},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "4": {
                 "length": 3.10144,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -0.04118},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "5": {
                 "length": 3.05001,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -0.03516},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "6": {
                 "length": 2.91676,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: 0.10745},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "7": {
                 "length": 3.05001,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -0.03516},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "8": {
                 "length": 2.91676,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: 0.10745},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "9": {
                 "length": 3.37522,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -0.12395},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "10": {
                 "length": 3.07294,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: 0.24714},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "11": {
                 "length": 3.37522,
                 "number_of_bonds": 3,
                 "icohp": {Spin.up: -0.12395},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
         }
         icooplist_fe = {
@@ -627,12 +652,14 @@ class IcohplistTest(unittest.TestCase):
                 "number_of_bonds": 2,
                 "icohp": {Spin.up: -0.10218, Spin.down: -0.19701},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
             "2": {
                 "length": 2.45249,
                 "number_of_bonds": 1,
                 "icohp": {Spin.up: -0.28485, Spin.down: -0.58279},
                 "translation": [0, 0, 0],
+                "orbitals": None,
             },
         }
 
@@ -649,6 +676,7 @@ class IcohplistTest(unittest.TestCase):
         assert self.icobi_orbitalwise_spinpolarized.icohplist["1"]["icohp"][Spin.down] == approx(0.58649 / 2, abs=1e-3)
         assert self.icobi_orbitalwise_spinpolarized.icohplist["2"]["icohp"][Spin.down] == approx(0.58649 / 2, abs=1e-3)
         assert self.icobi.icohpcollection.extremum_icohpvalue() == 0.58649
+        assert self.icobi_orbitalwise_spinpolarized.icohplist["2"]["orbitals"]["2s-6s"]["icohp"][Spin.up] == 0.0247
 
 
 class DoscarTest(unittest.TestCase):
@@ -826,11 +854,11 @@ class ChargeTest(PymatgenTest):
         atomlist = ["O1", "Mn2"]
         types = ["O", "Mn"]
         num_atoms = 2
-        self.assertArrayEqual(charge_Mulliken, self.charge2.Mulliken)
-        self.assertArrayEqual(charge_Loewdin, self.charge2.Loewdin)
-        self.assertArrayEqual(atomlist, self.charge2.atomlist)
-        self.assertArrayEqual(types, self.charge2.types)
-        self.assertArrayEqual(num_atoms, self.charge2.num_atoms)
+        assert_array_equal(charge_Mulliken, self.charge2.Mulliken)
+        assert_array_equal(charge_Loewdin, self.charge2.Loewdin)
+        assert_array_equal(atomlist, self.charge2.atomlist)
+        assert_array_equal(types, self.charge2.types)
+        assert_array_equal(num_atoms, self.charge2.num_atoms)
 
     def test_get_structure_with_charges(self):
         structure_dict2 = {
@@ -2423,7 +2451,7 @@ class WavefunctionTest(PymatgenTest):
                 "LCAOWaveFunctionAfterLSO1PlotOfSpin1Kpoint1band1.gz",
             )
         )
-        self.assertArrayEqual([41, 41, 41], grid)
+        assert_array_equal([41, 41, 41], grid)
         assert points[4][0] == approx(0.0000)
         assert points[4][1] == approx(0.0000)
         assert points[4][2] == approx(0.4000)
@@ -2436,11 +2464,7 @@ class WavefunctionTest(PymatgenTest):
 
     def test_set_volumetric_data(self):
         wave1 = Wavefunction(
-            filename=os.path.join(
-                test_dir_doscar,
-                "cohp",
-                "LCAOWaveFunctionAfterLSO1PlotOfSpin1Kpoint1band1" ".gz",
-            ),
+            filename=os.path.join(test_dir_doscar, "cohp", "LCAOWaveFunctionAfterLSO1PlotOfSpin1Kpoint1band1.gz"),
             structure=Structure.from_file(os.path.join(test_dir_doscar, "cohp", "POSCAR_O.gz")),
         )
 

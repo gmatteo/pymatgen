@@ -7,6 +7,7 @@ import unittest
 
 import numpy as np
 import pytest
+from numpy.testing import assert_array_almost_equal
 
 from pymatgen.analysis.chemenv.coordination_environments.chemenv_strategies import (
     AngleNbSetWeight,
@@ -18,31 +19,19 @@ from pymatgen.analysis.chemenv.coordination_environments.chemenv_strategies impo
     SelfCSMNbSetWeight,
     SimplestChemenvStrategy,
 )
-from pymatgen.analysis.chemenv.coordination_environments.coordination_geometry_finder import (
-    LocalGeometryFinder,
-)
+from pymatgen.analysis.chemenv.coordination_environments.coordination_geometry_finder import LocalGeometryFinder
 from pymatgen.analysis.chemenv.coordination_environments.structure_environments import (
     LightStructureEnvironments,
     StructureEnvironments,
 )
-from pymatgen.analysis.chemenv.coordination_environments.voronoi import (
-    DetailedVoronoiContainer,
-)
+from pymatgen.analysis.chemenv.coordination_environments.voronoi import DetailedVoronoiContainer
 from pymatgen.core.structure import Structure
 from pymatgen.util.testing import PymatgenTest
 
 __author__ = "waroquiers"
 
-json_files_dir = os.path.join(
-    PymatgenTest.TEST_FILES_DIR,
-    "chemenv",
-    "json_test_files",
-)
-se_files_dir = os.path.join(
-    PymatgenTest.TEST_FILES_DIR,
-    "chemenv",
-    "structure_environments_files",
-)
+json_files_dir = os.path.join(PymatgenTest.TEST_FILES_DIR, "chemenv", "json_test_files")
+se_files_dir = os.path.join(PymatgenTest.TEST_FILES_DIR, "chemenv", "structure_environments_files")
 
 
 class ReadWriteChemenvTest(unittest.TestCase):
@@ -127,8 +116,8 @@ class ReadWriteChemenvTest(unittest.TestCase):
 
         neighb_coords = nb_set.coords
 
-        np.testing.assert_array_almost_equal(coords, neighb_coords[1:])
-        np.testing.assert_array_almost_equal(nb_set.structure[nb_set.isite].coords, neighb_coords[0])
+        assert_array_almost_equal(coords, neighb_coords[1:])
+        assert_array_almost_equal(nb_set.structure[nb_set.isite].coords, neighb_coords[0])
 
         norm_dist = nb_set.normalized_distances
         assert sorted(norm_dist) == pytest.approx(sorted([1.001792, 1.001792, 1, 1.0]))

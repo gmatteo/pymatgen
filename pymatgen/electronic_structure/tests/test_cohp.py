@@ -5,6 +5,7 @@ import os
 import unittest
 
 import pytest
+from numpy.testing import assert_array_equal
 from pytest import approx
 
 from pymatgen.electronic_structure.cohp import (
@@ -208,7 +209,45 @@ class CombinedIcohpTest(unittest.TestCase):
             list_num=list_num,
             list_icohp=list_icoop,
         )
-
+        self.icohpcollection_orbitalwise = IcohpCollection.from_dict(
+            {
+                "@module": "pymatgen.electronic_structure.cohp",
+                "@class": "IcohpCollection",
+                "@version": None,
+                "list_labels": ["1", "2"],
+                "list_atom1": ["O5", "O5"],
+                "list_atom2": ["Ta2", "Ta2"],
+                "list_length": [1.99474, 1.99474],
+                "list_translation": [[0, 0, -1], [0, 0, 0]],
+                "list_num": [1, 1],
+                "list_icohp": [{Spin.up: 0.29324, Spin.down: 0.29324}, {Spin.up: 0.29324, Spin.down: 0.29324}],
+                "is_spin_polarized": True,
+                "list_orb_icohp": [
+                    {
+                        "2s-6s": {
+                            "icohp": {Spin.up: 0.0247, Spin.down: 0.0247},
+                            "orbitals": [[2, Orbital.s], [6, Orbital.s]],
+                        },
+                        "2s-5py": {
+                            "icohp": {Spin.up: 8e-05, Spin.down: 8e-05},
+                            "orbitals": [[2, Orbital.s], [5, Orbital.py]],
+                        },
+                    },
+                    {
+                        "2s-6s": {
+                            "icohp": {Spin.up: 0.0247, Spin.down: 0.0247},
+                            "orbitals": [[2, Orbital.s], [6, Orbital.s]],
+                        },
+                        "2s-5py": {
+                            "icohp": {Spin.up: 0.5, Spin.down: 0},
+                            "orbitals": [[2, Orbital.s], [5, Orbital.py]],
+                        },
+                    },
+                ],
+                "are_coops": False,
+                "are_cobis": True,
+            }
+        )
         # with spin polarization:
         list_atom2_sp = ["Fe7", "Fe9"]
         list_labels_sp = ["1", "2"]
@@ -278,6 +317,27 @@ class CombinedIcohpTest(unittest.TestCase):
         assert self.icohpcollection_Fe.get_icohp_by_label("1", summed_spin_channels=False, spin=Spin.down) == -0.19701
         assert self.icohpcollection_Fe.get_icohp_by_label("2", summed_spin_channels=False, spin=Spin.down) == -0.58279
 
+        # orbitalwise
+        assert self.icohpcollection_orbitalwise.get_icohp_by_label("1", orbitals="2s-6s") == 0.0494
+        assert (
+            self.icohpcollection_orbitalwise.get_icohp_by_label(
+                "1", orbitals="2s-6s", spin=Spin.up, summed_spin_channels=False
+            )
+            == 0.0247
+        )
+        assert (
+            self.icohpcollection_orbitalwise.get_icohp_by_label(
+                "1", orbitals="2s-6s", spin=Spin.down, summed_spin_channels=False
+            )
+            == 0.0247
+        )
+        assert (
+            self.icohpcollection_orbitalwise.get_icohp_by_label(
+                "2", orbitals="2s-5py", spin=Spin.up, summed_spin_channels=False
+            )
+            == 0.5
+        )
+
     def test_get_summed_icohp_by_label_list(self):
         # without spin polarization
         assert self.icohpcollection_KF.get_summed_icohp_by_label_list(
@@ -311,6 +371,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "@class": "IcohpValue",
             "atom1": "F1",
             "translation": [0, -1, -1],
+            "orbitals": None,
         }
         icohpvalue["2"] = {
             "@module": "pymatgen.electronic_structure.cohp",
@@ -324,6 +385,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "@class": "IcohpValue",
             "atom1": "F1",
             "translation": [-1, 0, -1],
+            "orbitals": None,
         }
         icohpvalue["3"] = {
             "@module": "pymatgen.electronic_structure.cohp",
@@ -337,6 +399,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "@class": "IcohpValue",
             "atom1": "F1",
             "translation": [0, 0, -1],
+            "orbitals": None,
         }
         icohpvalue["4"] = {
             "@module": "pymatgen.electronic_structure.cohp",
@@ -350,6 +413,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "@class": "IcohpValue",
             "atom1": "F1",
             "translation": [-1, -1, 0],
+            "orbitals": None,
         }
         icohpvalue["5"] = {
             "@module": "pymatgen.electronic_structure.cohp",
@@ -363,6 +427,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "@class": "IcohpValue",
             "atom1": "F1",
             "translation": [0, -1, 0],
+            "orbitals": None,
         }
         icohpvalue["6"] = {
             "@module": "pymatgen.electronic_structure.cohp",
@@ -376,6 +441,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "@class": "IcohpValue",
             "atom1": "F1",
             "translation": [-1, 0, 0],
+            "orbitals": None,
         }
 
         dict_KF = self.icohpcollection_KF.get_icohp_dict_by_bondlengths(minbondlength=0.0, maxbondlength=8.0)
@@ -401,6 +467,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "length": 2.83189,
             "@class": "IcohpValue",
             "icohp": {Spin.up: -0.10218, Spin.down: -0.19701},
+            "orbitals": None,
         }
         icohpvalue_spin["2"] = {
             "num": 1,
@@ -414,6 +481,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "length": 2.45249,
             "@class": "IcohpValue",
             "icohp": {Spin.up: -0.28485, Spin.down: -0.58279},
+            "orbitals": None,
         }
 
         dict_Fe = self.icohpcollection_Fe.get_icohp_dict_by_bondlengths(minbondlength=0.0, maxbondlength=8.0)
@@ -446,6 +514,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "num": 1,
             "label": "1",
             "icohp": {Spin.up: -0.40075},
+            "orbitals": None,
         }
         icohpvalue["2"] = {
             "translation": [-1, 0, -1],
@@ -459,6 +528,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "num": 1,
             "label": "2",
             "icohp": {Spin.up: -0.40074},
+            "orbitals": None,
         }
         icohpvalue["3"] = {
             "translation": [0, 0, -1],
@@ -472,6 +542,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "num": 1,
             "label": "3",
             "icohp": {Spin.up: -0.40079},
+            "orbitals": None,
         }
         icohpvalue["4"] = {
             "translation": [-1, -1, 0],
@@ -485,6 +556,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "num": 1,
             "label": "4",
             "icohp": {Spin.up: -0.40079},
+            "orbitals": None,
         }
         icohpvalue["5"] = {
             "translation": [0, -1, 0],
@@ -498,6 +570,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "num": 1,
             "label": "5",
             "icohp": {Spin.up: -0.40074},
+            "orbitals": None,
         }
         icohpvalue["6"] = {
             "translation": [-1, 0, 0],
@@ -511,6 +584,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "num": 1,
             "label": "6",
             "icohp": {Spin.up: -0.40075},
+            "orbitals": None,
         }
 
         dict_KF = self.icohpcollection_KF.get_icohp_dict_of_site(site=0)
@@ -592,6 +666,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "atom1": "Fe8",
             "atom2": "Fe7",
             "label": "1",
+            "orbitals": None,
             "@class": "IcohpValue",
             "num": 2,
         }
@@ -605,6 +680,7 @@ class CombinedIcohpTest(unittest.TestCase):
             "atom1": "Fe8",
             "atom2": "Fe9",
             "label": "2",
+            "orbitals": None,
             "@class": "IcohpValue",
             "num": 1,
         }
@@ -725,21 +801,25 @@ class CompleteCohpTest(PymatgenTest):
         filepath = os.path.join(test_dir, "COPL.BiSe")
         structure = os.path.join(test_dir, "CTRL.BiSe")
         self.cohp_lmto = CompleteCohp.from_file("lmto", filename=filepath, structure_file=structure)
-        filepath = os.path.join(test_dir, "COHPCAR.lobster")
+        filepath = os.path.join(test_dir, "COHPCAR.lobster.gz")
         structure = os.path.join(test_dir, "POSCAR")
         self.cohp_lobster = CompleteCohp.from_file("lobster", filename=filepath, structure_file=structure)
-        filepath = os.path.join(test_dir, "COOPCAR.lobster.BiSe")
+        # with open(os.path.join(test_dir, "complete_cohp_lobster.json"),'w') as f:
+        #    json.dump(self.cohp_lobster.as_dict(),f)
+        filepath = os.path.join(test_dir, "COOPCAR.lobster.BiSe.gz")
         structure = os.path.join(test_dir, "POSCAR.BiSe")
         self.coop_lobster = CompleteCohp.from_file(
             "lobster", filename=filepath, structure_file=structure, are_coops=True
         )
-        filepath = os.path.join(test_dir, "COHPCAR.lobster.orbitalwise")
+        filepath = os.path.join(test_dir, "COHPCAR.lobster.orbitalwise.gz")
         structure = os.path.join(test_dir, "POSCAR.orbitalwise")
         self.cohp_orb = CompleteCohp.from_file("lobster", filename=filepath, structure_file=structure)
-        filepath = os.path.join(test_dir, "COHPCAR.lobster.notot.orbitalwise")
+        # with open(os.path.join(test_dir, "complete_cohp_orbitalwise.json"),'w') as f:
+        #    json.dump(self.cohp_orb.as_dict(),f)
+        filepath = os.path.join(test_dir, "COHPCAR.lobster.notot.orbitalwise.gz")
         self.cohp_notot = CompleteCohp.from_file("lobster", filename=filepath, structure_file=structure)
         # Lobster 3.0
-        filepath = os.path.join(test_dir, "COHPCAR.lobster.Na2UO4")
+        filepath = os.path.join(test_dir, "COHPCAR.lobster.Na2UO4.gz")
         structure = os.path.join(test_dir, "POSCAR.Na2UO4")
         self.cohp_lobster_forb = CompleteCohp.from_file("lobster", filename=filepath, structure_file=structure)
 
@@ -750,12 +830,12 @@ class CompleteCohpTest(PymatgenTest):
             "lobster", filename=filepath, structure_file=structure
         )
         # COBI
-        filepath = os.path.join(test_dir, "COBICAR.lobster")
+        filepath = os.path.join(test_dir, "COBICAR.lobster.gz")
         structure = os.path.join(test_dir, "POSCAR.COBI")
 
         self.cobi = CompleteCohp.from_file("lobster", filename=filepath, structure_file=structure, are_cobis=True)
 
-    def test_attiributes(self):
+    def test_attributes(self):
         assert not self.cohp_lobster.are_coops
         assert not self.cohp_lobster.are_cobis
         assert not self.cohp_lobster_dict.are_coops
@@ -779,6 +859,9 @@ class CompleteCohpTest(PymatgenTest):
         assert self.cobi.are_cobis
         assert not self.cobi.are_coops
 
+        assert self.cohp_lobster_forb.cohp[Spin.up][0] == 0.00000
+        assert self.cohp_lobster_forb.icohp[Spin.up][0] == -0.09040
+
     def test_dict(self):
         # The json files are dict representations of the COHPs from the LMTO
         # and LOBSTER calculations and should thus be the same.
@@ -793,7 +876,7 @@ class CompleteCohpTest(PymatgenTest):
         # with a very small number of matrix elements, which would cause the
         # test to fail
         for key in ["COHP", "ICOHP"]:
-            self.assertArrayAlmostEqual(
+            self.assert_all_close(
                 self.cohp_lmto.as_dict()[key]["average"]["1"],
                 self.cohp_lmto_dict.as_dict()[key]["average"]["1"],
                 5,
@@ -953,13 +1036,13 @@ class CompleteCohpTest(PymatgenTest):
         )
         cohp_label3 = self.cohp_orb.get_summed_cohp_by_label_and_orbital_list(["1", "1"], ["4px-4pz", "4s-4px"])
 
-        self.assertArrayEqual(cohp_label.cohp[Spin.up], ref["COHP"][Spin.up])
-        self.assertArrayEqual(cohp_label2.cohp[Spin.up], ref["COHP"][Spin.up] * 2.0)
-        self.assertArrayEqual(cohp_label3.cohp[Spin.up], ref["COHP"][Spin.up] + ref2["COHP"][Spin.up])
-        self.assertArrayEqual(cohp_label.icohp[Spin.up], ref["ICOHP"][Spin.up])
-        self.assertArrayEqual(cohp_label2.icohp[Spin.up], ref["ICOHP"][Spin.up] * 2.0)
-        self.assertArrayEqual(cohp_label2x.icohp[Spin.up], ref["ICOHP"][Spin.up])
-        self.assertArrayEqual(cohp_label3.icohp[Spin.up], ref["ICOHP"][Spin.up] + ref2["ICOHP"][Spin.up])
+        assert_array_equal(cohp_label.cohp[Spin.up], ref["COHP"][Spin.up])
+        assert_array_equal(cohp_label2.cohp[Spin.up], ref["COHP"][Spin.up] * 2.0)
+        assert_array_equal(cohp_label3.cohp[Spin.up], ref["COHP"][Spin.up] + ref2["COHP"][Spin.up])
+        assert_array_equal(cohp_label.icohp[Spin.up], ref["ICOHP"][Spin.up])
+        assert_array_equal(cohp_label2.icohp[Spin.up], ref["ICOHP"][Spin.up] * 2.0)
+        assert_array_equal(cohp_label2x.icohp[Spin.up], ref["ICOHP"][Spin.up])
+        assert_array_equal(cohp_label3.icohp[Spin.up], ref["ICOHP"][Spin.up] + ref2["ICOHP"][Spin.up])
         with pytest.raises(ValueError):
             self.cohp_orb.get_summed_cohp_by_label_and_orbital_list(["1"], ["4px-4pz", "4s-4px"])
         with pytest.raises(ValueError):
@@ -981,13 +1064,13 @@ class CompleteCohpTest(PymatgenTest):
             ["1", "1"], ["4px-4pz", "4s-4px"], summed_spin_channels=True
         )
 
-        self.assertArrayEqual(cohp_label.cohp[Spin.up], ref["COHP"][Spin.up])
-        self.assertArrayEqual(cohp_label2.cohp[Spin.up], ref["COHP"][Spin.up] * 2.0)
-        self.assertArrayEqual(cohp_label3.cohp[Spin.up], ref["COHP"][Spin.up] + ref2["COHP"][Spin.up])
-        self.assertArrayEqual(cohp_label.icohp[Spin.up], ref["ICOHP"][Spin.up])
-        self.assertArrayEqual(cohp_label2.icohp[Spin.up], ref["ICOHP"][Spin.up] * 2.0)
-        self.assertArrayEqual(cohp_label2x.icohp[Spin.up], ref["ICOHP"][Spin.up])
-        self.assertArrayEqual(cohp_label3.icohp[Spin.up], ref["ICOHP"][Spin.up] + ref2["ICOHP"][Spin.up])
+        assert_array_equal(cohp_label.cohp[Spin.up], ref["COHP"][Spin.up])
+        assert_array_equal(cohp_label2.cohp[Spin.up], ref["COHP"][Spin.up] * 2.0)
+        assert_array_equal(cohp_label3.cohp[Spin.up], ref["COHP"][Spin.up] + ref2["COHP"][Spin.up])
+        assert_array_equal(cohp_label.icohp[Spin.up], ref["ICOHP"][Spin.up])
+        assert_array_equal(cohp_label2.icohp[Spin.up], ref["ICOHP"][Spin.up] * 2.0)
+        assert_array_equal(cohp_label2x.icohp[Spin.up], ref["ICOHP"][Spin.up])
+        assert_array_equal(cohp_label3.icohp[Spin.up], ref["ICOHP"][Spin.up] + ref2["ICOHP"][Spin.up])
         with pytest.raises(ValueError):
             self.cohp_orb.get_summed_cohp_by_label_and_orbital_list(
                 ["1"], ["4px-4pz", "4s-4px"], summed_spin_channels=True
@@ -1028,12 +1111,12 @@ class CompleteCohpTest(PymatgenTest):
         # the total COHP calculated by LOBSTER. Due to numerical errors in
         # the LOBSTER calculation, the precision is not very high though.
 
-        self.assertArrayAlmostEqual(
+        self.assert_all_close(
             self.cohp_orb.all_cohps["1"].cohp[Spin.up],
             self.cohp_notot.all_cohps["1"].cohp[Spin.up],
             decimal=3,
         )
-        self.assertArrayAlmostEqual(
+        self.assert_all_close(
             self.cohp_orb.all_cohps["1"].icohp[Spin.up],
             self.cohp_notot.all_cohps["1"].icohp[Spin.up],
             decimal=3,
@@ -1092,11 +1175,11 @@ class CompleteCohpTest(PymatgenTest):
 
 class MethodTest(unittest.TestCase):
     def setUp(self):
-        filepath = os.path.join(test_dir, "COHPCAR.lobster")
+        filepath = os.path.join(test_dir, "COHPCAR.lobster.gz")
         structure = os.path.join(test_dir, "POSCAR")
         self.cohp_lobster = CompleteCohp.from_file("lobster", filename=filepath, structure_file=structure)
 
-        filepath = os.path.join(test_dir, "COHPCAR.lobster.orbitalwise")
+        filepath = os.path.join(test_dir, "COHPCAR.lobster.orbitalwise.gz")
         structure = os.path.join(test_dir, "POSCAR.orbitalwise")
         self.cohp_orb = CompleteCohp.from_file("lobster", filename=filepath, structure_file=structure)
 

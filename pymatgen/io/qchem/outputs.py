@@ -296,12 +296,11 @@ class QCOutput(MSONable):
                 if val[0] != temp_solvent[0][0]:
                     if val[0] != "for":
                         self.data["warnings"]["SMD_two_solvents"] = str(temp_solvent[0][0]) + " and " + str(val[0])
-                    else:
-                        if (
-                            "unrecognized_solvent" not in self.data["errors"]
-                            and "unrecognized_solvent" not in self.data["warnings"]
-                        ):
-                            self.data["warnings"]["questionable_SMD_parsing"] = True
+                    elif (
+                        "unrecognized_solvent" not in self.data["errors"]
+                        and "unrecognized_solvent" not in self.data["warnings"]
+                    ):
+                        self.data["warnings"]["questionable_SMD_parsing"] = True
             self.data["solvent_data"]["SMD_solvent"] = temp_solvent[0][0]
             self._read_smd_information()
         elif self.data["solvent_method"] == "ISOSVP":
@@ -1296,7 +1295,7 @@ class QCOutput(MSONable):
 
         grad_format_length = self._get_grad_format_length(grad_header_pattern)
         grad_table_pattern = (
-            r"(?:\s+\d+(?:\s+\d+)?(?:\s+\d+)?(?:\s+\d+)?(?:\s+\d+)?(?:\s+\d+)?)?\n\s\s\s\s[1-3]\s*" r"(\-?[\d\.]{9,12})"
+            r"(?:\s+\d+(?:\s+\d+)?(?:\s+\d+)?(?:\s+\d+)?(?:\s+\d+)?(?:\s+\d+)?)?\n\s\s\s\s[1-3]\s*(\-?[\d\.]{9,12})"
         )
         if grad_format_length > 1:
             for _ in range(1, grad_format_length):
@@ -1562,9 +1561,8 @@ class QCOutput(MSONable):
                         if not self.data.get("completion", []):
                             if "undefined_frequency" not in self.data["errors"]:
                                 self.data["errors"] += ["undefined_frequency"]
-                        else:
-                            if "undefined_frequency" not in self.data["warnings"]:
-                                self.data["warnings"]["undefined_frequency"] = True
+                        elif "undefined_frequency" not in self.data["warnings"]:
+                            self.data["warnings"]["undefined_frequency"] = True
                     else:
                         freqs[ii] = float(entry)
             self.data["frequencies"] = freqs
@@ -2138,13 +2136,13 @@ class QCOutput(MSONable):
     def as_dict(self):
         """
         Returns:
-            MSONAble dict.
+            MSONable dict.
         """
-        d = {}
-        d["data"] = self.data
-        d["text"] = self.text
-        d["filename"] = self.filename
-        return jsanitize(d, strict=True)
+        dct = {}
+        dct["data"] = self.data
+        dct["text"] = self.text
+        dct["filename"] = self.filename
+        return jsanitize(dct, strict=True)
 
 
 def check_for_structure_changes(mol1: Molecule, mol2: Molecule) -> str:

@@ -27,6 +27,7 @@ import os
 import warnings
 from functools import lru_cache
 from itertools import groupby
+from typing import TYPE_CHECKING
 
 import numpy as np
 import plotly.express as px
@@ -36,9 +37,11 @@ from scipy.spatial import ConvexHull, HalfspaceIntersection
 
 from pymatgen.analysis.phase_diagram import PDEntry, PhaseDiagram
 from pymatgen.core.composition import Composition, Element
-from pymatgen.entries.computed_entries import ComputedEntry
 from pymatgen.util.coord import Simplex
 from pymatgen.util.string import htmlify
+
+if TYPE_CHECKING:
+    from pymatgen.entries.computed_entries import ComputedEntry
 
 with open(os.path.join(os.path.dirname(__file__), "..", "util", "plotly_chempot_layouts.json")) as f:
     plotly_layouts = json.load(f)
@@ -676,16 +679,15 @@ def get_centroid_2d(vertices: np.ndarray) -> np.ndarray:
     Returns:
         Array giving 2-d centroid coordinates
     """
-    n = len(vertices)
     cx = 0
     cy = 0
     a = 0
 
-    for i in range(0, n - 1):
-        xi = vertices[i, 0]
-        yi = vertices[i, 1]
-        xi_p = vertices[i + 1, 0]
-        yi_p = vertices[i + 1, 1]
+    for idx in range(0, len(vertices) - 1):
+        xi = vertices[idx, 0]
+        yi = vertices[idx, 1]
+        xi_p = vertices[idx + 1, 0]
+        yi_p = vertices[idx + 1, 1]
         common_term = xi * yi_p - xi_p * yi
 
         cx += (xi + xi_p) * common_term

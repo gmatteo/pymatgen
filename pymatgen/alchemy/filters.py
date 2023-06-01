@@ -6,13 +6,16 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from monty.json import MSONable
 
 from pymatgen.analysis.structure_matcher import ElementComparator, StructureMatcher
 from pymatgen.core.periodic_table import get_el_sp
-from pymatgen.core.structure import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+if TYPE_CHECKING:
+    from pymatgen.core import Structure
 
 
 class AbstractStructureFilter(MSONable, metaclass=abc.ABCMeta):
@@ -96,7 +99,7 @@ class ContainsSpecieFilter(AbstractStructureFilter):
 
     def as_dict(self):
         """
-        Returns: MSONAble dict
+        Returns: MSONable dict
         """
         return {
             "@module": type(self).__module__,
@@ -110,15 +113,15 @@ class ContainsSpecieFilter(AbstractStructureFilter):
         }
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, dct):
         """
         Args:
-            d (dict): Dict representation
+            dct (dict): Dict representation
 
         Returns:
             Filter
         """
-        return cls(**d["init_args"])
+        return cls(**dct["init_args"])
 
 
 class SpecieProximityFilter(AbstractStructureFilter):
@@ -173,15 +176,15 @@ class SpecieProximityFilter(AbstractStructureFilter):
         }
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, dct):
         """
         Args:
-            d (dict): Dict representation
+            dct (dict): Dict representation
 
         Returns:
             Filter
         """
-        return cls(**d["init_args"])
+        return cls(**dct["init_args"])
 
 
 class RemoveDuplicatesFilter(AbstractStructureFilter):

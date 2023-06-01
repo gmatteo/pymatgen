@@ -1,6 +1,3 @@
-#!/usr/bin/python
-
-
 from __future__ import annotations
 
 import json
@@ -112,9 +109,9 @@ class SlabTest(PymatgenTest):
             coords_are_cartesian=True,
             reorient_lattice=True,
         )
-        self.assertArrayAlmostEqual(zno_slab.frac_coords, zno_slab_cart.frac_coords)
+        self.assert_all_close(zno_slab.frac_coords, zno_slab_cart.frac_coords)
         c = zno_slab_cart.lattice.matrix[2]
-        self.assertArrayAlmostEqual([0, 0, np.linalg.norm(c)], c)
+        self.assert_all_close([0, 0, np.linalg.norm(c)], c)
 
     def test_add_adsorbate_atom(self):
         zno_slab = Slab(
@@ -151,7 +148,7 @@ class SlabTest(PymatgenTest):
         assert obj.miller_index == (1, 0, 0)
 
     def test_dipole_and_is_polar(self):
-        self.assertArrayAlmostEqual(self.zno55.dipole, [0, 0, 0])
+        self.assert_all_close(self.zno55.dipole, [0, 0, 0])
         assert not self.zno55.is_polar()
         cscl = self.get_structure("CsCl")
         cscl.add_oxidation_state_by_element({"Cs": 1, "Cl": -1})
@@ -164,7 +161,7 @@ class SlabTest(PymatgenTest):
             lll_reduce=False,
             center_slab=False,
         ).get_slab()
-        self.assertArrayAlmostEqual(slab.dipole, [-4.209, 0, 0])
+        self.assert_all_close(slab.dipole, [-4.209, 0, 0])
         assert slab.is_polar()
 
     def test_surface_sites_and_symmetry(self):
@@ -190,7 +187,7 @@ class SlabTest(PymatgenTest):
             surf_sites_dict = slab.get_surface_sites()
             total_surf_sites = sum(len(surf_sites_dict[key]) for key in surf_sites_dict)
             r2 = total_surf_sites / (2 * slab.surface_area)
-            self.assertArrayAlmostEqual(r1, r2)
+            self.assert_all_close(r1, r2)
 
     def test_symmetrization(self):
         # Restricted to primitive_elemental materials due to the risk of
@@ -793,6 +790,12 @@ class MillerIndexFinderTests(PymatgenTest):
         indices = get_symmetrically_distinct_miller_indices(self.trigBi, 2, return_hkil=True)
         assert len(indices) == 17
         assert all(len(hkl) == 4 for hkl in indices)
+
+        # Test to see if the output with max_index i is a subset of the output with max_index i+1
+        for i in range(1, 4):
+            assert set(get_symmetrically_distinct_miller_indices(self.trigBi, i)) <= set(
+                get_symmetrically_distinct_miller_indices(self.trigBi, i + 1)
+            )
 
     def test_get_symmetrically_equivalent_miller_indices(self):
         # Tests to see if the function obtains all equivalent hkl for cubic (100)

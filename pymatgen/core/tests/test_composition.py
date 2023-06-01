@@ -3,7 +3,6 @@ Created on Nov 10, 2012
 
 @author: Shyue Ping Ong
 """
-
 from __future__ import annotations
 
 import random
@@ -41,15 +40,15 @@ class CompositionTest(PymatgenTest):
         ]
 
     def test_immutable(self):
-        try:
+        with pytest.raises(TypeError) as exc_info:
             self.comp[0]["Fe"] = 1
-        except Exception as ex:
-            assert isinstance(ex, TypeError)
 
-        try:
+        assert "'Composition' object does not support item assignment" in str(exc_info.value)
+
+        with pytest.raises(TypeError) as exc_info:
             del self.comp[0]["Fe"]
-        except Exception as ex:
-            assert isinstance(ex, TypeError)
+
+        assert "'Composition' object does not support item deletion" in str(exc_info.value)
 
     def test_in(self):
         assert "Fe" in self.comp[0]
@@ -262,7 +261,7 @@ class CompositionTest(PymatgenTest):
             82.41634,
         ]
         all_weights = [c.weight for c in self.comp]
-        self.assertArrayAlmostEqual(all_weights, correct_weights, 5)
+        self.assert_all_close(all_weights, correct_weights, 5)
 
     def test_get_atomic_fraction(self):
         correct_at_frac = {"Li": 0.15, "Fe": 0.1, "P": 0.15, "O": 0.6}
@@ -385,7 +384,7 @@ class CompositionTest(PymatgenTest):
             other_z = random.randint(1, 92)
         comp2 = Composition({fixed_el: 1, Element.from_Z(other_z): 0})
         assert comp1 == comp2, f"Composition equality test failed. {comp1.formula} should be equal to {comp2.formula}"
-        assert hash(comp1) == hash(comp2), "Hashcode equality test failed!"
+        assert hash(comp1) == hash(comp2), "Hash equality test failed!"
 
         c1, c2 = self.comp[:2]
         assert c1 == c1

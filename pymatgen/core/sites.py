@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import collections
 import json
+from typing import TYPE_CHECKING
 
 import numpy as np
 from monty.json import MontyDecoder, MontyEncoder, MSONable
@@ -14,7 +15,11 @@ from pymatgen.core.composition import Composition
 from pymatgen.core.lattice import Lattice
 from pymatgen.core.periodic_table import DummySpecies, Element, Species, get_el_sp
 from pymatgen.util.coord import pbc_diff
-from pymatgen.util.typing import ArrayLike, CompositionLike, SpeciesLike
+
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike
+
+    from pymatgen.util.typing import CompositionLike, SpeciesLike
 
 
 class Site(collections.abc.Hashable, MSONable):
@@ -594,13 +599,13 @@ class PeriodicSite(Site, MSONable):
         """
         species_list = []
         for spec, occu in self._species.items():
-            d = spec.as_dict()
-            del d["@module"]
-            del d["@class"]
-            d["occu"] = occu
-            species_list.append(d)
+            dct = spec.as_dict()
+            del dct["@module"]
+            del dct["@class"]
+            dct["occu"] = occu
+            species_list.append(dct)
 
-        d = {
+        dct = {
             "species": species_list,
             "abc": [float(c) for c in self._frac_coords],  # type: ignore
             "lattice": self._lattice.as_dict(verbosity=verbosity),
@@ -609,12 +614,12 @@ class PeriodicSite(Site, MSONable):
         }
 
         if verbosity > 0:
-            d["xyz"] = [float(c) for c in self.coords]
-            d["label"] = self.species_string
+            dct["xyz"] = [float(c) for c in self.coords]
+            dct["label"] = self.species_string
 
-        d["properties"] = self.properties
+        dct["properties"] = self.properties
 
-        return d
+        return dct
 
     @classmethod
     def from_dict(cls, d, lattice=None) -> PeriodicSite:
