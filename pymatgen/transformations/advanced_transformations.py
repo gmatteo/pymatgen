@@ -66,7 +66,7 @@ class ChargeBalanceTransformation(AbstractTransformation):
         """
         self.charge_balance_sp = str(charge_balance_sp)
 
-    def apply_transformation(self, structure):
+    def apply_transformation(self, structure: Structure):
         """
         Applies the transformation.
 
@@ -78,7 +78,7 @@ class ChargeBalanceTransformation(AbstractTransformation):
         """
         charge = structure.charge
         specie = get_el_sp(self.charge_balance_sp)
-        num_to_remove = charge / specie.oxi_state
+        num_to_remove = (charge / specie.oxi_state) if specie.oxi_state else 0.0
         num_in_structure = structure.composition[specie]
         removal_fraction = num_to_remove / num_in_structure
         if removal_fraction < 0:
@@ -456,17 +456,20 @@ class EnumerateStructureTransformation(AbstractTransformation):
             elif self.sort_criteria.startswith("m3gnet"):
                 if self.sort_criteria == "m3gnet_relax":
                     if m3gnet_model is None:
-                        from m3gnet.models import Relaxer
+                        import matgl
+                        from matgl.ext.ase import M3GNetCalculator, Relaxer
 
-                        m3gnet_model = Relaxer()
+                        potential = matgl.load_model("M3GNet-MP-2021.2.8-PES")
+                        m3gnet_model = Relaxer(potential=potential)
                     relax_results = m3gnet_model.relax(s)
                     energy = float(relax_results["trajectory"].energies[-1])
                     s = relax_results["final_structure"]
                 else:
                     if m3gnet_model is None:
-                        from m3gnet.models import M3GNet, M3GNetCalculator, Potential
+                        import matgl
+                        from matgl.ext.ase import M3GNetCalculator
 
-                        potential = Potential(M3GNet.load())
+                        potential = matgl.load_model("M3GNet-MP-2021.2.8-PES")
                         m3gnet_model = M3GNetCalculator(potential=potential, stress_weight=0.01)
                     from pymatgen.io.ase import AseAtomsAdaptor
 
@@ -831,7 +834,7 @@ class MagOrderingTransformation(AbstractTransformation):
         logger.debug(f"Structure with dummy species removed:\n{structure}")
         return structure
 
-    def _add_spin_magnitudes(self, structure):
+    def _add_spin_magnitudes(self, structure: Structure):
         """
         Replaces Spin.up/Spin.down with spin magnitudes specified
         by mag_species_spin.
@@ -931,27 +934,26 @@ class MagOrderingTransformation(AbstractTransformation):
         m = StructureMatcher(comparator=SpinComparator())
 
         def key(struct: Structure) -> int:
-            struct.to(filename="LiMnO2.cif")
             return SpacegroupAnalyzer(struct, 0.1).get_space_group_number()
 
         out = []
-        for _, g in groupby(sorted((dct["structure"] for dct in alls), key=key), key):
-            g = list(g)  # type: ignore
-            grouped = m.group_structures(g)
+        for _, group in groupby(sorted((dct["structure"] for dct in alls), key=key), key):
+            group = list(group)  # type: ignore
+            grouped = m.group_structures(group)
             out.extend([{"structure": g[0], "energy": self.energy_model.get_energy(g[0])} for g in grouped])
 
-        self._all_structures = sorted(out, key=lambda d: d["energy"])
+        self._all_structures = sorted(out, key=lambda dct: dct["energy"])
 
         return self._all_structures[0:num_to_return]  # type: ignore
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "MagOrderingTransformation"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     @property
-    def inverse(self):
+    def inverse(self) -> None:
         """Returns: None"""
         return
 
@@ -1244,7 +1246,7 @@ class SlabTransformation(AbstractTransformation):
         self.shift = shift
         self.tol = tol
 
-    def apply_transformation(self, structure):
+    def apply_transformation(self, structure: Structure):
         """
         Applies the transformation.
 
@@ -1502,7 +1504,7 @@ class GrainBoundaryTransformation(AbstractTransformation):
         self.rm_ratio = rm_ratio
         self.quick_gen = quick_gen
 
-    def apply_transformation(self, structure):
+    def apply_transformation(self, structure: Structure):
         """
         Applies the transformation.
 
@@ -1972,7 +1974,6 @@ class SQSTransformation(AbstractTransformation):
     ):
         """
         Args:
-            structure (Structure): Disordered pymatgen Structure object
             scaling (int or list): Scaling factor to determine supercell. Two options are possible:
                     a. (preferred) Scales number of atoms, e.g., for a structure with 8 atoms,
                        scaling=4 would lead to a 32 atom supercell
