@@ -4,6 +4,7 @@ import pickle
 
 import numpy as np
 import pytest
+from pytest import approx
 
 from pymatgen.core.composition import Composition
 from pymatgen.core.lattice import Lattice
@@ -18,7 +19,7 @@ class SiteTest(PymatgenTest):
         self.ordered_site = Site("Fe", [0.25, 0.35, 0.45])
         self.disordered_site = Site({"Fe": 0.5, "Mn": 0.5}, [0.25, 0.35, 0.45])
         self.propertied_site = Site("Fe2+", [0.25, 0.35, 0.45], {"magmom": 5.1, "charge": 4.2})
-        self.propertied_magmomvector_site = Site(
+        self.propertied_magmom_vec_site = Site(
             "Fe2+",
             [0.25, 0.35, 0.45],
             {"magmom": Magmom([2.6, 2.6, 3.5]), "charge": 4.2},
@@ -26,8 +27,10 @@ class SiteTest(PymatgenTest):
         self.dummy_site = Site("X", [0, 0, 0])
 
     def test_properties(self):
-        with pytest.raises(AttributeError):
-            self.disordered_site.specie
+        assert not self.disordered_site.is_ordered
+        # TODO (janosh): this doesn't raise the expected error (match="specie property only works for ordered sites")
+        with pytest.raises(AttributeError, match="attr='specie' not found on Site"):
+            _ = self.disordered_site.specie
         assert isinstance(self.ordered_site.specie, Element)
         assert self.propertied_site.properties["magmom"] == 5.1
         assert self.propertied_site.properties["charge"] == 4.2
@@ -41,7 +44,7 @@ class SiteTest(PymatgenTest):
         site = Site.from_dict(d)
         assert site.properties["magmom"] == 5.1
         assert site.properties["charge"] == 4.2
-        d = self.propertied_magmomvector_site.as_dict()
+        d = self.propertied_magmom_vec_site.as_dict()
         site = Site.from_dict(d)
         assert site.properties["magmom"] == Magmom([2.6, 2.6, 3.5])
         assert site.properties["charge"] == 4.2
@@ -58,8 +61,8 @@ class SiteTest(PymatgenTest):
 
     def test_distance(self):
         osite = self.ordered_site
-        assert round(abs(np.linalg.norm([0.25, 0.35, 0.45]) - osite.distance_from_point([0, 0, 0])), 7) == 0
-        assert round(abs(osite.distance(self.disordered_site) - 0), 7) == 0
+        assert np.linalg.norm([0.25, 0.35, 0.45]) == osite.distance_from_point([0, 0, 0])
+        assert osite.distance(self.disordered_site) == 0
 
     def test_pickle(self):
         o = pickle.dumps(self.propertied_site)
@@ -73,11 +76,8 @@ class SiteTest(PymatgenTest):
         assert self.disordered_site.coords[0] == 1.25
         assert self.disordered_site.coords[1] == 1.35
 
-        def set_bad_species():
+        with pytest.raises(ValueError, match="Species occupancies sum to more than 1"):
             self.disordered_site.species = {"Cu": 0.5, "Gd": 0.6}
-
-        with pytest.raises(ValueError):
-            set_bad_species()
 
 
 class PeriodicSiteTest(PymatgenTest):
@@ -93,12 +93,11 @@ class PeriodicSiteTest(PymatgenTest):
             self.lattice,
             properties={"magmom": 5.1, "charge": 4.2},
         )
+        self.labeled_site = PeriodicSite("Fe", [0.25, 0.35, 0.45], self.lattice, label="site label")
         self.dummy_site = PeriodicSite("X", [0, 0, 0], self.lattice)
 
     def test_properties(self):
-        """
-        Test the properties for a site
-        """
+        """Test the properties for a site."""
         assert self.site.a == 0.25
         assert self.site.b == 0.35
         assert self.site.c == 0.45
@@ -106,31 +105,32 @@ class PeriodicSiteTest(PymatgenTest):
         assert self.site.y == 3.5
         assert self.site.z == 4.5
         assert self.site.is_ordered
+        assert self.site.label is None
         assert not self.site2.is_ordered
         assert self.propertied_site.properties["magmom"] == 5.1
         assert self.propertied_site.properties["charge"] == 4.2
+        assert self.labeled_site.label == "site label"
 
     def test_distance(self):
         other_site = PeriodicSite("Fe", np.array([0, 0, 0]), self.lattice)
-        assert round(abs(self.site.distance(other_site) - 6.22494979899), 5) == 0
+        assert self.site.distance(other_site) == approx(6.22494979899)
 
     def test_distance_from_point(self):
-        assert round(abs(self.site.distance_from_point([0.1, 0.1, 0.1]) - 6.22494979899), 5) != 0
-        assert round(abs(self.site.distance_from_point([0.1, 0.1, 0.1]) - 6.0564015718906887), 5) == 0
+        assert self.site.distance_from_point([0.1, 0.1, 0.1]) == approx(6.0564015718906887)
 
     def test_distance_and_image(self):
         other_site = PeriodicSite("Fe", np.array([1, 1, 1]), self.lattice)
         distance, image = self.site.distance_and_image(other_site)
-        assert round(abs(distance - 6.22494979899), 5) == 0
+        assert distance == approx(6.22494979899)
         assert ([-1, -1, -1] == image).all()
         distance, image = self.site.distance_and_image(other_site, [1, 0, 0])
-        assert round(abs(distance - 19.461500456028563), 5) == 0
+        assert distance == approx(19.461500456028563)
         # Test that old and new distance algo give the same ans for
         # "standard lattices"
         lattice = Lattice([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         site1 = PeriodicSite("Fe", np.array([0.01, 0.02, 0.03]), lattice)
         site2 = PeriodicSite("Fe", np.array([0.99, 0.98, 0.97]), lattice)
-        assert round(abs(get_distance_and_image_old(site1, site2)[0] - site1.distance_and_image(site2)[0]), 7) == 0
+        assert get_distance_and_image_old(site1, site2)[0] == approx(site1.distance_and_image(site2)[0])
         lattice = Lattice.from_parameters(1, 0.01, 1, 10, 10, 10)
         site1 = PeriodicSite("Fe", np.array([0.01, 0.02, 0.03]), lattice)
         site2 = PeriodicSite("Fe", np.array([0.99, 0.98, 0.97]), lattice)
@@ -146,7 +146,7 @@ class PeriodicSiteTest(PymatgenTest):
         site = PeriodicSite("Fe", [0.1, 0.1, 0.1], latt)
         site2 = PeriodicSite("Fe", [0.99, 0.99, 0.99], latt)
         dist, img = site.distance_and_image(site2)
-        assert round(abs(dist - 0.15495358379511573), 7) == 0
+        assert dist == approx(0.15495358379511573)
         assert list(img) == [-11, 6, 0]
 
     def test_is_periodic_image(self):
@@ -162,11 +162,19 @@ class PeriodicSiteTest(PymatgenTest):
         other_site = PeriodicSite("Fe", np.array([1, 1, 1]), self.lattice)
         assert other_site != self.site
 
+    def test_equality_with_label(self):
+        site = PeriodicSite("Fe", [0.25, 0.35, 0.45], self.lattice, label="Fe3")
+        assert site == self.site
+
+        assert self.labeled_site.label != site.label
+        assert self.labeled_site == site
+
     def test_as_from_dict(self):
         d = self.site2.as_dict()
         site = PeriodicSite.from_dict(d)
         assert site == self.site2
         assert site != self.site
+        assert site.label == self.site.label
         d = self.propertied_site.as_dict()
         site3 = PeriodicSite({"Si": 0.5, "Fe": 0.5}, [0, 0, 0], self.lattice)
         d = site3.as_dict()
@@ -202,11 +210,8 @@ class PeriodicSiteTest(PymatgenTest):
         site.lattice = Lattice.cubic(100)
         assert site.x == 12.5
 
-        def set_bad_species():
+        with pytest.raises(ValueError, match="Species occupancies sum to more than 1"):
             site.species = {"Cu": 0.5, "Gd": 0.6}
-
-        with pytest.raises(ValueError):
-            set_bad_species()
 
         site.frac_coords = [0, 0, 0.1]
         self.assert_all_close(site.coords, [0, 0, 10])
@@ -214,7 +219,8 @@ class PeriodicSiteTest(PymatgenTest):
         self.assert_all_close(site.frac_coords, [0.015, 0.0325, 0.05])
 
     def test_repr(self):
-        assert repr(self.propertied_site) == "PeriodicSite: Fe2+ (2.5000, 3.5000, 4.5000) [0.2500, 0.3500, 0.4500]"
+        assert repr(self.propertied_site) == "PeriodicSite: Fe2+ (2.5, 3.5, 4.5) [0.25, 0.35, 0.45]"
+        assert repr(self.labeled_site) == "PeriodicSite: site label (Fe) (2.5, 3.5, 4.5) [0.25, 0.35, 0.45]"
 
 
 def get_distance_and_image_old(site1, site2, jimage=None):

@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 
 from monty.string import is_string, list_strings
+from pymatgen.io.core import ParseError
 from pymatgen.util.num import minloc
 from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig_plt
 
@@ -23,7 +24,7 @@ def alternate(*iterables):
     """
     [a[0], b[0], ... , a[1], b[1], ..., a[n], b[n] ...]
     >>> alternate([1,4], [2,5], [3,6])
-    [1, 2, 3, 4, 5, 6]
+    [1, 2, 3, 4, 5, 6].
     """
     items = []
     for tup in zip(*iterables):
@@ -31,8 +32,8 @@ def alternate(*iterables):
     return items
 
 
-class AbinitTimerParserError(Exception):
-    """Errors raised by AbinitTimerParser"""
+class AbinitTimerParseError(ParseError):
+    """Errors raised by AbinitTimerParser."""
 
 
 class AbinitTimerParser(collections.abc.Iterable):
@@ -54,7 +55,7 @@ class AbinitTimerParser(collections.abc.Iterable):
     BEGIN_TAG = "-<BEGIN_TIMER"
     END_TAG = "-<END_TIMER>"
 
-    Error = AbinitTimerParserError
+    Error = AbinitTimerParseError
 
     # DEFAULT_MPI_RANK = "0"
 
@@ -132,7 +133,7 @@ class AbinitTimerParser(collections.abc.Iterable):
         return read_ok
 
     def _read(self, fh, fname):
-        """Parse the TIMER section"""
+        """Parse the TIMER section."""
         if fname in self._timers:
             raise self.Error(f"Cannot overwrite timer associated to: {fname} ")
 
@@ -321,7 +322,7 @@ class AbinitTimerParser(collections.abc.Iterable):
     @add_fig_kwargs
     def plot_efficiency(self, key="wall_time", what="good+bad", nmax=5, ax=None, **kwargs):
         """
-        Plot the parallel efficiency
+        Plot the parallel efficiency.
 
         Args:
             key: Parallel efficiency is computed using the wall_time.
@@ -486,9 +487,7 @@ class AbinitTimerParser(collections.abc.Iterable):
         return fig
 
     def plot_all(self, show=True, **kwargs):
-        """
-        Call all plot methods provided by the parser.
-        """
+        """Call all plot methods provided by the parser."""
         figs = []
         app = figs.append
         app(self.plot_stacked_hist(show=show))
@@ -498,9 +497,7 @@ class AbinitTimerParser(collections.abc.Iterable):
 
 
 class ParallelEfficiency(dict):
-    """
-    Store results concerning the parallel efficiency of the job.
-    """
+    """Store results concerning the parallel efficiency of the job."""
 
     def __init__(self, filenames, ref_idx, *args, **kwargs):
         """
@@ -558,16 +555,12 @@ class ParallelEfficiency(dict):
         return table
 
     def good_sections(self, key="wall_time", criterion="mean", nmax=5):
-        """
-        Return first `nmax` sections with best value of key `key` using criterion `criterion`.
-        """
+        """Return first `nmax` sections with best value of key `key` using criterion `criterion`."""
         good_sections = self._order_by_peff(key, criterion=criterion)
         return good_sections[:nmax]
 
     def bad_sections(self, key="wall_time", criterion="mean", nmax=5):
-        """
-        Return first `nmax` sections with worst value of key `key` using criterion `criterion`.
-        """
+        """Return first `nmax` sections with worst value of key `key` using criterion `criterion`."""
         bad_sections = self._order_by_peff(key, criterion=criterion, reverse=False)
         return bad_sections[:nmax]
 
@@ -575,16 +568,16 @@ class ParallelEfficiency(dict):
 class AbinitTimerSection:
     """Record with the timing results associated to a section of code."""
 
-    STR_FIELDS = ["name"]
+    STR_FIELDS = ("name",)
 
-    NUMERIC_FIELDS = [
+    NUMERIC_FIELDS = (
         "wall_time",
         "wall_fract",
         "cpu_time",
         "cpu_fract",
         "ncalls",
         "gflops",
-    ]
+    )
 
     FIELDS = tuple(STR_FIELDS + NUMERIC_FIELDS)
 
@@ -734,9 +727,7 @@ class AbinitTimer:
         return frame
 
     def get_values(self, keys):
-        """
-        Return a list of values associated to a particular list of keys.
-        """
+        """Return a list of values associated to a particular list of keys."""
         if is_string(keys):
             return [s.__dict__[keys] for s in self.sections]
         values = []
@@ -765,7 +756,7 @@ class AbinitTimer:
                 else:
                     other_val += v
 
-            new_names.append("below minval " + str(minval))
+            new_names.append(f"below minval {minval}")
             new_values.append(other_val)
 
         elif minfract is not None:
@@ -780,7 +771,7 @@ class AbinitTimer:
                 else:
                     other_val += v
 
-            new_names.append("below minfract " + str(minfract))
+            new_names.append(f"below minfract {minfract}")
             new_values.append(other_val)
 
         else:

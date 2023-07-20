@@ -6,7 +6,7 @@ This module depends on a compiled vampire executable available in the path.
 Please download at https://vampire.york.ac.uk/download/ and
 follow the instructions to compile the executable.
 
-If you use this module, please cite the following:
+If you use this module, please cite:
 
 "Atomistic spin model simulations of magnetic nanomaterials."
 R. F. L. Evans, W. J. Fan, P. Chureemart, T. A. Ostler, M. O. A. Ellis
@@ -123,9 +123,9 @@ class VampireCaller:
         self.mat_name = hm.formula
 
         # Switch to scratch dir which automatically cleans up vampire inputs files unless user specifies to save them
-        # with ScratchDir('/scratch', copy_from_current_on_enter=self.save_inputs,
-        #                 copy_to_current_on_exit=self.save_inputs) as temp_dir:
-        #     os.chdir(temp_dir)
+        # with ScratchDir(
+        #     "/scratch", copy_from_current_on_enter=self.save_inputs, copy_to_current_on_exit=self.save_inputs
+        # ):
 
         # Create input files
         self._create_mat()
