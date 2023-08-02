@@ -13,7 +13,7 @@ import sys
 import numpy as np
 
 from collections import defaultdict, namedtuple
-from typing import List, Any, Union
+from typing import List, Any, Union, TYPE_CHECKING
 from xml.etree import ElementTree
 from monty.collections import AttrDict, Namespace
 from monty.functools import lazy_property
@@ -24,15 +24,13 @@ from monty.string import is_string, list_strings
 from tabulate import tabulate
 
 from pymatgen.core.periodic_table import Element
-from pymatgen.core.xcfunc import XcFunc
 from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig_plt
+
+if TYPE_CHECKING:
+    from pymatgen.core import Structure
 
 logger = logging.getLogger(__name__)
 
-__all__ = [
-    "Pseudo",
-    "PseudoTable",
-]
 
 __author__ = "Matteo Giantomassi"
 __version__ = "0.1"
@@ -49,19 +47,19 @@ def straceback() -> str:
     return "\n".join((traceback.format_exc(), str(sys.exc_info()[0])))
 
 
-def _read_nlines(filename: str, nlines: int) -> list[str]:
+def _read_nlines(filename: str, n_lines: int) -> list[str]:
     """
-    Read at most nlines lines from file filename.
-    If nlines is < 0, the entire file is read.
+    Read at most n_lines lines from file filename.
+    If n_lines is < 0, the entire file is read.
     """
-    if nlines < 0:
+    if n_lines < 0:
         with open(filename) as fh:
             return fh.readlines()
 
     lines = []
     with open(filename) as fh:
         for lineno, line in enumerate(fh):
-            if lineno == nlines:
+            if lineno == n_lines:
                 break
             lines.append(line)
         return lines
@@ -195,6 +193,8 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
     @property
     def symbol(self) -> str:
         """Element symbol."""
+        if self.Z == 119: return "Uue"
+        if self.Z == 120: return "Ubn"
         return self.element.symbol
 
     @property
@@ -473,6 +473,7 @@ class AbinitPseudo(Pseudo):
         self._summary = header.summary
 
         # Build xc from header.
+        from pymatgen.core.xcfunc import XcFunc
         self.xc = XcFunc.from_abinit_ixc(header["pspxc"])
 
         for attr_name in header:
@@ -1233,6 +1234,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
 
         # Build xc from header.
         xc_info = root.find("xc_functional").attrib
+        from pymatgen.core.xcfunc import XcFunc
         self.xc = XcFunc.from_type_name(xc_info["type"], xc_info["name"])
 
         # Old XML files do not define this field!
@@ -1452,9 +1454,9 @@ class PawXmlSetup(Pseudo, PawPseudo):
         ax.set_xlabel("r (Bohr)")
         # ax.set_ylabel('density')
 
-        for i, den_name in enumerate(["ae_core_density", "pseudo_core_density"]):
-            rden = getattr(self, den_name)
-            label = "$n_c$" if i == 1 else r"$\tilde{n}_c$"
+        for idx, density_name in enumerate(["ae_core_density", "pseudo_core_density"]):
+            rden = getattr(self, density_name)
+            label = "$n_c$" if idx == 1 else r"$\tilde{n}_c$"
             ax.plot(rden.mesh, rden.mesh * rden.values, label=label, lw=2)  # noqa: PD011
 
         ax.legend(loc="best")
@@ -1557,7 +1559,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
 
 class UpfPseudo(Pseudo):
     """
-    Pseudopotentials in UPF format. 
+    Pseudopotentials in UPF format.
     See e.g. https://esl.cecam.org/data/upf/
     """
 
@@ -1606,6 +1608,7 @@ class UpfPseudo(Pseudo):
 
         # FIXME: Need to implement mapping QE --> XC
         functional = self.pp_header["functional"]
+        from pymatgen.core.xcfunc import XcFunc
         self.xc = XcFunc.from_abinit_ixc(11)
 
     @property
@@ -1978,7 +1981,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
             return pseudos
         return self.__class__(pseudos)
 
-    def get_pseudos_for_structure(self, structure):
+    def get_pseudos_for_structure(self, structure: Structure):
         """
         Return the list of :class:`Pseudo` objects to be used for this :class:`Structure`.
 

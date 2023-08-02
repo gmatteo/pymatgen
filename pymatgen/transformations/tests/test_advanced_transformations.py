@@ -7,6 +7,7 @@ import warnings
 from shutil import which
 
 import numpy as np
+import pytest
 from monty.serialization import loadfn
 from numpy.testing import assert_array_equal
 from pytest import approx
@@ -54,9 +55,9 @@ except ImportError:
 
 
 try:
-    import m3gnet
+    import matgl
 except ImportError:
-    m3gnet = None
+    matgl = None
 
 
 def get_table():
@@ -199,19 +200,19 @@ class EnumerateStructureTransformationTest(unittest.TestCase):
         enum_trans2 = EnumerateStructureTransformation(refine_structure=True, sort_criteria="nsites")
         p = Poscar.from_file(os.path.join(PymatgenTest.TEST_FILES_DIR, "POSCAR.LiFePO4"), check_for_POTCAR=False)
         struct = p.structure
-        expected_ans = [1, 3, 1]
+        expected = [1, 3, 1]
         for i, frac in enumerate([0.25, 0.5, 0.75]):
             trans = SubstitutionTransformation({"Fe": {"Fe": frac}})
             s = trans.apply_transformation(struct)
             oxitrans = OxidationStateDecorationTransformation({"Li": 1, "Fe": 2, "P": 5, "O": -2})
             s = oxitrans.apply_transformation(s)
             alls = enum_trans.apply_transformation(s, 100)
-            assert len(alls) == expected_ans[i]
+            assert len(alls) == expected[i]
             assert isinstance(trans.apply_transformation(s), Structure)
             for ss in alls:
                 assert "energy" in ss
             alls = enum_trans2.apply_transformation(s, 100)
-            assert len(alls) == expected_ans[i]
+            assert len(alls) == expected[i]
             assert isinstance(trans.apply_transformation(s), Structure)
             for ss in alls:
                 assert "num_sites" in ss
@@ -225,8 +226,8 @@ class EnumerateStructureTransformationTest(unittest.TestCase):
         for s in alls:
             assert "energy" not in s
 
-    @unittest.skipIf(m3gnet is None, "m3gnet package not available.")
     def test_m3gnet(self):
+        pytest.importorskip("matgl")
         enum_trans = EnumerateStructureTransformation(refine_structure=True, sort_criteria="m3gnet_relax")
         p = Poscar.from_file(os.path.join(PymatgenTest.TEST_FILES_DIR, "POSCAR.LiFePO4"), check_for_POTCAR=False)
         struct = p.structure
@@ -242,9 +243,12 @@ class EnumerateStructureTransformationTest(unittest.TestCase):
         assert alls[0]["energy"] / alls[0]["num_sites"] <= alls[-1]["energy"] / alls[-1]["num_sites"]
 
     def test_callable_sort_criteria(self):
-        from m3gnet.models import Relaxer
+        matgl = pytest.importorskip("matgl")
+        from matgl.ext.ase import Relaxer
 
-        m3gnet_model = Relaxer(optimizer="BFGS")
+        pot = matgl.load_model("M3GNet-MP-2021.2.8-PES")
+
+        m3gnet_model = Relaxer(potential=pot)
 
         def sort_criteria(s):
             relax_results = m3gnet_model.relax(s)
@@ -266,22 +270,21 @@ class EnumerateStructureTransformationTest(unittest.TestCase):
         assert alls[0]["energy"] / alls[0]["num_sites"] <= alls[-1]["energy"] / alls[-1]["num_sites"]
 
     def test_max_disordered_sites(self):
-        latt = Lattice.cubic(4)
         s_orig = Structure(
-            latt,
+            Lattice.cubic(4),
             [{"Li": 0.2, "Na": 0.2, "K": 0.6}, {"O": 1}],
             [[0, 0, 0], [0.5, 0.5, 0.5]],
         )
         est = EnumerateStructureTransformation(max_cell_size=None, max_disordered_sites=5)
-        dd = est.apply_transformation(s_orig, return_ranked_list=100)
-        assert len(dd) == 9
-        for d in dd:
+        lst = est.apply_transformation(s_orig, return_ranked_list=100)
+        assert len(lst) == 9
+        for d in lst:
             assert len(d["structure"]) == 10
 
     def test_to_from_dict(self):
         trans = EnumerateStructureTransformation()
-        d = trans.as_dict()
-        trans = EnumerateStructureTransformation.from_dict(d)
+        dct = trans.as_dict()
+        trans = EnumerateStructureTransformation.from_dict(dct)
         assert trans.symm_prec == 0.1
 
 
@@ -794,7 +797,3 @@ class MonteCarloRattleTransformationTest(PymatgenTest):
         mcrt = MonteCarloRattleTransformation(0.01, 2, seed=1)
         s_trans2 = mcrt.apply_transformation(s)
         assert np.allclose(s_trans.cart_coords, s_trans2.cart_coords)
-
-
-if __name__ == "__main__":
-    unittest.main()
