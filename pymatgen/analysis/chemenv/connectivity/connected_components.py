@@ -97,7 +97,7 @@ def draw_network(env_graph, pos, ax, sg=None, periodicity_vectors=None):
                     color=color,
                 )
         else:
-            ecolor = color if np.allclose(np.array(delta), np.zeros(3)) else periodic_color
+            ecolor = color if np.allclose(delta, np.zeros(3)) else periodic_color
             e = FancyArrowPatch(
                 n1center,
                 n2center,
@@ -556,13 +556,13 @@ class ConnectedComponent(MSONable):
                 plt.savefig(save_file)
             # nx.draw(self._connected_subgraph)
         elif drawing_type == "draw_graphviz":
-            import networkx
+            import networkx as nx
 
-            networkx.nx_pydot.graphviz_layout(shown_graph)
+            nx.nx_pydot.graphviz_layout(shown_graph)
         elif drawing_type == "draw_random":
-            import networkx
+            import networkx as nx
 
-            networkx.draw_random(shown_graph)
+            nx.draw_random(shown_graph)
 
     @property
     def graph(self):
@@ -651,7 +651,7 @@ class ConnectedComponent(MSONable):
         """Get periodicity of this connected component."""
         if self._periodicity_vectors is None:
             self.compute_periodicity()
-        return f"{len(self._periodicity_vectors):d}D"
+        return f"{len(self._periodicity_vectors)}D"
 
     def elastic_centered_graph(self, start_node=None):
         """
@@ -665,7 +665,7 @@ class ConnectedComponent(MSONable):
         # Loop on start_nodes, sometimes some nodes cannot be elastically taken
         # inside the cell if you start from a specific node
         ntest_nodes = 0
-        start_node = list(self.graph.nodes())[0]
+        start_node = next(iter(self.graph.nodes()))
 
         ntest_nodes += 1
         centered_connected_subgraph = nx.MultiGraph()
@@ -681,19 +681,19 @@ class ConnectedComponent(MSONable):
         tree_level = 0
         while True:
             tree_level += 1
-            logging.debug(f"In tree level {tree_level:d} ({len(current_nodes):d} nodes)")
+            logging.debug(f"In tree level {tree_level} ({len(current_nodes)} nodes)")
             new_current_nodes = []
             # Loop on nodes in this level of the tree
             for node in current_nodes:
                 inode += 1
-                logging.debug(f"  In node #{inode:d}/{len(current_nodes):d} in level {tree_level:d} ({node})")
+                logging.debug(f"  In node #{inode}/{len(current_nodes)} in level {tree_level} ({node})")
                 node_neighbors = list(tree.neighbors(n=node))
                 node_edges = centered_connected_subgraph.edges(nbunch=[node], data=True, keys=True)
                 # Loop on neighbors of a node (from the tree used)
                 for inode_neighbor, node_neighbor in enumerate(node_neighbors):
                     logging.debug(
-                        f"    Testing neighbor #{inode_neighbor:d}/{len(node_neighbors):d} ({node_neighbor}) of "
-                        f"node #{inode:d} ({node})"
+                        f"    Testing neighbor #{inode_neighbor}/{len(node_neighbors)} ({node_neighbor}) of "
+                        f"node #{inode} ({node})"
                     )
                     already_inside = False
                     ddeltas = []
@@ -818,7 +818,7 @@ class ConnectedComponent(MSONable):
         Returns:
             dict: Bson-serializable dict representation of the ConnectedComponent object.
         """
-        nodes = {f"{node.isite:d}": (node, data) for node, data in self._connected_subgraph.nodes(data=True)}
+        nodes = {f"{node.isite}": (node, data) for node, data in self._connected_subgraph.nodes(data=True)}
         node2stringindex = {node: strindex for strindex, (node, data) in nodes.items()}
         dict_of_dicts = nx.to_dict_of_dicts(self._connected_subgraph)
         new_dict_of_dicts = {}
@@ -846,6 +846,7 @@ class ConnectedComponent(MSONable):
 
         Args:
             d (dict): dict representation of the ConnectedComponent object
+
         Returns:
             ConnectedComponent: The connected component representing the links of a given set of environments.
         """
@@ -899,5 +900,5 @@ class ConnectedComponent(MSONable):
                     get_delta(node1=en, node2=en_neighb, edge_data=edge_data).tolist()
                     for iedge, edge_data in self.graph[en][en_neighb].items()
                 )
-                out.extend([f"     ({delta[0]:d} {delta[1]:d} {delta[2]:d})" for delta in all_deltas])
+                out.extend([f"     ({delta[0]} {delta[1]} {delta[2]})" for delta in all_deltas])
         return "\n".join(out)

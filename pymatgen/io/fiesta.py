@@ -74,7 +74,7 @@ class Nwchem2Fiesta(MSONable):
         os.chdir(init_folder)
 
     def as_dict(self):
-        """:return: MSONable dict"""
+        """MSONable dict"""
         return {
             "@module": type(self).__module__,
             "@class": type(self).__name__,
@@ -86,7 +86,8 @@ class Nwchem2Fiesta(MSONable):
     def from_dict(cls, d):
         """
         :param d: Dict representation.
-        :return: Nwchem2Fiesta
+        Returns:
+            Nwchem2Fiesta
         """
         return cls(folder=d["folder"], filename=d["filename"])
 
@@ -169,7 +170,7 @@ class FiestaRun(MSONable):
             os.chdir(init_folder)
 
     def as_dict(self):
-        """:return: MSONable dict"""
+        """MSONable dict"""
         return {
             "@module": type(self).__module__,
             "@class": type(self).__name__,
@@ -182,7 +183,9 @@ class FiestaRun(MSONable):
     def from_dict(cls, d):
         """
         :param d: Dict representation
-        :return: FiestaRun
+
+        Returns:
+            FiestaRun
         """
         return cls(folder=d["folder"], grid=d["grid"], log_file=d["log_file"])
 
@@ -233,11 +236,11 @@ class BasisSetReader:
                     l_angular = match_orb.group(1)
                     zeta = match_orb.group(2)
                     ng = match_orb.group(3)
-                    basis_set[l_angular + "_" + zeta + "_" + ng] = []
+                    basis_set[f"{l_angular}_{zeta}_{ng}"] = []
                 elif match_alpha:
                     alpha = match_alpha.group(1)
                     coef = match_alpha.group(2)
-                    basis_set[l_angular + "_" + zeta + "_" + ng].append((alpha, coef))
+                    basis_set[f"{l_angular}_{zeta}_{ng}"].append((alpha, coef))
             elif parse_lmax_nnlo:
                 match_orb = lmax_nnlo_patt.search(line)
                 if match_orb:
@@ -258,7 +261,7 @@ class BasisSetReader:
         return basis_set
 
     def set_n_nlmo(self):
-        """:return: the number of nlm orbitals for the basis set"""
+        """the number of nlm orbitals for the basis set"""
         nnlmo = 0
 
         data_tmp = self.data
@@ -376,7 +379,9 @@ class FiestaInput(MSONable):
     def dump_BSE_data_in_GW_run(self, BSE_dump=True):
         """
         :param BSE_dump: boolean
-        :return: set the "do_bse" variable to one in cell.in
+
+        Returns:
+            set the "do_bse" variable to one in cell.in
         """
         if BSE_dump:
             self.BSE_TDDFT_options.update(do_bse=1, do_tddft=0)
@@ -386,7 +391,9 @@ class FiestaInput(MSONable):
     def dump_TDDFT_data_in_GW_run(self, TDDFT_dump=True):
         """
         :param TDDFT_dump: boolean
-        :return: set the do_tddft variable to one in cell.in
+
+        Returns:
+            set the do_tddft variable to one in cell.in
         """
         if TDDFT_dump:
             self.BSE_TDDFT_options.update(do_bse=0, do_tddft=1)
@@ -529,7 +536,7 @@ $geometry
             f.write(str(self))
 
     def as_dict(self):
-        """:return: MSONable dict"""
+        """MSONable dict"""
         return {
             "mol": self._mol.as_dict(),
             "correlation_grid": self.correlation_grid,
@@ -543,7 +550,9 @@ $geometry
     def from_dict(cls, d):
         """
         :param d: Dict representation
-        :return: FiestaInput
+
+        Returns:
+            FiestaInput
         """
         return cls(
             Molecule.from_dict(d["mol"]),
@@ -554,6 +563,7 @@ $geometry
             BSE_TDDFT_options=d["memory_options"],
         )
 
+    @classmethod
     @np.deprecate(message="Use from_str instead")
     def from_string(cls, *args, **kwargs):
         return cls.from_str(*args, **kwargs)

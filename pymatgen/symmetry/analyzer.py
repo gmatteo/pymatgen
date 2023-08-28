@@ -85,11 +85,9 @@ class SpacegroupAnalyzer:
                 unique_species.append(species)
                 zs.extend([len(unique_species)] * len(tuple(group)))
 
-        has_explicit_magmoms = False
-        if "magmom" in structure.site_properties or any(
-            hasattr(specie, "spin") for specie in structure.types_of_species
-        ):
-            has_explicit_magmoms = True
+        has_explicit_magmoms = "magmom" in structure.site_properties or any(
+            getattr(specie, "spin", None) is not None for specie in structure.types_of_species
+        )
 
         for site in structure:
             if hasattr(site, "magmom"):
@@ -107,7 +105,7 @@ class SpacegroupAnalyzer:
                 tuple(map(tuple, structure.lattice.matrix.tolist())),
                 tuple(map(tuple, structure.frac_coords.tolist())),
                 tuple(zs),
-                tuple(magmoms),
+                tuple(map(tuple, magmoms) if isinstance(magmoms[0], Sequence) else magmoms),
             )
         else:  # if no magmoms given do not add to cell
             self._cell = (
@@ -249,9 +247,10 @@ class SpacegroupAnalyzer:
         """
         d = spglib.get_symmetry(self._cell, symprec=self._symprec, angle_tolerance=self._angle_tol)
         if d is None:
+            symprec = self._symprec
             raise ValueError(
                 f"Symmetry detection failed for structure with formula {self._structure.formula}. "
-                f"Try setting symprec={self._symprec} to a different value."
+                f"Try setting {symprec=} to a different value."
             )
         # Sometimes spglib returns small translation vectors, e.g.
         # [1e-4, 2e-4, 1e-4]
@@ -1688,8 +1687,5 @@ class PointGroupOperations(list):
         self.sch_symbol = sch_symbol
         super().__init__(generate_full_symmops(operations, tol))
 
-    def __str__(self):
-        return self.sch_symbol
-
     def __repr__(self):
-        return str(self)
+        return self.sch_symbol

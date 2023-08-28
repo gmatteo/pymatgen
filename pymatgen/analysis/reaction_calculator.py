@@ -37,10 +37,8 @@ class BalancedReaction(MSONable):
         Reactants and products to be specified as dict of {Composition: coeff}.
 
         Args:
-            reactants_coeffs ({Composition: float}): Reactants as dict of
-                {Composition: amt}.
-            products_coeffs ({Composition: float}): Products as dict of
-                {Composition: amt}.
+            reactants_coeffs (dict[Composition, float]): Reactants as dict of {Composition: amt}.
+            products_coeffs (dict[Composition, float]): Products as dict of {Composition: amt}.
         """
         # sum reactants and products
         all_reactants = sum((k * v for k, v in reactants_coeffs.items()), Composition({}))
@@ -58,11 +56,11 @@ class BalancedReaction(MSONable):
         self._coeffs = []
         self._els = []
         self._all_comp = []
-        for c in set(list(reactants_coeffs) + list(products_coeffs)):
-            coeff = products_coeffs.get(c, 0) - reactants_coeffs.get(c, 0)
+        for key in {*reactants_coeffs, *products_coeffs}:
+            coeff = products_coeffs.get(key, 0) - reactants_coeffs.get(key, 0)
 
             if abs(coeff) > self.TOLERANCE:
-                self._all_comp.append(c)
+                self._all_comp.append(key)
                 self._coeffs.append(coeff)
 
     def calculate_energy(self, energies):
@@ -214,7 +212,6 @@ class BalancedReaction(MSONable):
     def as_entry(self, energies):
         """
         Returns a ComputedEntry representation of the reaction.
-        :return:
         """
         relevant_comp = [comp * abs(coeff) for coeff, comp in zip(self._coeffs, self._all_comp)]
         comp = sum(relevant_comp, Composition())
@@ -324,7 +321,7 @@ class Reaction(BalancedReaction):
             ]
         )
         reactant_constraints = chain.from_iterable(
-            [combinations(range(0, first_product_idx), n_constr) for n_constr in range(max_num_constraints, 0, -1)]
+            [combinations(range(first_product_idx), n_constr) for n_constr in range(max_num_constraints, 0, -1)]
         )
         best_soln = None
         balanced = False

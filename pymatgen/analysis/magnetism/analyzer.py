@@ -39,10 +39,10 @@ __date__ = "Feb 2017"
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    DEFAULT_MAGMOMS = loadfn(os.path.join(MODULE_DIR, "default_magmoms.yaml"))
+    DEFAULT_MAGMOMS = loadfn(f"{MODULE_DIR}/default_magmoms.yaml")
 except Exception:
     warnings.warn("Could not load default_magmoms.yaml, falling back to VASPIncarBase.yaml")
-    DEFAULT_MAGMOMS = loadfn(os.path.join(MODULE_DIR, "../../io/vasp/VASPIncarBase.yaml"))
+    DEFAULT_MAGMOMS = loadfn(f"{MODULE_DIR}/../../io/vasp/VASPIncarBase.yaml")
     DEFAULT_MAGMOMS = DEFAULT_MAGMOMS["MAGMOM"]
 
 
@@ -166,10 +166,8 @@ class CollinearMagneticStructureAnalyzer:
                     has_spin = True
 
         # perform input sanitation ...
-        # rest of class will assume magnetic moments
-        # are stored on site properties:
-        # this is somewhat arbitrary, arguments can
-        # be made for both approaches
+        # rest of class will assume magnetic moments are stored on site properties:
+        # this is somewhat arbitrary, arguments can be made for both approaches
 
         if has_magmoms and has_spin:
             raise ValueError(
@@ -294,7 +292,7 @@ class CollinearMagneticStructureAnalyzer:
 
     @no_type_check  # ignore seemingly false mypy errors
     @staticmethod
-    def _round_magmoms(magmoms: ArrayLike, round_magmoms_mode: int | float) -> np.ndarray:
+    def _round_magmoms(magmoms: ArrayLike, round_magmoms_mode: float) -> np.ndarray:
         """If round_magmoms_mode is an integer, simply round to that number
         of decimal places, else if set to a float will try and round
         intelligently by grouping magmoms.
@@ -555,16 +553,16 @@ class CollinearMagneticStructureAnalyzer:
         b_positive = CollinearMagneticStructureAnalyzer(other, overwrite_magmom_mode="normalize", make_primitive=False)
 
         b_negative = b_positive.structure.copy()
-        b_negative.add_site_property("magmom", np.multiply(-1, b_negative.site_properties["magmom"]))
+        b_negative.add_site_property("magmom", -np.array(b_negative.site_properties["magmom"]))
 
-        b_negative = CollinearMagneticStructureAnalyzer(
+        analyzer = CollinearMagneticStructureAnalyzer(
             b_negative, overwrite_magmom_mode="normalize", make_primitive=False
         )
 
         b_positive = b_positive.get_structure_with_spin()
-        b_negative = b_negative.get_structure_with_spin()
+        analyzer = analyzer.get_structure_with_spin()
 
-        return a.matches(b_positive) or a.matches(b_negative)
+        return a.matches(b_positive) or a.matches(analyzer)
 
     def __str__(self):
         """
