@@ -14,9 +14,9 @@ from monty.dev import requires
 from monty.functools import lazy_property
 from monty.string import marquee
 
-from pymatgen.core.structure import Structure
 from pymatgen.core.units import ArrayWithUnit
-from pymatgen.core.xcfunc import XcFunc
+#from pymatgen.core.xcfunc import XcFunc
+#from pymatgen.core.structure import Structure
 
 logger = logging.getLogger(__name__)
 
@@ -272,8 +272,11 @@ class ETSF_Reader(NetcdfReader):
         """Returns the type index from the chemical symbol. Note python convention."""
         return self.chemical_symbols.index(symbol)
 
-    def read_structure(self, cls=Structure):
+    def read_structure(self, cls=None):
         """Returns the crystalline structure stored in the rootgrp."""
+        if cls is None:
+            from pymatgen.core.structure import Structure
+            cls = Structure
         return structure_from_ncdata(self, cls=cls)
 
     def read_abinit_xcfunc(self) -> XcFunc:
@@ -281,6 +284,7 @@ class ETSF_Reader(NetcdfReader):
         Read ixc from an Abinit file. Return :class:`XcFunc` object.
         """
         ixc = int(self.read_value("ixc"))
+        from pymatgen.core.xcfunc import XcFunc
         return XcFunc.from_abinit_ixc(ixc)
 
     def read_abinit_hdr(self) -> AbinitHeader:
@@ -311,7 +315,7 @@ class ETSF_Reader(NetcdfReader):
         return AbinitHeader(dct)
 
 
-def structure_from_ncdata(ncdata, site_properties=None, cls=Structure):
+def structure_from_ncdata(ncdata, site_properties=None, cls=None):
     """
     Reads and returns a pymatgen structure from a NetCDF file
     containing crystallographic data in the ETSF-IO format.
@@ -321,6 +325,9 @@ def structure_from_ncdata(ncdata, site_properties=None, cls=Structure):
         site_properties: Dictionary with site properties.
         cls: The Structure class to instantiate.
     """
+    if cls is None:
+        from pymatgen.core.structure import Structure
+        cls = Structure
     ncdata, closeit = as_ncreader(ncdata)
 
     # TODO check whether atomic units are used

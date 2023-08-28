@@ -1460,7 +1460,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
         return fig
 
     @add_fig_kwargs
-    def plot_waves(self, ax=None, fontsize=12, **kwargs):
+    def plot_waves(self, ax=None, fontsize=8, **kwargs):
         """
         Plot the AE and the pseudo partial waves.
 
@@ -1491,7 +1491,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
         return fig
 
     @add_fig_kwargs
-    def plot_projectors(self, ax=None, fontsize=12, **kwargs):
+    def plot_projectors(self, ax=None, fontsize=8, **kwargs):
         """
         Plot the PAW projectors.
 
@@ -1551,6 +1551,13 @@ class PawXmlSetup(Pseudo, PawPseudo):
     #    ax.legend(loc="best")
     #    return fig
 
+    def yield_figs(self, **kwargs): # pragma: no cover
+        """
+        Generate a predefined list of matplotlib figures for the UpfPseudo
+        """
+        verbose = kwargs.get("verbose", 0)
+        yield self.plot_waves(show=False)
+        yield self.plot_projectors(show=False)
 
 
 class UpfPseudo(Pseudo):
@@ -1704,6 +1711,12 @@ class UpfPseudo(Pseudo):
 
         return fig
 
+    def yield_figs(self, **kwargs): # pragma: no cover
+        """
+        Generate a predefined list of matplotlib figures for the UpfPseudo
+        """
+        verbose = kwargs.get("verbose", 0)
+        yield self.plot_vlocr(show=False)
 
 
 

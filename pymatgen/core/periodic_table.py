@@ -999,6 +999,8 @@ class Element(ElementBase):
     Lv = "Lv"
     Ts = "Ts"
     Og = "Og"
+    Uue = "Uue"
+    Ubn = "Ubn"
 
 
 @functools.total_ordering
