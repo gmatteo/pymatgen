@@ -18,7 +18,7 @@ from collections import namedtuple
 from enum import Enum
 from glob import glob
 from hashlib import sha256
-from typing import TYPE_CHECKING, Any, Literal, Sequence
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import scipy.constants as const
@@ -39,6 +39,8 @@ from pymatgen.util.io_utils import clean_lines
 from pymatgen.util.string import str_delimited
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from numpy.typing import ArrayLike
 
     from pymatgen.core.trajectory import Vector3D
@@ -860,8 +862,8 @@ class Incar(dict, MSONable):
         try:
             if key in list_keys:
                 output = []
-                toks = re.findall(r"(-?\d+\.?\d*)\*?(-?\d+\.?\d*)?\*?(-?\d+\.?\d*)?", val)
-                for tok in toks:
+                tokens = re.findall(r"(-?\d+\.?\d*)\*?(-?\d+\.?\d*)?\*?(-?\d+\.?\d*)?", val)
+                for tok in tokens:
                     if tok[2] and "3" in tok[0]:
                         output.extend([smart_int_or_float(tok[2])] * int(tok[0]) * int(tok[1]))
                     elif tok[1]:
@@ -1296,6 +1298,9 @@ class Kpoints(MSONable):
         Returns:
             Kpoints
         """
+        if len(length_densities) != 3:
+            msg = f"The dimensions of length_densities must be 3, not {len(length_densities)}"
+            raise ValueError(msg)
         comment = f"k-point density of {length_densities}/[a, b, c]"
         lattice = structure.lattice
         abc = lattice.abc
@@ -1450,23 +1455,23 @@ class Kpoints(MSONable):
         tet_connections = None
 
         for i in range(3, 3 + num_kpts):
-            toks = lines[i].split()
-            kpts.append([float(j) for j in toks[0:3]])
-            kpts_weights.append(float(toks[3]))
-            if len(toks) > 4:
-                labels.append(toks[4])
+            tokens = lines[i].split()
+            kpts.append([float(j) for j in tokens[0:3]])
+            kpts_weights.append(float(tokens[3]))
+            if len(tokens) > 4:
+                labels.append(tokens[4])
             else:
                 labels.append(None)
         try:
             # Deal with tetrahedron method
             if lines[3 + num_kpts].strip().lower()[0] == "t":
-                toks = lines[4 + num_kpts].split()
-                tet_number = int(toks[0])
-                tet_weight = float(toks[1])
+                tokens = lines[4 + num_kpts].split()
+                tet_number = int(tokens[0])
+                tet_weight = float(tokens[1])
                 tet_connections = []
                 for i in range(5 + num_kpts, 5 + num_kpts + tet_number):
-                    toks = lines[i].split()
-                    tet_connections.append((int(toks[0]), [int(toks[j]) for j in range(1, 5)]))
+                    tokens = lines[i].split()
+                    tet_connections.append((int(tokens[0]), [int(tokens[j]) for j in range(1, 5)]))
         except IndexError:
             pass
 

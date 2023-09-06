@@ -30,9 +30,10 @@ import os
 import re
 import textwrap
 import typing
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Literal, Sequence
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 from monty.io import zopen
@@ -1403,27 +1404,8 @@ class Kind(Section):
         description = "The description of this kind of atom including basis sets, element, etc."
 
         # Special case for closed-shell elements. Cannot impose magnetization in cp2k.
-        if Element(self.specie).Z in {
-            2,
-            4,
-            10,
-            12,
-            18,
-            20,
-            30,
-            36,
-            38,
-            48,
-            54,
-            56,
-            70,
-            80,
-            86,
-            88,
-            102,
-            112,
-            118,
-        }:
+        closed_shell_elems = {2, 4, 10, 12, 18, 20, 30, 36, 38, 48, 54, 56, 70, 80, 86, 88, 102, 112, 118}
+        if Element(self.specie).Z in closed_shell_elems:
             self.magnetization = 0
 
         _keywords = {

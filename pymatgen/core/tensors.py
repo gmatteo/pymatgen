@@ -10,7 +10,7 @@ import itertools
 import os
 import string
 import warnings
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 import numpy as np
 from monty.json import MSONable
@@ -23,6 +23,8 @@ from pymatgen.core.operations import SymmOp
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pymatgen.core import Structure
 
 __author__ = "Joseph Montoya"
@@ -680,7 +682,7 @@ class TensorCollection(collections.abc.Sequence, MSONable):
         return self.tensors[ind]
 
     def __iter__(self):
-        return self.tensors.__iter__()
+        return iter(self.tensors)
 
     def zeroed(self, tol: float = 1e-3):
         """:param tol: Tolerance

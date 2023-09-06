@@ -6,6 +6,13 @@ nav_order: 4
 
 # Changelog
 
+## v2023.9.2
+
+- VaspInputSets now allow structure to be None for stateless initialization.
+- MatPESStaticSet designed for generating PES data. (@SophiaRuan, @JiQi535)
+- Breaking: Bump minimum Python version to 3.9, in line with numpy.
+- Add `properties` to Structure and Molecule, with ASE adaptor support (@gpetretto, @arosen93)
+
 ## v2023.8.10
 
 - fix `estimate_nbands` function by @matthewkuner in <https://github.com/materialsproject/pymatgen/pull/3149>
@@ -156,7 +163,7 @@ nav_order: 4
 
 This release changes the Ytterbium (Yb) pseudo-potential (PSP) from Yb_2 to Yb_3 for all PBE_54 VASP input sets.
 
-Background: The `A-lab <https://newscenter.lbl.gov/2023/04/17/meet-the-autonomous-lab-of-the-future>`_ revealed that as a result of using Yb_2 the energy on Yb compounds is off by a lot, resulting in supposedly stable things being unsynthesizable. While an unfortunate mistake, it's also great to see how experiment can help surface simulation errors.
+Background: The `A-lab <https://newscenter.lbl.gov/2023/04/17/meet-the-autonomous-lab-of-the-future>` revealed that as a result of using Yb_2 the energy on Yb compounds is off by a lot, resulting in supposedly stable things being unsynthesizable. While an unfortunate mistake, it's also great to see how experiment can help surface simulation errors.
 
 On pre-PBE_54 input sets, we now issue a warning that Yb_2 will give bad results for most systems since Yb is most often in oxidation state Yb3+.
 
