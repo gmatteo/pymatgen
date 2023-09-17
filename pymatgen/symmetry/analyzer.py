@@ -35,8 +35,10 @@ from pymatgen.util.due import Doi, due
 if TYPE_CHECKING:
     from pymatgen.core.periodic_table import Element, Species
     from pymatgen.core.sites import Site
+    from pymatgen.symmetry.groups import CrystalSystem
 
 logger = logging.getLogger(__name__)
+LatticeType = Literal["cubic", "hexagonal", "monoclinic", "orthorhombic", "rhombohedral", "tetragonal", "triclinic"]
 
 cite_conventional_cell_algo = due.dcite(
     Doi("10.1016/j.commatsci.2010.05.010"),
@@ -165,9 +167,7 @@ class SpacegroupAnalyzer:
             return "1"
         return spglib.get_pointgroup(rotations)[0].strip()
 
-    def get_crystal_system(
-        self,
-    ) -> Literal["triclinic", "monoclinic", "orthorhombic", "tetragonal", "trigonal", "hexagonal", "cubic"]:
+    def get_crystal_system(self) -> CrystalSystem:
         """Get the crystal system for the structure, e.g., (triclinic, orthorhombic,
         cubic, etc.).
 
@@ -197,9 +197,7 @@ class SpacegroupAnalyzer:
             return "hexagonal"
         return "cubic"
 
-    def get_lattice_type(
-        self,
-    ) -> Literal["triclinic", "monoclinic", "orthorhombic", "tetragonal", "rhombohedral", "hexagonal", "cubic"]:
+    def get_lattice_type(self) -> LatticeType:
         """Get the lattice for the structure, e.g., (triclinic, orthorhombic, cubic,
         etc.).This is the same as the crystal system with the exception of the
         hexagonal/rhombohedral lattice.
@@ -246,8 +244,8 @@ class SpacegroupAnalyzer:
             "translations" gives the numpy float64 array of the translation
             vectors in scaled positions.
         """
-        d = spglib.get_symmetry(self._cell, symprec=self._symprec, angle_tolerance=self._angle_tol)
-        if d is None:
+        dct = spglib.get_symmetry(self._cell, symprec=self._symprec, angle_tolerance=self._angle_tol)
+        if dct is None:
             symprec = self._symprec
             raise ValueError(
                 f"Symmetry detection failed for structure with formula {self._structure.formula}. "
@@ -258,13 +256,13 @@ class SpacegroupAnalyzer:
         # (these are in fractional coordinates, so should be small denominator
         # fractions)
         trans = []
-        for t in d["translations"]:
+        for t in dct["translations"]:
             trans.append([float(Fraction.from_float(c).limit_denominator(1000)) for c in t])
         trans = np.array(trans)
 
         # fractional translations of 1 are more simply 0
         trans[np.abs(trans) == 1] = 0
-        return d["rotations"], trans
+        return dct["rotations"], trans
 
     def get_symmetry_operations(self, cartesian=False):
         """Return symmetry operations as a list of SymmOp objects. By default returns
@@ -317,7 +315,7 @@ class SpacegroupAnalyzer:
         have been grouped into symmetrically equivalent groups.
 
         Returns:
-            :class:`pymatgen.symmetry.structure.SymmetrizedStructure` object.
+            pymatgen.symmetry.structure.SymmetrizedStructure object.
         """
         ds = self.get_symmetry_dataset()
         sg = SpacegroupOperations(
@@ -1503,7 +1501,7 @@ def iterative_symmetrize(mol, max_n=10, tolerance=0.3, epsilon=1e-2):
         max_n (int): Maximum number of iterations.
         tolerance (float): Tolerance for detecting symmetry.
             Gets passed as Argument into
-            :class:`~pymatgen.analyzer.symmetry.PointGroupAnalyzer`.
+            ~pymatgen.analyzer.symmetry.PointGroupAnalyzer.
         epsilon (float): If the elementwise absolute difference of two
             subsequently symmetrized structures is smaller epsilon,
             the iteration stops before ``max_n`` is reached.
@@ -1670,9 +1668,8 @@ class SpacegroupOperations(list):
 class PointGroupOperations(list):
     """Defines a point group, which is essentially a sequence of symmetry operations.
 
-    .. attribute:: sch_symbol
-
-        Schoenflies symbol of the point group.
+    Attributes:
+        sch_symbol (str): Schoenflies symbol of the point group.
     """
 
     def __init__(self, sch_symbol, operations, tol: float = 0.1):

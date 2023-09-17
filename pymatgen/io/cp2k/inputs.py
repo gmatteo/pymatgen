@@ -400,12 +400,11 @@ class Section(MSONable):
     def get(self, d, default=None):
         """
         Similar to get for dictionaries. This will attempt to retrieve the
-        section or keyword matching d. Will not raise an error if d does not
-        exist.
+        section or keyword matching d. Will not raise an error if d does not exist.
 
         Args:
-             d: the key to retrieve, if present
-             default: what to return if d is not found
+            d: the key to retrieve, if present
+            default: what to return if d is not found
         """
         kw = self.get_keyword(d)
         if kw:
@@ -1155,7 +1154,7 @@ class Diagonalization(Section):
         subsections: dict | None = None,
         **kwargs,
     ):
-        """Initialize the diagronalization section."""
+        """Initialize the diagonalization section."""
         self.eps_adapt = eps_adapt
         self.eps_iter = eps_iter
         self.eps_jacobi = eps_jacobi
@@ -1204,7 +1203,7 @@ class Davidson(Section):
                     systems where make_preconditioner would dominate the total computational cost.
                 "FULL_KINETIC": Cholesky inversion of S and T, fast construction, robust, use for
                     very large systems.
-                "FULL_SINGLE": Based on H-eS diagonalisation, not as good as FULL_ALL, but
+                "FULL_SINGLE": Based on H-eS diagonalization, not as good as FULL_ALL, but
                     somewhat cheaper to apply.
                 "FULL_SINGLE_INVERSE": Based on H-eS cholesky inversion, similar to FULL_SINGLE
                     in preconditioning efficiency but cheaper to construct, might be somewhat
@@ -1272,7 +1271,7 @@ class OrbitalTransformation(Section):
                 time, FULL_KINETIC can be a good choice.
             algorithm: What algorithm to use for OT. 'Strict': Taylor or diagonalization
                 based algorithm. IRAC: Orbital Transformation based Iterative Refinement of the
-                Approximative Congruence transformation (OT/IR).
+                Approximate Congruence transformation (OT/IR).
             rotation: Introduce additional variables to allow subspace rotations (i.e fractional
                 occupations)
             occupation_preconditioner: include the fractional occupation in the preconditioning
@@ -1385,7 +1384,7 @@ class Kind(Section):
                 basis set file specified
             potential: Pseudopotential for this atom, accessible from the
                 potential file
-            ghost: Turn this into ghost atom (disaple the potential)
+            ghost: Turn this into ghost atom (disable the potential)
             aux_basis: Auxiliary basis to use with ADMM
             keywords: additional keywords
             subsections: additional subsections
@@ -1581,10 +1580,7 @@ class PDOS(Section):
         subsections = subsections if subsections else {}
         description = "Controls printing of the projected density of states"
 
-        _keywords = {
-            "NLUMO": Keyword("NLUMO", nlumo),
-            "COMPONENTS": Keyword("COMPONENTS"),
-        }
+        _keywords = {"NLUMO": Keyword("NLUMO", nlumo), "COMPONENTS": Keyword("COMPONENTS")}
         keywords.update(_keywords)
         super().__init__("PDOS", description=description, keywords=keywords, subsections=subsections, **kwargs)
 

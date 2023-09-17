@@ -41,7 +41,7 @@ class Interface(Structure):
 
         Args:
             lattice (Lattice/3x3 array): The lattice, either as a
-                :class:`pymatgen.core.lattice.Lattice` or
+                pymatgen.core.Lattice or
                 simply as any 2D array. Each row should correspond to a lattice
                 vector. E.g., [[10,0,0], [20,10,0], [0,0,30]] specifies a
                 lattice with lattice vectors [10,0,0], [20,10,0] and [0,0,30].
@@ -274,12 +274,12 @@ class Interface(Structure):
 
     def as_dict(self):
         """MSONable dict."""
-        d = super().as_dict()
-        d["in_plane_offset"] = self.in_plane_offset.tolist()
-        d["gap"] = self.gap
-        d["vacuum_over_film"] = self.vacuum_over_film
-        d["interface_properties"] = self.interface_properties
-        return d
+        dct = super().as_dict()
+        dct["in_plane_offset"] = self.in_plane_offset.tolist()
+        dct["gap"] = self.gap
+        dct["vacuum_over_film"] = self.vacuum_over_film
+        dct["interface_properties"] = self.interface_properties
+        return dct
 
     @classmethod
     def from_dict(cls, d):

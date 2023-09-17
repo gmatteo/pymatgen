@@ -26,7 +26,7 @@ from tabulate import tabulate
 from pymatgen.core.periodic_table import Element
 #from pymatgen.core.xcfunc import XcFunc
 from pymatgen.io.core import ParseError
-from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig_plt
+from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -192,7 +192,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
 
     @property
     def element(self) -> Element:
-        """Pymatgen :class:`Element`."""
+        """Pymatgen Element."""
         try:
             return Element.from_Z(self.Z)
         except (KeyError, IndexError):
@@ -328,7 +328,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
 
     def hint_for_accuracy(self, accuracy: str = "normal") -> Hint:
         """
-        Returns a :class:`Hint` object with the suggested value of ecut [Ha] and
+        Returns a Hint object with the suggested value of ecut [Ha] and
         pawecutdg [Ha] for the given accuracy.
         ecut and pawecutdg are set to zero if no hint is available.
 
@@ -362,7 +362,7 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
     def open_pspsfile(self, ecut=20, pawecutdg=None):
         """
         Calls Abinit to compute the internal tables for the application of the
-        pseudopotential part. Returns :class:`PspsFile` object providing methods
+        pseudopotential part. Returns PspsFile object providing methods
         to plot and analyze the data or None if file is not found or it's not readable.
 
         Args:
@@ -473,7 +473,7 @@ class AbinitPseudo(Pseudo):
         """
         Args:
             path: Filename.
-            header: :class:`AbinitHeader` instance.
+            header: AbinitHeader instance.
         """
         self.path = path
         self.header = header
@@ -748,9 +748,9 @@ class NcAbinitHeader(AbinitHeader):
         Parse the FHI abinit header. Example:
 
         Troullier-Martins psp for element  Sc        Thu Oct 27 17:33:22 EDT 1994
-         21.00000   3.00000    940714                zatom, zion, pspdat
-           1    1    2    0      2001    .00000      pspcod,pspxc,lmax,lloc,mmax,r2well
-        1.80626423934776     .22824404341771    1.17378968127746   rchrg,fchrg,qchrg
+            21.00000   3.00000    940714                zatom, zion, pspdat
+            1    1    2    0      2001    .00000      pspcod,pspxc,lmax,lloc,mmax,r2well
+            1.80626423934776     .22824404341771    1.17378968127746   rchrg,fchrg,qchrg
         """
         lines = _read_nlines(filename, 4)
 
@@ -770,8 +770,8 @@ class NcAbinitHeader(AbinitHeader):
         Parse the HGH abinit header. Example:
 
         Hartwigsen-Goedecker-Hutter psp for Ne,  from PRB58, 3641 (1998)
-           10   8  010605 zatom,zion,pspdat
-         3 1   1 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+            10   8  010605 zatom,zion,pspdat
+            3 1   1 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
         """
         lines = _read_nlines(filename, 3)
 
@@ -1016,7 +1016,7 @@ class PawAbinitHeader(AbinitHeader):
 
 
 class PseudoParseError(ParseError):
-    """Base Error class for the exceptions raised by :class:`PseudoParser`."""
+    """Base Error class for the exceptions raised by PseudoParser."""
 
 
 class PseudoParser:
@@ -1432,12 +1432,12 @@ class PawXmlSetup(Pseudo, PawPseudo):
         Plot the PAW densities.
 
         Args:
-            ax: matplotlib :class:`Axes` or None if a new figure should be created.
+            ax: matplotlib Axes or None if a new figure should be created.
 
         Returns:
             `matplotlib` figure
         """
-        ax, fig, plt = get_ax_fig_plt(ax)
+        ax, fig = get_ax_fig(ax)
 
         ax.grid(True)
         ax.set_xlabel("r (Bohr)")
@@ -1458,13 +1458,14 @@ class PawXmlSetup(Pseudo, PawPseudo):
         Plot the AE and the pseudo partial waves.
 
         Args:
-            ax: matplotlib :class:`Axes` or None if a new figure should be created.
+            ax: matplotlib Axes or None if a new figure should be created.
             fontsize: fontsize for legends and titles
 
-        Returns: `matplotlib` figure
+        Returns:
+            plt.Figure: matplotlib figure
         """
         # pylint: disable=E1101
-        ax, fig, plt = get_ax_fig_plt(ax)
+        ax, fig = get_ax_fig(ax)
 
         ax.grid(True)
         ax.set_xlabel("r (Bohr)")
@@ -1489,12 +1490,13 @@ class PawXmlSetup(Pseudo, PawPseudo):
         Plot the PAW projectors.
 
         Args:
-            ax: matplotlib :class:`Axes` or None if a new figure should be created.
+            ax: matplotlib Axes or None if a new figure should be created.
 
-        Returns: `matplotlib` figure
+        Returns:
+            plt.Figure: matplotlib figure
         """
         # pylint: disable=E1101
-        ax, fig, plt = get_ax_fig_plt(ax)
+        ax, fig = get_ax_fig(ax)
         ax.grid(True)
         ax.set_xlabel("r (Bohr)")
         ax.set_ylabel(r"$r\tilde p\, (Bohr)^{-\frac{1}{2}}$")
@@ -1734,9 +1736,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
 
     @classmethod
     def as_table(cls, items) -> PseudoTable:
-        """
-        Return an instance of :class:`PseudoTable` from the iterable items.
-        """
+        """Return an instance of PseudoTable from the iterable items."""
         if isinstance(items, cls):
             return items
         return cls(items)
@@ -1752,7 +1752,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
                     we try to open all files in top
             exclude_dirs: Wildcard used to exclude directories.
 
-        return: :class:`PseudoTable` sorted by atomic number Z.
+        return: PseudoTable sorted by atomic number Z.
         """
         pseudos = []
 
@@ -1949,12 +1949,12 @@ class PseudoTable(collections.abc.Sequence, MSONable):
 
     def select_symbols(self, symbols, ret_list=False) -> PseudoTable:
         """
-        Return a :class:`PseudoTable` with the pseudopotentials with the given list of chemical symbols.
+        Return a PseudoTable with the pseudopotentials with the given list of chemical symbols.
 
         Args:
             symbols: str or list of symbols
                 Prepend the symbol string with "-", to exclude pseudos.
-            ret_list: if True a list of pseudos is returned instead of a :class:`PseudoTable`
+            ret_list: if True a list of pseudos is returned instead of a PseudoTable
         """
         symbols = list_strings(symbols)
         exclude = symbols[0].startswith("-")
@@ -1981,10 +1981,10 @@ class PseudoTable(collections.abc.Sequence, MSONable):
 
     def get_pseudos_for_structure(self, structure: Structure):
         """
-        Return the list of :class:`Pseudo` objects to be used for this :class:`Structure`.
+        Return the list of Pseudo objects to be used for this Structure.
 
         Args:
-            structure: pymatgen :class:`Structure`.
+            structure: pymatgen Structure.
 
         Raises:
             `ValueError` if one of the chemical symbols is not found or
@@ -2037,7 +2037,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
         return self.__class__([self[a[0]] for a in sorted(attrs, key=lambda t: t[1], reverse=reverse)])
 
     def sort_by_z(self) -> PseudoTable:
-        """Return a new :class:`PseudoTable` with pseudos sorted by Z"""
+        """Return a new PseudoTable with pseudos sorted by Z."""
         return self.__class__(sorted(self, key=lambda p: p.Z))
 
     def select(self, condition) -> PseudoTable:
@@ -2045,7 +2045,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
 
         Args:
             condition:
-                Function that accepts a :class:`Pseudo` object and returns True or False.
+                Function that accepts a Pseudo object and returns True or False.
 
         Returns:
             PseudoTable: New PseudoTable instance with pseudos for which condition is True.

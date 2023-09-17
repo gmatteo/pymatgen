@@ -123,7 +123,7 @@ class SpeciesComparator(AbstractComparator):
         """
         return sp1 == sp2
 
-    def get_hash(self, composition):
+    def get_hash(self, composition: Composition):
         """Returns: Fractional composition."""
         return composition.fractional_composition
 
@@ -270,6 +270,7 @@ class OccupancyComparator(AbstractComparator):
     def get_hash(self, composition):
         """
         :param composition: Composition.
+
         Returns:
             1. Difficult to define sensible hash
         """
@@ -533,7 +534,7 @@ class StructureMatcher(MSONable):
         aabbcc (rather than abcabc).
 
         Returns:
-        mask, struct1 translation indices, struct2 translation index
+            mask, struct1 translation indices, struct2 translation index
         """
         mask = np.zeros((len(struct2), len(struct1), fu), dtype=bool)
 
