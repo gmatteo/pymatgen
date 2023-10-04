@@ -163,10 +163,9 @@ class MultipleSubstitutionTransformation:
     only one ordering must be done per substitution oxidation state. Charge
     balancing of the structure is optionally performed.
 
-    .. note::
-        There are no checks to make sure that removal fractions are possible
-        and rounding may occur. Currently charge balancing only works for
-        removal of species.
+    Note:
+        There are no checks to make sure that removal fractions are possible and rounding
+        may occur. Currently charge balancing only works for removal of species.
     """
 
     def __init__(
@@ -377,12 +376,12 @@ class EnumerateStructureTransformation(AbstractTransformation):
             structures = [structure.copy()]
 
         if self.max_disordered_sites:
-            ndisordered = sum(1 for site in structure if not site.is_ordered)
-            if ndisordered > self.max_disordered_sites:
-                raise ValueError(f"Too many disordered sites! ({ndisordered} > {self.max_disordered_sites})")
+            n_disordered = sum(1 for site in structure if not site.is_ordered)
+            if n_disordered > self.max_disordered_sites:
+                raise ValueError(f"Too many disordered sites! ({n_disordered} > {self.max_disordered_sites})")
             max_cell_sizes: Iterable[int] = range(
                 self.min_cell_size,
-                int(math.floor(self.max_disordered_sites / ndisordered)) + 1,
+                int(math.floor(self.max_disordered_sites / n_disordered)) + 1,
             )
         else:
             max_cell_sizes = [self.max_cell_size]

@@ -1439,8 +1439,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
         """
         ax, fig = get_ax_fig(ax)
 
-        ax.grid(True)
-        ax.set_xlabel("r (Bohr)")
+        ax.grid(visible=True)
+        ax.set_xlabel("r [Bohr]")
         # ax.set_ylabel('density')
 
         for idx, density_name in enumerate(["ae_core_density", "pseudo_core_density"]):
@@ -1467,9 +1467,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
         # pylint: disable=E1101
         ax, fig = get_ax_fig(ax)
 
-        ax.grid(True)
-        ax.set_xlabel("r (Bohr)")
-        ax.set_ylabel(r"$r\phi,\, r\tilde\phi\, (Bohr)^{-\frac{1}{2}}$")
+        ax.set_xlabel("r [Bohr]")
+        ax.set_ylabel(r"$r\phi,\, r\tilde\phi\, [Bohr]^{-\frac{1}{2}}$")
 
         # ax.axvline(x=self.paw_radius, linewidth=2, color='k', linestyle="--")
         # ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))
@@ -1497,9 +1496,9 @@ class PawXmlSetup(Pseudo, PawPseudo):
         """
         # pylint: disable=E1101
         ax, fig = get_ax_fig(ax)
-        ax.grid(True)
-        ax.set_xlabel("r (Bohr)")
-        ax.set_ylabel(r"$r\tilde p\, (Bohr)^{-\frac{1}{2}}$")
+        ax.grid(visible=True)
+        ax.set_xlabel("r [Bohr]")
+        ax.set_ylabel(r"$r\tilde p\, [Bohr]^{-\frac{1}{2}}$")
 
         # ax.axvline(x=self.paw_radius, linewidth=2, color='k', linestyle="--")
         # ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))
@@ -1534,8 +1533,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
     #    fig = plt.figure()
 
     #    ax = fig.add_subplot(1,1,1)
-    #    ax.grid(True)
-    #    ax.set_xlabel('r (Bohr)')
+    #    ax.grid(visible=True)
+    #    ax.set_xlabel('r [Bohr]')
     #    ax.set_ylabel('density')
     #    ax.axvline(x=self.paw_radius, linewidth=2, color='k', linestyle="--")
     #    ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))

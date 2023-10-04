@@ -1,5 +1,5 @@
 """
-This module implements methods for reading/manupilating/writing LAMMPS input files.
+This module implements methods for reading/manipulating/writing LAMMPS input files.
 It does not implement methods for automatically creating inputs based on a structure
 and computation type. For this, see the InputSet and InputGenerator in sets.py, or
 https://github.com/Matgenix/atomate2-lammps.
@@ -135,7 +135,7 @@ class LammpsInputFile(InputFile):
             stage_name (str): String giving the stage name where the change should take place.
 
         Returns:
-            True if the command is present, False if not.
+            bool: True if the command is present, False if not.
         """
         return bool(self.get_args(command, stage_name))
 

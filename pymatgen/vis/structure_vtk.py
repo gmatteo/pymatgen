@@ -23,11 +23,11 @@ if TYPE_CHECKING:
 
 try:
     import vtk
-    from vtk import vtkInteractorStyleTrackballCamera
+    from vtk import vtkInteractorStyleTrackballCamera as TrackballCamera
 except ImportError:
     # VTK not present. The Camera is to set object to avoid errors in unittest.
     vtk = None
-    vtkInteractorStyleTrackballCamera = object
+    TrackballCamera = object
 
 module_dir = os.path.dirname(os.path.abspath(__file__))
 EL_COLORS = loadfn(f"{module_dir}/ElementColorSchemes.yaml")
@@ -772,7 +772,7 @@ class StructureVis:
         self.iren.SetPicker(picker)
 
 
-class StructureInteractorStyle(vtkInteractorStyleTrackballCamera):
+class StructureInteractorStyle(TrackballCamera):
     """A custom interactor style for visualizing structures."""
 
     def __init__(self, parent):
@@ -832,7 +832,7 @@ class StructureInteractorStyle(vtkInteractorStyleTrackballCamera):
             parent.show_help = not parent.show_help
             parent.redraw()
         elif sym == "r":
-            parent.redraw(True)
+            parent.redraw(True)  # noqa: FBT003
         elif sym == "s":
             parent.write_image("image.png")
         elif sym == "Up":

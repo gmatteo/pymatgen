@@ -9,12 +9,12 @@ Author: Shyue Ping Ong
 from __future__ import annotations
 
 import datetime
-import glob
 import json
 import os
 import re
 import subprocess
 import webbrowser
+from glob import glob
 
 import requests
 from invoke import task
@@ -41,7 +41,7 @@ def make_doc(ctx):
         ctx.run("rm *.rst", warn=True)
         ctx.run("cp markdown/pymatgen*.md .")
         ctx.run("rm pymatgen*tests*.md", warn=True)
-        for fn in glob.glob("pymatgen*.md"):
+        for fn in glob("pymatgen*.md"):
             with open(fn) as f:
                 lines = [line.rstrip() for line in f if "Submodules" not in line]
             if fn == "pymatgen.md":
@@ -67,46 +67,6 @@ def make_doc(ctx):
 
 
 @task
-def make_dash(ctx):
-    """Make customized doc version for Dash.
-
-    :param ctx:
-    """
-    ctx.run("cp docs_rst/conf-docset.py docs_rst/conf.py")
-    make_doc(ctx)
-    ctx.run("rm docs/_static/pymatgen.docset.tgz", warn=True)
-    ctx.run("doc2dash docs -n pymatgen -i docs/_images/pymatgen.svg -u https://pymatgen.org/")
-    plist = "pymatgen.docset/Contents/Info.plist"
-    xml = []
-    with open(plist) as file:
-        for line in file:
-            xml.append(line.strip())
-            if line.strip() == "<dict>":
-                xml.append("<key>dashIndexFilePath</key>")
-                xml.append("<string>index.html</string>")
-    with open(plist, "w") as file:
-        file.write("\n".join(xml))
-    ctx.run('tar --exclude=".DS_Store" -cvzf pymatgen.tgz pymatgen.docset')
-    ctx.run("rm -r pymatgen.docset")
-    ctx.run("cp docs_rst/conf-normal.py docs_rst/conf.py")
-
-
-@task
-def contribute_dash(ctx, version):
-    make_dash(ctx)
-    ctx.run("cp pymatgen.tgz ../Dash-User-Contributions/docsets/pymatgen/pymatgen.tgz")
-    with cd("../Dash-User-Contributions/docsets/pymatgen"):
-        with open("docset.json") as file:
-            data = json.load(file)
-            data["version"] = version
-        with open("docset.json", "w") as file:
-            json.dump(data, file, indent=4)
-        ctx.run(f'git commit --no-verify -a -m "Update to v{version}"')
-        ctx.run("git push")
-    ctx.run("rm pymatgen.tgz")
-
-
-@task
 def submit_dash_pr(ctx, version):
     with cd("../Dash-User-Contributions/docsets/pymatgen"):
         payload = {
@@ -119,20 +79,6 @@ def submit_dash_pr(ctx, version):
             "https://api.github.com/repos/materialsvirtuallab/Dash-User-Contributions/pulls", data=json.dumps(payload)
         )
         print(response.text)
-
-
-@task
-def update_doc(ctx):
-    """
-    Update the web documentation.
-
-    :param ctx:
-    """
-    ctx.run("cp docs_rst/conf-normal.py docs_rst/conf.py")
-    make_doc(ctx)
-    ctx.run("git add .")
-    ctx.run('git commit -a -m "Update docs"')
-    ctx.run("git push")
 
 
 @task
@@ -319,7 +265,7 @@ def check_egg_sources_txt_for_completeness():
             raise ValueError(f"{src_file} does not exist!")
 
     for ext in ("py", "json", "json.gz", "yaml", "csv"):
-        for filepath in glob.glob(f"pymatgen/**/*.{ext}", recursive=True):
+        for filepath in glob(f"pymatgen/**/*.{ext}", recursive=True):
             if "/tests/" in filepath or "dao" in filepath:
                 continue
             if filepath not in sources:

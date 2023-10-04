@@ -411,7 +411,7 @@ class StructureEnvironments(MSONable):
         Args:
             voronoi: VoronoiContainer object for the structure.
             valences: Valences provided.
-            sites_map: Mapping of equivalent sites to the unequivalent sites that have been computed.
+            sites_map: Mapping of equivalent sites to the nonequivalent sites that have been computed.
             equivalent_sites: List of list of equivalent sites of the structure.
             ce_list: List of chemical environments.
             structure: Structure object.
@@ -1975,7 +1975,7 @@ class LightStructureEnvironments(MSONable):
             ce_symbol: Symbol of the coordination environment.
 
         Returns:
-            True if the coordination environment is found, False otherwise
+            bool: True if the coordination environment is found for the given atom.
         """
         for isite, site in enumerate(self.structure):
             if Element(atom_symbol) in site.species.element_composition and self.site_contains_environment(
@@ -2009,7 +2009,7 @@ class LightStructureEnvironments(MSONable):
             other: LightStructureEnvironments object to compare with.
 
         Returns:
-            True if both objects are equal, False otherwise.
+            bool: True if both objects are equal.
         """
         if not isinstance(other, LightStructureEnvironments):
             return NotImplemented
@@ -2302,7 +2302,7 @@ class ChemicalEnvironments(MSONable):
             atol: Absolute tolerance for the comparison of Continuous Symmetry Measures.
 
         Returns:
-            True if the two ChemicalEnvironments objects are close to each other.
+            bool: True if the two ChemicalEnvironments objects are close to each other.
         """
         if set(self.coord_geoms) != set(other.coord_geoms):
             return False
@@ -2336,7 +2336,7 @@ class ChemicalEnvironments(MSONable):
             other: ChemicalEnvironments object to compare with.
 
         Returns:
-            True if both objects are equal, False otherwise.
+            bool: True if both objects are equal.
         """
         if not isinstance(other, ChemicalEnvironments):
             return NotImplemented

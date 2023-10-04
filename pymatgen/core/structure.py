@@ -191,7 +191,7 @@ class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
 
     # Tolerance in Angstrom for determining if sites are too close.
     DISTANCE_TOLERANCE = 0.5
-    properties: dict
+    _properties: dict
 
     @property
     def sites(self) -> list[Site]:
@@ -439,6 +439,10 @@ class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
         molecules / structures). Should return str or None if written to a file.
         """
         raise NotImplementedError
+
+    def to_file(self, filename: str = "", fmt: str = "") -> str | None:
+        """A more intuitive alias for .to()."""
+        return self.to(filename, fmt)
 
     @classmethod
     @abstractmethod
@@ -889,7 +893,7 @@ class IStructure(SiteCollection, MSONable):
                 lost when converting to other formats.
         """
         if len(species) != len(coords):
-            raise StructureError("atomic species and fractional coordinates must have same length")
+            raise StructureError(f"{len(species)=} != {len(coords)=}")
 
         self._lattice = lattice if isinstance(lattice, Lattice) else Lattice(lattice)
 
@@ -915,7 +919,7 @@ class IStructure(SiteCollection, MSONable):
         if validate_proximity and not self.is_valid():
             raise StructureError("Structure contains sites that are less than 0.01 Angstrom apart!")
         self._charge = charge
-        self.properties = properties or {}
+        self._properties = properties or {}
 
     @classmethod
     def from_sites(
@@ -1178,6 +1182,26 @@ class IStructure(SiteCollection, MSONable):
     def unset_charge(self):
         """Reset the charge to None, i.e., computed dynamically based on oxidation states."""
         self._charge = None
+
+    @property
+    def properties(self) -> dict:
+        """Properties associated with the whole Structure. Note that this information is
+        only guaranteed to be saved if serializing to native pymatgen output formats (JSON/YAML).
+        """
+        # getattr() check for backwards compatibility:
+        # IStructure.properties is a recent addition and so any pickled Structure objects from an
+        # older pymatgen version may have issues when de-serialized. Note that pickle is *not*
+        # recommended as an archival format. Nevertheless, since this is a core pymatgen class,
+        # additional effort has been made to retain compatibility.
+        if properties := getattr(self, "_properties", None):
+            return properties
+        self._properties = {}
+        return self._properties
+
+    @properties.setter
+    def properties(self, properties: dict) -> None:
+        """Sets properties associated with the whole Structure."""
+        self._properties = properties
 
     @property
     def charge(self) -> float:
@@ -2324,7 +2348,7 @@ class IStructure(SiteCollection, MSONable):
             np.abs(fdist, fdist)
             non_nbrs = np.any(fdist > 2 * super_ftol[None, None, :], axis=-1)
             # since we want sites to match to themselves
-            np.fill_diagonal(non_nbrs, True)
+            np.fill_diagonal(non_nbrs, val=True)
             grouped_non_nbrs.append(non_nbrs)
 
         num_fu = functools.reduce(math.gcd, map(len, grouped_sites))
@@ -2731,7 +2755,7 @@ class IStructure(SiteCollection, MSONable):
         elif fmt_low == "poscar":
             from pymatgen.io.vasp import Poscar
 
-            struct = Poscar.from_str(input_string, False, read_velocities=False, **kwargs).structure
+            struct = Poscar.from_str(input_string, default_names=False, read_velocities=False, **kwargs).structure
         elif fmt_low == "cssr":
             from pymatgen.io.cssr import Cssr
 

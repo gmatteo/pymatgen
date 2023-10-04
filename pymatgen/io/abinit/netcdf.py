@@ -53,8 +53,8 @@ def as_ncreader(file):
 
 
 def as_etsfreader(file):
-    """Return an ETSF_Reader. Accepts filename or ETSF_Reader."""
-    return _asreader(file, ETSF_Reader)
+    """Return an EtsfReader. Accepts filename or EtsfReader."""
+    return _asreader(file, EtsfReader)
 
 
 class NetcdfReaderError(Exception):
@@ -91,7 +91,7 @@ class NetcdfReader:
         # Slicing a ncvar returns a MaskedArrray and this is really annoying
         # because it can lead to unexpected behavior in e.g. calls to np.matmul!
         # See also https://github.com/Unidata/netcdf4-python/issues/785
-        self.rootgrp.set_auto_mask(False)
+        self.rootgrp.set_auto_mask(False)  # noqa: FBT003
 
     def __enter__(self):
         """Activated when used in the with statement."""
@@ -233,7 +233,7 @@ class NetcdfReader:
         return od
 
 
-class ETSF_Reader(NetcdfReader):
+class EtsfReader(NetcdfReader):
     """
     This object reads data from a file written according to the ETSF-IO specifications.
 
@@ -251,7 +251,7 @@ class ETSF_Reader(NetcdfReader):
 
         return symbols
 
-    def typeidx_from_symbol(self, symbol: str) -> int:
+    def type_idx_from_symbol(self, symbol):
         """Returns the type index from the chemical symbol. Note python convention."""
         return self.chemical_symbols.index(symbol)
 
