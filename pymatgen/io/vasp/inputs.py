@@ -1,6 +1,6 @@
 """
-Classes for reading/manipulating/writing VASP input files. All major VASP input
-files.
+Classes for reading/manipulating/writing VASP input files.
+All major VASP input files.
 """
 
 from __future__ import annotations
@@ -792,16 +792,7 @@ class Incar(dict, MSONable):
             key: INCAR parameter key
             val: Actual value of INCAR parameter.
         """
-        list_keys = (
-            "LDAUU",
-            "LDAUL",
-            "LDAUJ",
-            "MAGMOM",
-            "DIPOL",
-            "LANGEVIN_GAMMA",
-            "QUAD_EFG",
-            "EINT",
-        )
+        list_keys = ("LDAUU", "LDAUL", "LDAUJ", "MAGMOM", "DIPOL", "LANGEVIN_GAMMA", "QUAD_EFG", "EINT")
         bool_keys = (
             "LDAU",
             "LWAVE",
@@ -814,18 +805,7 @@ class Incar(dict, MSONable):
             "LSORBIT",
             "LNONCOLLINEAR",
         )
-        float_keys = (
-            "EDIFF",
-            "SIGMA",
-            "TIME",
-            "ENCUTFOCK",
-            "HFSCREEN",
-            "POTIM",
-            "EDIFFG",
-            "AGGAC",
-            "PARAM1",
-            "PARAM2",
-        )
+        float_keys = ("EDIFF", "SIGMA", "TIME", "ENCUTFOCK", "HFSCREEN", "POTIM", "EDIFFG", "AGGAC", "PARAM1", "PARAM2")
         int_keys = (
             "NSW",
             "NBANDS",
@@ -848,10 +828,10 @@ class Incar(dict, MSONable):
             "IVDW",
         )
 
-        def smart_int_or_float(numstr):
-            if numstr.find(".") != -1 or numstr.lower().find("e") != -1:
-                return float(numstr)
-            return int(numstr)
+        def smart_int_or_float(num_str):
+            if num_str.find(".") != -1 or num_str.lower().find("e") != -1:
+                return float(num_str)
+            return int(num_str)
 
         try:
             if key in list_keys:
@@ -936,7 +916,7 @@ class Incar(dict, MSONable):
         params = dict(self.items())
         for key, val in other.items():
             if key in self and val != self[key]:
-                raise ValueError("Incars have conflicting values!")
+                raise ValueError(f"Incars have conflicting values for {key}: {self[key]} != {val}")
             params[key] = val
         return Incar(params)
 
@@ -986,18 +966,18 @@ class KpointsSupportedModes(Enum):
         return cls.from_str(*args, **kwargs)
 
     @staticmethod
-    def from_str(s: str) -> KpointsSupportedModes:
+    def from_str(mode: str) -> KpointsSupportedModes:
         """
         :param s: String
 
         Returns:
             Kpoints_supported_modes
         """
-        c = s.lower()[0]
-        for m in KpointsSupportedModes:
-            if m.name.lower()[0] == c:
-                return m
-        raise ValueError(f"Can't interpret Kpoint mode {s}")
+        initial = mode.lower()[0]
+        for key in KpointsSupportedModes:
+            if key.name.lower()[0] == initial:
+                return key
+        raise ValueError(f"Invalid Kpoint {mode=}")
 
 
 class Kpoints(MSONable):
@@ -1492,8 +1472,7 @@ class Kpoints(MSONable):
 
         # Print tetrahedron parameters if the number of tetrahedrons > 0
         if style not in "lagm" and self.tet_number > 0:
-            lines.append("Tetrahedron")
-            lines.append(f"{self.tet_number} {self.tet_weight:f}")
+            lines.extend(("Tetrahedron", f"{self.tet_number} {self.tet_weight:f}"))
             for sym_weight, vertices in self.tet_connections:
                 a, b, c, d = vertices
                 lines.append(f"{sym_weight} {a} {b} {c} {d}")
@@ -2156,25 +2135,28 @@ class PotcarSingle:
 
         tol is then used to match statistical values within a tolerance
         """
-        functional_lexch = {
-            "PE": ["PBE", "PBE_52", "PBE_52_W_HASH", "PBE_54", "PBE_54_W_HASH", "PBE_64"],
-            "CA": ["LDA", "LDA_52", "LDA_52_W_HASH", "LDA_54", "LDA_54_W_HASH", "LDA_64", "LDA_US", "Perdew_Zunger81"],
-            "91": ["PW91", "PW91_US"],
-        }
 
         possible_potcar_matches = []
-        for func in functional_lexch.get(self.LEXCH, []):
+        """
+        Some POTCARs have an LEXCH (functional used to generate the POTCAR)
+        with the expected functional, e.g., the C_d POTCAR for PBE is actually an
+        LDA pseudopotential.
+
+        Thus we have to look for matches in all POTCAR dirs, not just the ones with
+        consistent values of LEXCH
+        """
+        for func in self.functional_dir:
             for titel_no_spc in self.potcar_summary_stats[func]:
-                if (self.TITEL.replace(" ", "") == titel_no_spc) and (
-                    self.VRHFIN.replace(" ", "") == self.potcar_summary_stats[func][titel_no_spc]["VRHFIN"]
-                ):
-                    possible_potcar_matches.append(
-                        {
-                            "POTCAR_FUNCTIONAL": func,
-                            "TITEL": titel_no_spc,
-                            **self.potcar_summary_stats[func][titel_no_spc],
-                        }
-                    )
+                if self.TITEL.replace(" ", "") == titel_no_spc:
+                    for potcar_subvariant in self.potcar_summary_stats[func][titel_no_spc]:
+                        if self.VRHFIN.replace(" ", "") == potcar_subvariant["VRHFIN"]:
+                            possible_potcar_matches.append(
+                                {
+                                    "POTCAR_FUNCTIONAL": func,
+                                    "TITEL": titel_no_spc,
+                                    **potcar_subvariant,
+                                }
+                            )
 
         def parse_fortran_style_str(input_str: str) -> Any:
             """Parse any input string as bool, int, float, or failing that, str.
@@ -2332,11 +2314,20 @@ def _gen_potcar_summary_stats(
         ]
         for potcar in potcar_list:
             psp = PotcarSingle.from_file(potcar)
-            new_summary_stats[func][psp.TITEL.replace(" ", "")] = {
-                "LEXCH": psp.LEXCH,
-                "VRHFIN": psp.VRHFIN.replace(" ", ""),
-                **psp._summary_stats,
-            }
+            titel_key = psp.TITEL.replace(" ", "")
+
+            # some POTCARs have the same TITEL, but are named differently
+            # e.g., there is an "original" PBE POTCAR.Fe_pv and a POTCAR.Fe_pv_new
+            # which share a TITEL but differ in their contents
+            if titel_key not in new_summary_stats[func]:
+                new_summary_stats[func][titel_key] = []
+            new_summary_stats[func][titel_key].append(
+                {
+                    "LEXCH": psp.LEXCH,
+                    "VRHFIN": psp.VRHFIN.replace(" ", ""),
+                    **psp._summary_stats,
+                }
+            )
 
     dumpfn(new_summary_stats, summary_stats_filename)
 
@@ -2501,9 +2492,7 @@ class VaspInput(dict, MSONable):
     def __str__(self):
         output = []
         for k, v in self.items():
-            output.append(k)
-            output.append(str(v))
-            output.append("")
+            output.extend((k, str(v), ""))
         return "\n".join(output)
 
     def as_dict(self):
