@@ -4,7 +4,7 @@ import copy
 import os
 import pickle
 import unittest
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -32,12 +32,14 @@ from pymatgen.io.vasp.inputs import (
 )
 from pymatgen.util.testing import TEST_FILES_DIR, PymatgenTest
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-class TestPoscar:
+
+class TestPoscar(PymatgenTest):
     def test_init(self):
         filepath = f"{TEST_FILES_DIR}/POSCAR"
-        poscar = Poscar.from_file(filepath, check_for_POTCAR=False)
-        comp = poscar.structure.composition
+        comp = Structure.from_file(filepath).composition
         assert comp == Composition("Fe4P4O16")
 
         # VASP 4 type with symbols at the end.
@@ -91,7 +93,7 @@ direct
 
     def test_from_file(self):
         filepath = f"{TEST_FILES_DIR}/POSCAR.symbols_natoms_multilines"
-        poscar = Poscar.from_file(filepath, check_for_POTCAR=False, read_velocities=False)
+        poscar = Poscar.from_file(filepath, check_for_potcar=False, read_velocities=False)
         ordered_expected_elements = [
             "Fe",
             "Cr",
@@ -265,29 +267,47 @@ direct
 
     def test_from_md_run(self):
         # Parsing from an MD type run with velocities and predictor corrector data
-        p = Poscar.from_file(f"{TEST_FILES_DIR}/CONTCAR.MD", check_for_POTCAR=False)
-        assert np.sum(np.array(p.velocities)) == approx(0.0065417961324)
-        assert p.predictor_corrector[0][0][0] == 0.33387820e00
-        assert p.predictor_corrector[0][1][1] == -0.10583589e-02
+        poscar = Poscar.from_file(f"{TEST_FILES_DIR}/CONTCAR.MD", check_for_potcar=False)
+        assert np.sum(poscar.velocities) == approx(0.0065417961324)
+        assert poscar.predictor_corrector[0][0][0] == 0.33387820e00
+        assert poscar.predictor_corrector[0][1][1] == -0.10583589e-02
+        assert poscar.lattice_velocities is None
+
+        # Parsing from an MD type run with velocities, predictor corrector data and lattice velocities
+        poscar = Poscar.from_file(f"{TEST_FILES_DIR}/CONTCAR.MD.npt", check_for_potcar=False)
+        assert np.sum(poscar.velocities) == approx(-0.06193299494)
+        assert poscar.predictor_corrector[0][0][0] == 0.63981833
+        assert poscar.lattice_velocities.sum() == approx(16.49411358474)
 
     def test_write_md_poscar(self):
         # Parsing from an MD type run with velocities and predictor corrector data
         # And writing a new POSCAR from the new structure
-        p = Poscar.from_file(f"{TEST_FILES_DIR}/CONTCAR.MD", check_for_POTCAR=False)
+        poscar = Poscar.from_file(f"{TEST_FILES_DIR}/CONTCAR.MD", check_for_potcar=False)
 
-        path = Path("POSCAR.testing.md")
-        p.write_file(path)
+        path = f"{self.tmp_path}/POSCAR.testing.md"
+        poscar.write_file(path)
         p3 = Poscar.from_file(path)
 
-        assert_allclose(p.structure.lattice.abc, p3.structure.lattice.abc, 5)
-        assert_allclose(p.velocities, p3.velocities, 5)
-        assert_allclose(p.predictor_corrector, p3.predictor_corrector, 5)
-        assert p.predictor_corrector_preamble == p3.predictor_corrector_preamble
-        path.unlink()
+        assert_allclose(poscar.structure.lattice.abc, p3.structure.lattice.abc, 5)
+        assert_allclose(poscar.velocities, p3.velocities, 5)
+        assert_allclose(poscar.predictor_corrector, p3.predictor_corrector, 5)
+        assert poscar.predictor_corrector_preamble == p3.predictor_corrector_preamble
+
+        # Same as above except also has lattice velocities
+        poscar = Poscar.from_file(f"{TEST_FILES_DIR}/CONTCAR.MD.npt", check_for_potcar=False)
+
+        poscar.write_file(path)
+        p3 = Poscar.from_file(path)
+
+        assert_allclose(poscar.structure.lattice.abc, p3.structure.lattice.abc, 5)
+        assert_allclose(poscar.velocities, p3.velocities, 5)
+        assert_allclose(poscar.predictor_corrector, p3.predictor_corrector, 5)
+        assert poscar.predictor_corrector_preamble == p3.predictor_corrector_preamble
+        assert_allclose(poscar.lattice_velocities, p3.lattice_velocities, 5)
 
     def test_setattr(self):
         filepath = f"{TEST_FILES_DIR}/POSCAR"
-        poscar = Poscar.from_file(filepath, check_for_POTCAR=False)
+        poscar = Poscar.from_file(filepath, check_for_potcar=False)
         with pytest.raises(ValueError, match="velocities array must be same length as the structure"):
             poscar.velocities = [[0, 0, 0]]
         poscar.selective_dynamics = np.array([[True, False, False]] * 24)
@@ -362,11 +382,10 @@ direct
     def test_write(self):
         filepath = f"{TEST_FILES_DIR}/POSCAR"
         poscar = Poscar.from_file(filepath)
-        tempfname = Path("POSCAR.testing")
-        poscar.write_file(tempfname)
-        p = Poscar.from_file(tempfname)
-        assert_allclose(poscar.structure.lattice.abc, p.structure.lattice.abc, 5)
-        tempfname.unlink()
+        tmp_file = f"{self.tmp_path}/POSCAR.testing"
+        poscar.write_file(tmp_file)
+        poscar = Poscar.from_file(tmp_file)
+        assert_allclose(poscar.structure.lattice.abc, poscar.structure.lattice.abc, 5)
 
     def test_selective_dynamics(self):
         filepath = f"{TEST_FILES_DIR}/POSCAR.Fe3O4"
@@ -397,7 +416,7 @@ direct
         ]
 
 
-class TestIncar(unittest.TestCase):
+class TestIncar(PymatgenTest):
     def setUp(self):
         file_name = f"{TEST_FILES_DIR}/INCAR"
         self.incar = Incar.from_file(file_name)
@@ -566,11 +585,10 @@ class TestIncar(unittest.TestCase):
         assert incar3["MAGMOM"] == [Magmom([1, 2, 3])]
 
     def test_write(self):
-        tempfname = Path("INCAR.testing")
-        self.incar.write_file(tempfname)
-        i = Incar.from_file(tempfname)
-        assert i == self.incar
-        tempfname.unlink()
+        tmp_file = f"{self.tmp_path}/INCAR.testing"
+        self.incar.write_file(tmp_file)
+        incar = Incar.from_file(tmp_file)
+        assert incar == self.incar
 
     def test_get_str(self):
         s = self.incar.get_str(pretty=True, sort_keys=True)
@@ -807,20 +825,19 @@ Cartesian
         assert kpoints.style == Kpoints.supported_modes.Automatic
         assert kpoints.kpts == [[100]]
         filepath = f"{TEST_FILES_DIR}/POSCAR"
-        poscar = Poscar.from_file(filepath)
-        kpoints = Kpoints.automatic_density(poscar.structure, 500)
+        struct = Structure.from_file(filepath)
+        kpoints = Kpoints.automatic_density(struct, 500)
         assert kpoints.kpts == [[1, 3, 3]]
         assert kpoints.style == Kpoints.supported_modes.Gamma
-        kpoints = Kpoints.automatic_density(poscar.structure, 500, force_gamma=True)
+        kpoints = Kpoints.automatic_density(struct, 500, force_gamma=True)
         assert kpoints.style == Kpoints.supported_modes.Gamma
-        kpoints = Kpoints.automatic_density_by_vol(poscar.structure, 1000)
+        kpoints = Kpoints.automatic_density_by_vol(struct, 1000)
         assert kpoints.kpts == [[6, 10, 13]]
         assert kpoints.style == Kpoints.supported_modes.Gamma
-        kpoints = Kpoints.automatic_density_by_lengths(poscar.structure, [50, 50, 1], force_gamma=True)
+        kpoints = Kpoints.automatic_density_by_lengths(struct, [50, 50, 1], force_gamma=True)
         assert kpoints.kpts == [[5, 9, 1]]
         assert kpoints.style == Kpoints.supported_modes.Gamma
 
-        struct = poscar.structure
         struct.make_supercell(3)
         kpoints = Kpoints.automatic_density(struct, 500)
         assert kpoints.kpts == [[1, 1, 1]]
@@ -880,7 +897,7 @@ direct
     def test_automatic_density_by_lengths(self):
         # Load a structure from a POSCAR file
         filepath = f"{TEST_FILES_DIR}/POSCAR"
-        structure = Poscar.from_file(filepath).structure
+        structure = Structure.from_file(filepath)
 
         # test different combos of length densities and expected kpoints
         # TODO should test Monkhorst style case and force_gamma=True case
@@ -1190,7 +1207,7 @@ class TestVaspInput(PymatgenTest):
         filepath = f"{TEST_FILES_DIR}/INCAR"
         incar = Incar.from_file(filepath)
         filepath = f"{TEST_FILES_DIR}/POSCAR"
-        poscar = Poscar.from_file(filepath, check_for_POTCAR=False)
+        poscar = Poscar.from_file(filepath, check_for_potcar=False)
         if "PMG_VASP_PSP_DIR" not in os.environ:
             os.environ["PMG_VASP_PSP_DIR"] = str(TEST_FILES_DIR)
         filepath = f"{TEST_FILES_DIR}/POTCAR"

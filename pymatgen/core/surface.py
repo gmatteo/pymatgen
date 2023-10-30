@@ -209,7 +209,7 @@ class Slab(Structure):
                 the desired behavior).
 
         Returns:
-            ([Slab]) List of tasker 2 corrected slabs.
+            list[Slab]: tasker 2 corrected slabs.
         """
         sites = list(self.sites)
         slabs = []
@@ -635,7 +635,7 @@ class Slab(Structure):
             coords_are_cartesian (bool): Is the point in Cartesian coordinates
 
         Returns:
-            (Slab): The modified slab
+            Slab: The modified slab
         """
         # For now just use the species of the
         # surface atom as the element to add
@@ -1073,8 +1073,8 @@ class SlabGenerator:
                 lead to many possible slabs as oppose to just omitting them.
 
         Returns:
-            ([Slab]) List of all possible terminations of a particular surface.
-            Slabs are sorted by the # of bonds broken.
+            list[Slab]: all possible terminations of a particular surface.
+                Slabs are sorted by the # of bonds broken.
         """
         c_ranges = [] if bonds is None else self._get_c_ranges(bonds)
 
@@ -1440,7 +1440,7 @@ class ReconstructionGenerator:
             (4) Add any specified sites to both surfaces.
 
         Returns:
-            (Slab): The reconstructed slab.
+            Slab: The reconstructed slab.
         """
         slabs = self.get_unreconstructed_slabs()
         recon_slabs = []

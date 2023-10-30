@@ -366,8 +366,8 @@ class CifParser:
     def from_string(cls, *args, **kwargs):
         return cls.from_str(*args, **kwargs)
 
-    @staticmethod
-    def from_str(cif_string: str, **kwargs) -> CifParser:
+    @classmethod
+    def from_str(cls, cif_string: str, **kwargs) -> CifParser:
         """
         Creates a CifParser from a string.
 
@@ -379,7 +379,7 @@ class CifParser:
             CifParser
         """
         stream = StringIO(cif_string)
-        return CifParser(stream, **kwargs)
+        return cls(stream, **kwargs)
 
     def _sanitize_data(self, data):
         """
@@ -1168,8 +1168,6 @@ class CifParser:
         Returns:
             list[Structure]: All structures in CIF file.
         """
-        print(len(self._cif.data))
-
         if not check_occu:  # added in https://github.com/materialsproject/pymatgen/pull/2836
             warnings.warn("Structures with unphysical site occupancies are not compatible with many pymatgen features.")
         if primitive and symmetrized:
@@ -1355,12 +1353,12 @@ class CifWriter:
         else:
             sf = SpacegroupAnalyzer(struct, symprec)
 
-            symmops = []
+            symm_ops = []
             for op in sf.get_symmetry_operations():
                 v = op.translation_vector
-                symmops.append(SymmOp.from_rotation_and_translation(op.rotation_matrix, v))
+                symm_ops.append(SymmOp.from_rotation_and_translation(op.rotation_matrix, v))
 
-            ops = [op.as_xyz_string() for op in symmops]
+            ops = [op.as_xyz_string() for op in symm_ops]
             block["_symmetry_equiv_pos_site_id"] = [f"{i}" for i in range(1, len(ops) + 1)]
             block["_symmetry_equiv_pos_as_xyz"] = ops
 

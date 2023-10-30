@@ -13,7 +13,6 @@ from pymatgen.core.periodic_table import DummySpecies, Element, Species
 from pymatgen.core.structure import Structure
 from pymatgen.electronic_structure.core import Magmom
 from pymatgen.io.cif import CifBlock, CifParser, CifWriter
-from pymatgen.io.vasp.inputs import Poscar
 from pymatgen.symmetry.structure import SymmetrizedStructure
 from pymatgen.util.testing import TEST_FILES_DIR, PymatgenTest
 
@@ -223,6 +222,7 @@ class TestCifIO(PymatgenTest):
         assert isinstance(sym_structure, SymmetrizedStructure)
         assert structure == sym_structure
         assert sym_structure.equivalent_indices == [[0, 1, 2, 3], [4, 5, 6, 7, 8, 9, 10, 11]]
+        assert set(sym_structure.labels) == {"O1", "Li1"}
 
     def test_site_symbol_preference(self):
         parser = CifParser(f"{TEST_FILES_DIR}/site_type_symbol_test.cif")
@@ -421,8 +421,8 @@ class TestCifIO(PymatgenTest):
 
     def test_cif_writer(self):
         filepath = f"{TEST_FILES_DIR}/POSCAR"
-        poscar = Poscar.from_file(filepath)
-        writer = CifWriter(poscar.structure, symprec=0.01)
+        struct = Structure.from_file(filepath)
+        writer = CifWriter(struct, symprec=0.01)
         answer = """# generated using pymatgen
 data_FePO4
 _symmetry_space_group_name_H-M   Pnma
@@ -466,13 +466,13 @@ loop_
 
     def test_symmetrized(self):
         filepath = f"{TEST_FILES_DIR}/POSCAR"
-        poscar = Poscar.from_file(filepath, check_for_POTCAR=False)
-        writer = CifWriter(poscar.structure, symprec=0.1)
+        struct = Structure.from_file(filepath)
+        writer = CifWriter(struct, symprec=0.1)
 
         cif = CifParser.from_str(str(writer))
         m = StructureMatcher()
 
-        assert m.fit(cif.get_structures()[0], poscar.structure)
+        assert m.fit(cif.get_structures()[0], struct)
 
         # for l1, l2 in zip(str(writer).split("\n"), answer.split("\n")):
         #     assert l1.strip() == l2.strip()
@@ -716,11 +716,10 @@ loop_
         parser = CifParser.from_str(cif_structure)
         s_test = parser.get_structures(primitive=False)[0]
         filepath = f"{TEST_FILES_DIR}/POSCAR"
-        poscar = Poscar.from_file(filepath)
-        s_ref = poscar.structure
+        struct = Structure.from_file(filepath)
 
         sm = StructureMatcher(stol=0.05, ltol=0.01, angle_tol=0.1)
-        assert sm.fit(s_ref, s_test)
+        assert sm.fit(struct, s_test)
 
     def test_empty(self):
         # single line
@@ -944,62 +943,8 @@ Gd1 5.05 5.05 0.0"""
         assert s_ncl.matches(s_ncl_from_msg)
 
     def test_write(self):
-        cw_ref_string = """# generated using pymatgen
-data_GdB4
-_symmetry_space_group_name_H-M   'P 1'
-_cell_length_a   7.13160000
-_cell_length_b   7.13160000
-_cell_length_c   4.05050000
-_cell_angle_alpha   90.00000000
-_cell_angle_beta   90.00000000
-_cell_angle_gamma   90.00000000
-_symmetry_Int_Tables_number   1
-_chemical_formula_structural   GdB4
-_chemical_formula_sum   'Gd4 B16'
-_cell_volume   206.00729003
-_cell_formula_units_Z   4
-loop_
- _symmetry_equiv_pos_site_id
- _symmetry_equiv_pos_as_xyz
-  1  'x, y, z'
-loop_
- _atom_site_type_symbol
- _atom_site_label
- _atom_site_symmetry_multiplicity
- _atom_site_fract_x
- _atom_site_fract_y
- _atom_site_fract_z
- _atom_site_occupancy
-  Gd  Gd0  1  0.31746000  0.81746000  0.00000000  1.0
-  Gd  Gd1  1  0.18254000  0.31746000  0.00000000  1.0
-  Gd  Gd2  1  0.81746000  0.68254000  0.00000000  1.0
-  Gd  Gd3  1  0.68254000  0.18254000  0.00000000  1.0
-  B  B4  1  0.00000000  0.00000000  0.20290000  1.0
-  B  B5  1  0.50000000  0.50000000  0.79710000  1.0
-  B  B6  1  0.00000000  0.00000000  0.79710000  1.0
-  B  B7  1  0.50000000  0.50000000  0.20290000  1.0
-  B  B8  1  0.17590000  0.03800000  0.50000000  1.0
-  B  B9  1  0.96200000  0.17590000  0.50000000  1.0
-  B  B10  1  0.03800000  0.82410000  0.50000000  1.0
-  B  B11  1  0.67590000  0.46200000  0.50000000  1.0
-  B  B12  1  0.32410000  0.53800000  0.50000000  1.0
-  B  B13  1  0.82410000  0.96200000  0.50000000  1.0
-  B  B14  1  0.53800000  0.67590000  0.50000000  1.0
-  B  B15  1  0.46200000  0.32410000  0.50000000  1.0
-  B  B16  1  0.08670000  0.58670000  0.50000000  1.0
-  B  B17  1  0.41330000  0.08670000  0.50000000  1.0
-  B  B18  1  0.58670000  0.91330000  0.50000000  1.0
-  B  B19  1  0.91330000  0.41330000  0.50000000  1.0
-loop_
- _atom_site_moment_label
- _atom_site_moment_crystalaxis_x
- _atom_site_moment_crystalaxis_y
- _atom_site_moment_crystalaxis_z
-  Gd0  5.05000000  5.05000000  0.00000000
-  Gd1  -5.05000000  5.05000000  0.00000000
-  Gd2  5.05000000  -5.05000000  0.00000000
-  Gd3  -5.05000000  -5.05000000  0.00000000
-"""
+        with open(f"{TEST_FILES_DIR}/GdB4-writer-ref.mcif") as file:
+            cw_ref_string = file.read()
         s_ncl = self.mcif_ncl.get_structures(primitive=False)[0]
 
         cw = CifWriter(s_ncl, write_magmoms=True)
@@ -1018,62 +963,9 @@ loop_
         s_ncl.add_site_property("magmom", float_magmoms)
         cw = CifWriter(s_ncl, write_magmoms=True)
 
-        cw_ref_string_magnitudes = """# generated using pymatgen
-data_GdB4
-_symmetry_space_group_name_H-M   'P 1'
-_cell_length_a   7.13160000
-_cell_length_b   7.13160000
-_cell_length_c   4.05050000
-_cell_angle_alpha   90.00000000
-_cell_angle_beta   90.00000000
-_cell_angle_gamma   90.00000000
-_symmetry_Int_Tables_number   1
-_chemical_formula_structural   GdB4
-_chemical_formula_sum   'Gd4 B16'
-_cell_volume   206.00729003
-_cell_formula_units_Z   4
-loop_
- _symmetry_equiv_pos_site_id
- _symmetry_equiv_pos_as_xyz
-  1  'x, y, z'
-loop_
- _atom_site_type_symbol
- _atom_site_label
- _atom_site_symmetry_multiplicity
- _atom_site_fract_x
- _atom_site_fract_y
- _atom_site_fract_z
- _atom_site_occupancy
-  Gd  Gd0  1  0.31746000  0.81746000  0.00000000  1.0
-  Gd  Gd1  1  0.18254000  0.31746000  0.00000000  1.0
-  Gd  Gd2  1  0.81746000  0.68254000  0.00000000  1.0
-  Gd  Gd3  1  0.68254000  0.18254000  0.00000000  1.0
-  B  B4  1  0.00000000  0.00000000  0.20290000  1.0
-  B  B5  1  0.50000000  0.50000000  0.79710000  1.0
-  B  B6  1  0.00000000  0.00000000  0.79710000  1.0
-  B  B7  1  0.50000000  0.50000000  0.20290000  1.0
-  B  B8  1  0.17590000  0.03800000  0.50000000  1.0
-  B  B9  1  0.96200000  0.17590000  0.50000000  1.0
-  B  B10  1  0.03800000  0.82410000  0.50000000  1.0
-  B  B11  1  0.67590000  0.46200000  0.50000000  1.0
-  B  B12  1  0.32410000  0.53800000  0.50000000  1.0
-  B  B13  1  0.82410000  0.96200000  0.50000000  1.0
-  B  B14  1  0.53800000  0.67590000  0.50000000  1.0
-  B  B15  1  0.46200000  0.32410000  0.50000000  1.0
-  B  B16  1  0.08670000  0.58670000  0.50000000  1.0
-  B  B17  1  0.41330000  0.08670000  0.50000000  1.0
-  B  B18  1  0.58670000  0.91330000  0.50000000  1.0
-  B  B19  1  0.91330000  0.41330000  0.50000000  1.0
-loop_
- _atom_site_moment_label
- _atom_site_moment_crystalaxis_x
- _atom_site_moment_crystalaxis_y
- _atom_site_moment_crystalaxis_z
-  Gd0  0.00000000  0.00000000  7.14177849
-  Gd1  0.00000000  0.00000000  7.14177849
-  Gd2  0.00000000  0.00000000  -7.14177849
-  Gd3  0.00000000  0.00000000  -7.14177849
-"""
+        with open(f"{TEST_FILES_DIR}/GdB4-str-magnitudes-ref.mcif") as file:
+            cw_ref_string_magnitudes = file.read()
+
         assert str(cw).strip() == cw_ref_string_magnitudes.strip()
         # test we're getting correct magmoms in ncl case
         s_ncl2 = self.mcif_ncl2.get_structures()[0]
@@ -1083,51 +975,14 @@ loop_
         assert list_magmoms[1][0] == approx(-5.1234749999999991)
         assert list_magmoms[1][1] == approx(2.9580396704363183)
 
-        # test creating an structure without oxidation state doesn't raise errors
+        # test creating a structure without oxidation state doesn't raise errors
         s_manual = Structure(Lattice.cubic(4.2), ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
         s_manual.add_spin_by_site([1, -1])
         cw = CifWriter(s_manual, write_magmoms=True)
 
         # check oxidation state
-        cw_manual_oxi_string = """# generated using pymatgen
-data_CsCl
-_symmetry_space_group_name_H-M   'P 1'
-_cell_length_a   4.20000000
-_cell_length_b   4.20000000
-_cell_length_c   4.20000000
-_cell_angle_alpha   90.00000000
-_cell_angle_beta   90.00000000
-_cell_angle_gamma   90.00000000
-_symmetry_Int_Tables_number   1
-_chemical_formula_structural   CsCl
-_chemical_formula_sum   'Cs1 Cl1'
-_cell_volume   74.08800000
-_cell_formula_units_Z   1
-loop_
- _symmetry_equiv_pos_site_id
- _symmetry_equiv_pos_as_xyz
-  1  'x, y, z'
-loop_
- _atom_type_symbol
- _atom_type_oxidation_number
-  Cs+  1.0
-  Cl+  1.0
-loop_
- _atom_site_type_symbol
- _atom_site_label
- _atom_site_symmetry_multiplicity
- _atom_site_fract_x
- _atom_site_fract_y
- _atom_site_fract_z
- _atom_site_occupancy
-  Cs+  Cs0  1  0.00000000  0.00000000  0.00000000  1
-  Cl+  Cl1  1  0.50000000  0.50000000  0.50000000  1
-loop_
- _atom_site_moment_label
- _atom_site_moment_crystalaxis_x
- _atom_site_moment_crystalaxis_y
- _atom_site_moment_crystalaxis_z
-"""
+        with open(f"{TEST_FILES_DIR}/CsCl-manual-oxi-ref.mcif") as file:
+            cw_manual_oxi_string = file.read()
         s_manual.add_oxidation_state_by_site([1, 1])
         cw = CifWriter(s_manual, write_magmoms=True)
         assert str(cw) == cw_manual_oxi_string
