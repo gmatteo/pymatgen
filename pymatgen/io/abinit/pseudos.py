@@ -22,7 +22,6 @@ from monty.json import MontyDecoder, MSONable
 from monty.os.path import find_exts
 from monty.string import is_string, list_strings
 from tabulate import tabulate
-
 from pymatgen.core.periodic_table import Element
 #from pymatgen.core.xcfunc import XcFunc
 from pymatgen.io.core import ParseError
@@ -30,9 +29,7 @@ from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
-
     import matplotlib.pyplot as plt
-
     from pymatgen.core import Structure
 
 logger = logging.getLogger(__name__)
@@ -1547,29 +1544,29 @@ class PawXmlSetup(Pseudo, PawPseudo):
 
 class UpfPseudo(Pseudo):
     """
-    Pseudopotentials in UPF format.
-    See e.g. https://esl.cecam.org/data/upf/
+    Pseudopotentials in UPF format. See e.g.
+
+        - http://pseudopotentials.quantum-espresso.org/home/unified-pseudopotential-format
+        - https://esl.cecam.org/en/data/upf/
+        - https://github.com/ltalirz/upf-schema
     """
 
     def __init__(self, filepath: str):
         """
         filepath: path to pseudopotential file
         """
-        # pylint: disable=E1101
         self.path = os.path.abspath(filepath)
 
-        tree = ElementTree.parse(self.path)
-        root = tree.getroot()
-
+        root = self.root
         if root.tag != "UPF":
-            raise ValueError(f"This is not a valid UPF file. root.tag is: `{root.tag}`")
+            raise ValueError(f"This is not a valid UPF file. {root.tag=}")
 
         version = root.attrib["version"]
         major, minor, patch_level = version.split(".")
 
         is_upf1 = int(major) < 2
         if is_upf1:
-            raise ValueError(f"Pseudos in UPF1 format are not supported. Found version: `{version}`")
+            raise ValueError(f"Pseudos in UPF1 format are not supported. Found {version=}")
 
         # Convert attributes in PP_HEADER.
         float_keys = {
@@ -1591,13 +1588,32 @@ class UpfPseudo(Pseudo):
 
         # print("PP_HEADER", self.pp_header)
         element = Element[self.pp_header["element"]]
-
         self._zatom = element.Z
 
         # FIXME: Need to implement mapping QE --> XC
         functional = self.pp_header["functional"]
         from pymatgen.core.xcfunc import XcFunc
         self.xc = XcFunc.from_abinit_ixc(11)
+
+    @lazy_property
+    def root(self):
+        """
+        Root tree of XML.
+        """
+        return ElementTree.parse(self.filepath).getroot()
+
+    @lazy_property
+    def rmesh(self) -> np.ndarray:
+        return self.rmesh_rab[0]
+
+    @lazy_property
+    def rmesh_rab(self) -> tuple[np.ndarray, np.ndarray]:
+        pp_mesh = self.root.find("PP_MESH")
+        pp_r = pp_mesh.find("PP_R")
+        rmesh = np.fromstring(pp_r.text, sep=" ")
+        pp_rab = pp_mesh.find("PP_RAB")
+        rab = np.fromstring(pp_rab.text, sep=" ")
+        return rmesh, rab
 
     @property
     def nlcc_radius(self) -> float:
@@ -1639,7 +1655,7 @@ class UpfPseudo(Pseudo):
     @property
     def supports_soc(self):
         """
-        Here I assume that the ab-initio code can treat the SOC within the on-site approximation
+        Here I assume that the ab-initio code can treat the SOC within the on-site approximation.
         """
         return self.pp_header["has_so"]
 
@@ -1653,56 +1669,202 @@ class UpfPseudo(Pseudo):
        """True if PAW pseudopotential."""
        return self.pp_header["pseudo_type"] == "PAW"
 
+    def get_nlcc(self) -> np.ndarray | None:
+        """
+        Array with the model core charge for the NLCC. None if NLCC is not used.
+        """
+        if not self.pp_header["core_correction"]:
+            return None
+        # rho_atc(mesh) : core charge for nonlinear core correction (true charge, not multiplied by 4πr2)
+        pp_nlcc = self.root.find("PP_NLCC")
+        return np.fromstring(pp_nlcc.text, sep=" ")
+
+    def get_pseudo_wfcs(self) -> list[dict]:
+        """
+        List of dictionaries with info on the pseudized wavefunctions.
+        """
+        # <PP_PSWFC>
+        # <PP_CHI.1
+        # type="real"
+        # size="1510"
+        # columns="4"
+        # index="1"
+        # occupation=" 2.000"
+        # pseudo_energy="   -0.7947291737E+00"
+        # label="3S"
+        # l="0" >
+        # -3.8649101280E-12    1.1951575159E-03    2.3933286177E-03    3.5975266048E-03
+        #
+        # NB: chi(mesh,i): χi(r), i-th radial atomic (pseudo-)orbital (radial part of the KS equation, multiplied by r)
+        nwfc = self.pp_header["number_of_wfc"]
+        if nwfc == 0:
+            print(f"UPF file {self.path} does not provide pseudized wavefunctions!")
+            return []
+
+        parent = self.root.find("PP_PSWFC")
+        chi_list = []
+        for i in range(nwfc):
+            chi = parent.find(f"PP_CHI.{i+1}")
+            label = chi.attrib["label"]
+            chi_list.append(dict(
+                label=label,
+                l=int(chi.attrib["l"]),
+                n=int(label[0]),
+                ene=float(chi.attrib["pseudo_energy"]),
+                occ=float(chi.attrib["occupation"]),
+                values=np.fromstring(chi.text, sep=" "),
+            ))
+
+        return chi_list
+
+    def get_projectors(self) -> list[dict]:
+        """
+        List of dictionaries with info on the projectors.
+        """
+        # <PP_NONLOCAL>
+        # <PP_BETA.1
+        # type="real"
+        # size="1510"
+        # columns="4"
+        # index="1"
+        # angular_momentum="0"
+        # cutoff_radius_index=" 196"
+        # cutoff_radius="    1.9500000000E+00" >
+        # -5.6328824383E-09    3.1595742775E-02    6.2932621168E-02    9.3756650478E-02
+        # 1.2382351921E-01    1.5290321177E-01    1.8078437851E-01    2.0727837574E-01
+
+        nprj = self.pp_header["number_of_proj"]
+        parent = self.root.find("PP_NONLOCAL")
+        proj_list = []
+        for i in range(nprj):
+            proj = parent.find(f"PP_BETA.{i+1}")
+            index = int(proj.attrib["index"])
+            l = int(proj.attrib["angular_momentum"])
+            proj_list.append(dict(
+                index=index,
+                l=l,
+                label=f"{index}{l2str(l)}",
+                rcut=float(proj.attrib["cutoff_radius"]),
+                values=np.fromstring(proj.text, sep=" "),
+            ))
+
+        return proj_list
+
     @add_fig_kwargs
-    def plot_vlocr(self, ax=None, **kwargs):
+    def plot_vlocr(self, ax=None, fontsize=8, **kwargs):
         """
         Plot the local part of the UPF pseudo in r-space.
 
         Args:
             ax: matplotlib :class:`Axes` or None if a new figure should be created.
+            fontsize: fontsize for legends and titles
 
         Returns: `matplotlib` figure
         """
-        tree = ElementTree.parse(self.path)
-        root = tree.getroot()
-
-        pp_r = root.find("PP_MESH").find("PP_R")
-        #size, columns = pp_r.attrib["size"], pp_r.attrib["columns"]
-        rmesh = np.fromstring(pp_r.text, sep=" ")
-        #print(rmesh.shape, "\n", rmesh)
-        pp_local = root.find("PP_LOCAL")
-        #size, columns = pp_local.attrib["size"], pp_local.attrib["columns"]
-
         # convert vloc from Rydberg to Ha.
+        pp_local = self.root.find("PP_LOCAL")
         vloc = 0.5 * np.fromstring(pp_local.text, sep=" ")
 
-        # pylint: disable=E1101
-        ax, fig, plt = get_ax_fig_plt(ax)
-        ax.grid(True)
-        ax.set_xlabel("r (Bohr)")
-        ax.set_ylabel(r"$rv_{loc}\,$ (Ha)")
-
         from monty.bisect import find_gt
+        rmesh = self.rmesh
         rcut = min(2, rmesh.max() - 1)
         st = 0
         st = find_gt(rmesh, rcut)
-
         vcoul = np.where(rmesh > rcut,  -self.Z_val / rmesh, 0)
-        #ax.plot(rmesh[st:], (vloc-vcoul)[st:]) #, label=label, lw=2)
 
-        ax.plot(rmesh[st:], vloc[st:]) #, label=label, lw=2)
-        ax.plot(rmesh[st:], vcoul[st:]) #, label=label, lw=2)
-        #ax.legend(loc="best", shadow=True, fontsize=fontsize)
+        ax, fig = get_ax_fig(ax=ax)
+        ax.plot(rmesh[st:], vloc[st:],  label="Vloc", lw=2)
+        ax.plot(rmesh[st:], vcoul[st:], label="Vcoul", lw=2)
+        ax.grid(True)
+        ax.set_xlabel("r (Bohr)")
+        ax.set_ylabel(r"$rv_{loc}\,$ (Ha)")
+        ax.legend(loc="best", shadow=True, fontsize=fontsize)
+        ax.set_title("Local part", fontsize=fontsize)
+
+        return fig
+
+    @add_fig_kwargs
+    def plot_pseudo_wfcs(self, ax=None, fontsize=8, **kwargs):
+        """
+        Plot the pseudized wavefunctions.
+
+        Args:
+            ax: matplotlib :class:`Axes` or None if a new figure should be created.
+            fontsize: fontsize for legends and titles
+
+        Returns: `matplotlib` figure
+        """
+        ax, fig = get_ax_fig(ax=ax)
+        for chi in self.get_pseudo_wfcs():
+            ax.plot(self.rmesh, chi["values"], label=chi["label"], lw=2)
+
+        ax.legend(loc="best", shadow=True, fontsize=fontsize)
+        ax.grid(True)
+        ax.set_xlabel("r (Bohr)")
+        ax.set_ylabel(r"$r\phi_{nl}(r)\,$ (Ha)")
+        ax.set_title("Pseudized wavefunctions", fontsize=fontsize)
+
+        return fig
+
+    @add_fig_kwargs
+    def plot_projectors(self, ax=None, fontsize=8, **kwargs):
+        """
+        Plot the radial projectors.
+
+        Args:
+            ax: matplotlib :class:`Axes` or None if a new figure should be created.
+            fontsize: fontsize for legends and titles
+
+        Returns: `matplotlib` figure
+        """
+        ax, fig = get_ax_fig(ax=ax)
+        rcut_max = 0.0
+        for proj in self.get_projectors():
+            ax.plot(self.rmesh, proj["values"], label=proj["label"], lw=2)
+            rcut_max = max(rcut_max, proj["rcut"])
+        rcut_max *= 1.1
+
+        ax.legend(loc="best", shadow=True, fontsize=fontsize)
+        ax.grid(True)
+        ax.set_xlabel("r (Bohr)")
+        ax.set_xlim(0, rcut_max)
+        #ax.set_ylabel(r"$r\phi_{nl}(r)\,$ (Ha)")
+        ax.set_title("Radial projectors", fontsize=fontsize)
+
+        return fig
+
+    @add_fig_kwargs
+    def plot_nlcc(self, ax=None, fontsize=8, **kwargs):
+        """
+        Plot the model-core charge for the NLCC in r-space.
+
+        Args:
+            ax: matplotlib :class:`Axes` or None if a new figure should be created.
+            fontsize: fontsize for legends and titles
+
+        Returns: `matplotlib` figure
+        """
+        nlcc = self.get_nlcc()
+        if nlcc is None: return None
+
+        ax, fig = get_ax_fig(ax=ax)
+        ax.plot(self.rmesh, nlcc, label="RhoM", lw=2)
+        ax.grid(True)
+        ax.set_xlabel("r (Bohr)")
+        ax.set_ylabel(r"$rho_{model}\,$")
+        ax.legend(loc="best", shadow=True, fontsize=fontsize)
+        ax.set_title("Model for NLCC", fontsize=fontsize)
 
         return fig
 
     def yield_figs(self, **kwargs): # pragma: no cover
         """
-        Generate a predefined list of matplotlib figures for the UpfPseudo
+        Generate a predefined list of matplotlib figures for the UpfPseudo.
         """
-        verbose = kwargs.get("verbose", 0)
+        yield self.plot_pseudo_wfcs(show=False)
         yield self.plot_vlocr(show=False)
-
+        yield self.plot_projectors(show=False)
+        yield self.plot_nlcc(show=False)
 
 
 class PseudoTable(collections.abc.Sequence, MSONable):
