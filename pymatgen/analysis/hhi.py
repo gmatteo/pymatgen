@@ -15,8 +15,7 @@ import os
 
 from monty.design_patterns import singleton
 
-from pymatgen.core.composition import Composition
-from pymatgen.core.periodic_table import Element
+from pymatgen.core import Composition, Element
 
 __author__ = "Anubhav Jain"
 __copyright__ = "Copyright 2014, The Materials Project"
@@ -31,36 +30,24 @@ csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hhi_data.cs
 
 @singleton
 class HHIModel:
-    """
-    HHI calculator.
-    """
+    """HHI calculator."""
 
     def __init__(self):
-        """
-        Init for HHIModel.
-        """
+        """Init for HHIModel."""
         self.symbol_hhip_hhir = {}  # symbol->(HHI_production, HHI reserve)
 
         with open(csv_path) as f:
             for line in f:
                 if line[0] != "#":
                     symbol, hhi_production, hhi_reserve = line.split(",")
-                    self.symbol_hhip_hhir[symbol] = (
-                        float(hhi_production),
-                        float(hhi_reserve),
-                    )
+                    self.symbol_hhip_hhir[symbol] = float(hhi_production), float(hhi_reserve)
 
     def _get_hhi_el(self, el_or_symbol):
-        """
-        Returns the tuple of HHI_production, HHI reserve for a single element only
-        """
+        """Returns the tuple of HHI_production, HHI reserve for a single element only."""
         if isinstance(el_or_symbol, Element):
             el_or_symbol = el_or_symbol.symbol
 
-        return (
-            self.symbol_hhip_hhir[el_or_symbol][0],
-            self.symbol_hhip_hhir[el_or_symbol][1],
-        )
+        return self.symbol_hhip_hhir[el_or_symbol][0], self.symbol_hhip_hhir[el_or_symbol][1]
 
     def get_hhi(self, comp_or_form):
         """
@@ -118,7 +105,7 @@ class HHIModel:
         """
         Gets a designation for low, medium, high HHI, as specified in "U.S.
         Department of Justice and the Federal Trade Commission, Horizontal
-        merger guidelines; 2010."
+        merger guidelines; 2010.".
 
         Args:
             hhi (float): HHI value

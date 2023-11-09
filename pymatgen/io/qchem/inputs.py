@@ -1,6 +1,4 @@
-"""
-Classes for reading/manipulating/writing QChem input files.
-"""
+"""Classes for reading/manipulating/writing QChem input files."""
 
 from __future__ import annotations
 
@@ -8,6 +6,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
 from monty.io import zopen
 
 from pymatgen.core import Molecule
@@ -114,7 +113,7 @@ class QCInput(InputFile):
                     Ex:
 
                     1. For a single-state calculation with two constraints:
-                     cdft=[[
+                    cdft=[[
                         {"value": 1.0, "coefficients": [1.0], "first_atoms": [1], "last_atoms": [2], "types": [None]},
                         {"value": 2.0, "coefficients": [1.0, -1.0], "first_atoms": [1, 17], "last_atoms": [3, 19],
                             "types": ["s"]}
@@ -204,67 +203,53 @@ class QCInput(InputFile):
         #   - Validity checks specific to job type?
         #   - Check OPT and PCM sections?
 
-    def get_string(self):
-        """
-        Return a string representation of an entire input file.
-        """
+    @np.deprecate(message="Use get_str instead")
+    def get_string(self, *args, **kwargs) -> str:
+        return self.get_str(*args, **kwargs)
+
+    def get_str(self) -> str:
+        """Return a string representation of an entire input file."""
         return str(self)
 
     def __str__(self):
         combined_list = []
         # molecule section
-        combined_list.append(self.molecule_template(self.molecule))
-        combined_list.append("")
-        # rem section
-        combined_list.append(self.rem_template(self.rem))
-        combined_list.append("")
+        combined_list.extend((self.molecule_template(self.molecule), "", self.rem_template(self.rem), ""))
         # opt section
         if self.opt:
-            combined_list.append(self.opt_template(self.opt))
-            combined_list.append("")
+            combined_list.extend((self.opt_template(self.opt), ""))
         # pcm section
         if self.pcm:
-            combined_list.append(self.pcm_template(self.pcm))
-            combined_list.append("")
+            combined_list.extend((self.pcm_template(self.pcm), ""))
         # solvent section
         if self.solvent:
-            combined_list.append(self.solvent_template(self.solvent))
-            combined_list.append("")
+            combined_list.extend((self.solvent_template(self.solvent), ""))
         if self.smx:
-            combined_list.append(self.smx_template(self.smx))
-            combined_list.append("")
+            combined_list.extend((self.smx_template(self.smx), ""))
         # section for pes_scan
         if self.scan:
-            combined_list.append(self.scan_template(self.scan))
-            combined_list.append("")
+            combined_list.extend((self.scan_template(self.scan), ""))
         # section for van_der_waals radii
         if self.van_der_waals:
-            combined_list.append(self.van_der_waals_template(self.van_der_waals, self.vdw_mode))
-            combined_list.append("")
+            combined_list.extend((self.van_der_waals_template(self.van_der_waals, self.vdw_mode), ""))
         # plots section
         if self.plots:
-            combined_list.append(self.plots_template(self.plots))
-            combined_list.append("")
+            combined_list.extend((self.plots_template(self.plots), ""))
         # nbo section
         if self.nbo is not None:
-            combined_list.append(self.nbo_template(self.nbo))
-            combined_list.append("")
+            combined_list.extend((self.nbo_template(self.nbo), ""))
         # geom_opt section
         if self.geom_opt is not None:
-            combined_list.append(self.geom_opt_template(self.geom_opt))
-            combined_list.append("")
+            combined_list.extend((self.geom_opt_template(self.geom_opt), ""))
         # cdft section
         if self.cdft is not None:
-            combined_list.append(self.cdft_template(self.cdft))
-            combined_list.append("")
+            combined_list.extend((self.cdft_template(self.cdft), ""))
         # almo section
         if self.almo_coupling is not None:
-            combined_list.append(self.almo_template(self.almo_coupling))
-            combined_list.append("")
+            combined_list.extend((self.almo_template(self.almo_coupling), ""))
         # svp section
         if self.svp:
-            combined_list.append(self.svp_template(self.svp))
-            combined_list.append("")
+            combined_list.extend((self.svp_template(self.svp), ""))
         # pcm_nonels section
         if self.pcm_nonels:
             combined_list.append(self.pcm_nonels_template(self.pcm_nonels))
@@ -274,7 +259,7 @@ class QCInput(InputFile):
     def multi_job_string(job_list: list[QCInput]) -> str:
         """
         Args:
-            job_list (): List of jobs
+            job_list (): List of jobs.
 
         Returns:
             (str) String representation of multi job input file.
@@ -288,7 +273,7 @@ class QCInput(InputFile):
         return multi_job_string
 
     @classmethod
-    def from_string(cls, string: str) -> QCInput:
+    def from_str(cls, string: str) -> QCInput:
         """
         Read QcInput from string.
 
@@ -302,20 +287,9 @@ class QCInput(InputFile):
         molecule = cls.read_molecule(string)
         rem = cls.read_rem(string)
         # only molecule and rem are necessary everything else is checked
-        opt = None
-        pcm = None
-        solvent = None
-        smx = None
-        scan = None
-        vdw = None
+        opt = pcm = solvent = smx = scan = vdw = None
         vdw_mode = "atomic"
-        plots = None
-        nbo = None
-        geom_opt = None
-        cdft = None
-        almo_coupling = None
-        svp = None
-        pcm_nonels = None
+        plots = nbo = geom_opt = cdft = almo_coupling = svp = pcm_nonels = None
         if "opt" in sections:
             opt = cls.read_opt(string)
         if "pcm" in sections:
@@ -373,8 +347,8 @@ class QCInput(InputFile):
         with zopen(filename, "wt") as f:
             f.write(QCInput.multi_job_string(job_list))
 
-    @staticmethod
-    def from_file(filename: str | Path) -> QCInput:
+    @classmethod
+    def from_file(cls, filename: str | Path) -> QCInput:
         """
         Create QcInput from file.
 
@@ -385,7 +359,7 @@ class QCInput(InputFile):
             QcInput
         """
         with zopen(filename, "rt") as f:
-            return QCInput.from_string(f.read())
+            return cls.from_str(f.read())
 
     @classmethod
     def from_multi_jobs_file(cls, filename: str) -> list[QCInput]:
@@ -402,14 +376,13 @@ class QCInput(InputFile):
             # the delimiter between QChem jobs is @@@
             multi_job_strings = f.read().split("@@@")
             # list of individual QChem jobs
-            input_list = [cls.from_string(i) for i in multi_job_strings]
-            return input_list
+            return [cls.from_str(i) for i in multi_job_strings]
 
     @staticmethod
     def molecule_template(molecule: Molecule | list[Molecule] | Literal["read"]) -> str:
         """
         Args:
-            molecule (Molecule, list of Molecules, or "read")
+            molecule (Molecule, list of Molecules, or "read").
 
         Returns:
             (str) Molecule template.
@@ -430,7 +403,7 @@ class QCInput(InputFile):
                 raise ValueError('The only acceptable text value for molecule is "read"')
         elif isinstance(molecule, Molecule):
             mol_list.append(f" {int(molecule.charge)} {molecule.spin_multiplicity}")
-            for site in molecule.sites:
+            for site in molecule:
                 mol_list.append(f" {site.species_string}     {site.x: .10f}     {site.y: .10f}     {site.z: .10f}")
         else:
             overall_charge = sum(x.charge for x in molecule)
@@ -440,9 +413,8 @@ class QCInput(InputFile):
             mol_list.append(f" {int(overall_charge)} {int(overall_spin)}")
 
             for fragment in molecule:
-                mol_list.append("--")
-                mol_list.append(f" {int(fragment.charge)} {fragment.spin_multiplicity}")
-                for site in fragment.sites:
+                mol_list.extend(("--", f" {int(fragment.charge)} {fragment.spin_multiplicity}"))
+                for site in fragment:
                     mol_list.append(f" {site.species_string}     {site.x: .10f}     {site.y: .10f}     {site.z: .10f}")
 
         mol_list.append("$end")
@@ -483,8 +455,7 @@ class QCInput(InputFile):
             # loops over all values within the section
             for i in value:
                 opt_list.append(f"   {i}")
-            opt_list.append(f"END{key}")
-            opt_list.append("")
+            opt_list.extend((f"END{key}", ""))
         # this deletes the empty space after the last section
         del opt_list[-1]
         opt_list.append("$end")
@@ -553,7 +524,7 @@ class QCInput(InputFile):
         """
         Args:
             scan (dict): Dictionary with scan section information.
-                Ex: {"stre": ["3 6 1.5 1.9 0.1"], "tors": ["1 2 3 4 -180 180 15"]}
+                Ex: {"stre": ["3 6 1.5 1.9 0.1"], "tors": ["1 2 3 4 -180 180 15"]}.
 
         Returns:
             String representing Q-Chem input format for scan section
@@ -582,7 +553,7 @@ class QCInput(InputFile):
                 represent the atomic number associated with each radius (e.g., '12' = carbon).
                 In 'sequential' mode, dict keys represent the sequential position of
                 a single specific atom in the input structure.
-                **NOTE: keys must be given as strings even though they are numbers!**
+                **NOTE: keys must be given as strings even though they are numbers!**.
 
         Returns:
             String representing Q-Chem input format for van_der_waals section
@@ -594,7 +565,7 @@ class QCInput(InputFile):
         elif mode == "sequential":
             vdw_list.append("2")
         else:
-            raise ValueError(f"Invalid value {mode} given for 'mode' kwarg.")
+            raise ValueError(f"Invalid {mode=}, must be 'atomic' or 'sequential'")
 
         for num, radius in radii.items():
             vdw_list.append(f"   {num} {radius}")
@@ -650,8 +621,7 @@ class QCInput(InputFile):
         svp_list = []
         svp_list.append("$svp")
         param_list = [f"{_key}={value}" for _key, value in svp.items()]
-        svp_list.append(", ".join(param_list))
-        svp_list.append("$end")
+        svp_list.extend((", ".join(param_list), "$end"))
         return "\n".join(svp_list)
 
     @staticmethod
@@ -674,7 +644,7 @@ class QCInput(InputFile):
     def cdft_template(cdft: list[list[dict]]) -> str:
         """
         Args:
-            cdft: list of lists of dicts
+            cdft: list of lists of dicts.
 
         Returns:
             (str)
@@ -716,7 +686,7 @@ class QCInput(InputFile):
     def almo_template(almo_coupling: list[list[tuple[int, int]]]) -> str:
         """
         Args:
-            almo: list of lists of int 2-tuples
+            almo: list of lists of int 2-tuples.
 
         Returns:
             (str)
@@ -809,8 +779,7 @@ class QCInput(InputFile):
         Returns:
             Molecule
         """
-        charge = None
-        spin_mult = None
+        charge = spin_mult = None
         patterns = {
             "read": r"^\s*\$molecule\n\s*(read)",
             "charge": r"^\s*\$molecule\n\s*((?:\-)*\d+)\s+\d+",
@@ -1020,9 +989,7 @@ class QCInput(InputFile):
         if not smx_table:
             print("No valid smx inputs found. Note that there should be no '=' characters in smx input lines.")
             return {}
-        smx = {}
-        for key, val in smx_table[0]:
-            smx[key] = val
+        smx = dict(smx_table[0])
         if smx["solvent"] == "tetrahydrofuran":
             smx["solvent"] = "thf"
         # Q-Chem bug, see https://talk.q-chem.com/t/smd-unrecognized-solvent/204
@@ -1083,10 +1050,7 @@ class QCInput(InputFile):
         if plots_table == []:
             print("No valid plots inputs found. Note that there should be no '=' characters in plots input lines.")
             return {}
-        plots = {}
-        for key, val in plots_table[0]:
-            plots[key] = val
-        return plots
+        return dict(plots_table[0])
 
     @staticmethod
     def read_nbo(string: str) -> dict:
@@ -1106,10 +1070,7 @@ class QCInput(InputFile):
         if nbo_table == []:
             print("No valid nbo inputs found.")
             return {}
-        nbo = {}
-        for key, val in nbo_table[0]:
-            nbo[key] = val
-        return nbo
+        return dict(nbo_table[0])
 
     @staticmethod
     def read_geom_opt(string: str) -> dict:
@@ -1129,10 +1090,7 @@ class QCInput(InputFile):
         if geom_opt_table == []:
             print("No valid geom_opt inputs found.")
             return {}
-        geom_opt = {}
-        for key, val in geom_opt_table[0]:
-            geom_opt[key] = val
-        return geom_opt
+        return dict(geom_opt_table[0])
 
     @staticmethod
     def read_cdft(string: str) -> list[list[dict]]:
@@ -1143,7 +1101,7 @@ class QCInput(InputFile):
             string (str): String
 
         Returns:
-             (list of lists of dicts) cdft parameters
+            list[list[dict]]: cdft parameters
         """
         pattern_sec = {
             "full_section": r"\$cdft((:?(:?\s*[0-9\.\-]+\s+[0-9]+\s+[0-9]+(:?\s+[A-Za-z]+)?\s*\n)+|"
@@ -1175,8 +1133,8 @@ class QCInput(InputFile):
                     "last_atoms": [],
                     "types": [],
                 }  # type: ignore
-                subconsts = const[1].strip().split("\n")
-                for subconst in subconsts:
+                sub_consts = const[1].strip().split("\n")
+                for subconst in sub_consts:
                     tokens = subconst.split()
                     const_dict["coefficients"].append(float(tokens[0]))  # type: ignore
                     const_dict["first_atoms"].append(int(tokens[1]))  # type: ignore
@@ -1232,9 +1190,7 @@ class QCInput(InputFile):
 
     @staticmethod
     def read_svp(string: str) -> dict:
-        """
-        Read svp parameters from string.
-        """
+        """Read svp parameters from string."""
         header = r"^\s*\$svp"
         row = r"(\w.*)\n"
         footer = r"^\s*\$end"

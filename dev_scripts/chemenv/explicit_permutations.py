@@ -1,6 +1,6 @@
 """
 Development script of the ChemEnv utility to get the explicit permutations for coordination environments identified
-with the explicit permutations algorithms (typically with coordination numbers <= 6)
+with the explicit permutations algorithms (typically with coordination numbers <= 6).
 """
 
 from __future__ import annotations
@@ -50,9 +50,7 @@ if __name__ == "__main__":
             raise ValueError("WRONG ALGORITHM !")
 
     algo = Algo()
-    algo.permutations = []
-    for perm in itertools.permutations(range(cg.coordination)):
-        algo.permutations.append(perm)
+    algo.permutations = list(itertools.permutations(range(cg.coordination)))
 
     lgf = LocalGeometryFinder()
     lgf.setup_parameters(structure_refinement=lgf.STRUCTURE_REFINEMENT_NONE)
@@ -93,8 +91,7 @@ if __name__ == "__main__":
         if len(cg.algorithms) != 1:
             raise ValueError("Multiple algorithms !")
         cg._algorithms = [ExplicitPermutationsAlgorithm(permutations=explicit_permutations)]
-        newgeom_dir = "new_geometry_files"
-        if not os.path.exists(newgeom_dir):
-            os.makedirs(newgeom_dir)
-        with open(f"{newgeom_dir}/{cg_symbol}.json", "w") as f:
+        new_geom_dir = "new_geometry_files"
+        os.makedirs(new_geom_dir, exist_ok=True)
+        with open(f"{new_geom_dir}/{cg_symbol}.json", "w") as f:
             json.dump(cg.as_dict(), f)

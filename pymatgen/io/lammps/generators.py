@@ -46,8 +46,8 @@ class BaseLammpsGenerator(InputGenerator):
         calc_type: Human-readable string used to briefly describe the type of computations performed by LAMMPS.
         settings: Dictionary containing the values of the parameters to replace in the template.
         keep_stages: If True, the string is formatted in a block structure with stage names
-                     and newlines that differentiate commands in the respective stages of the InputFile.
-                     If False, stage names are not printed and all commands appear in a single block.
+        and newlines that differentiate commands in the respective stages of the InputFile.
+        If False, stage names are not printed and all commands appear in a single block.
 
     /!\ This InputSet and InputGenerator implementation is based on templates and is not intended to be very flexible.
     For instance, pymatgen will not detect whether a given variable should be adapted based on others
@@ -64,12 +64,8 @@ class BaseLammpsGenerator(InputGenerator):
     def __post_init__(self):
         self.settings = self.settings or {}
 
-    def get_input_set(  # type: ignore
-        self, structure: Structure | LammpsData | CombinedData | None  # pylint: disable=E1131
-    ) -> LammpsInputSet:
-        """
-        Generate a LammpsInputSet from the structure/data, tailored to the template file.
-        """
+    def get_input_set(self, structure: Structure | LammpsData | CombinedData | None) -> LammpsInputSet:  # type: ignore
+        """Generate a LammpsInputSet from the structure/data, tailored to the template file."""
         data = LammpsData.from_structure(structure) if isinstance(structure, Structure) else structure
 
         # Load the template
@@ -79,14 +75,10 @@ class BaseLammpsGenerator(InputGenerator):
         # Replace all variables
         input_str = Template(template_str).safe_substitute(**self.settings)
         # Get LammpsInputFile
-        input_file = LammpsInputFile.from_string(input_str, keep_stages=self.keep_stages)
+        input_file = LammpsInputFile.from_str(input_str, keep_stages=self.keep_stages)
 
         # Get the LammpsInputSet from the InputFile and data
-        input_set = LammpsInputSet(
-            inputfile=input_file, data=data, calc_type=self.calc_type, template_file=self.template
-        )
-
-        return input_set
+        return LammpsInputSet(inputfile=input_file, data=data, calc_type=self.calc_type, template_file=self.template)
 
 
 class LammpsMinimization(BaseLammpsGenerator):
@@ -97,7 +89,7 @@ class LammpsMinimization(BaseLammpsGenerator):
     ```
     structure = Structure.from_file("mp-149.cif")
     lmp_minimization = LammpsMinimization(units="atomic").get_input_set(structure)
-    ```
+    ```.
 
     Do not forget to specify the force field, otherwise LAMMPS will not be able to run!
 
@@ -110,7 +102,7 @@ class LammpsMinimization(BaseLammpsGenerator):
 
     def __init__(
         self,
-        template: str = None,
+        template: str | None = None,
         units: str = "metal",
         atom_style: str = "full",
         dimension: int = 3,
@@ -118,7 +110,7 @@ class LammpsMinimization(BaseLammpsGenerator):
         read_data: str = "system.data",
         force_field: str = "Unspecified force field!",
         keep_stages: bool = False,
-    ):
+    ) -> None:
         r"""
         Args:
             template: Path (string) to the template file used to create the InputFile for LAMMPS.
@@ -136,7 +128,7 @@ class LammpsMinimization(BaseLammpsGenerator):
                          If False, stage names are not printed and all commands appear in a single block.
         """
         if template is None:
-            template = os.path.join(template_dir, "minimization.template")
+            template = f"{template_dir}/minimization.template"
         settings = {
             "units": units,
             "atom_style": atom_style,
@@ -149,31 +141,31 @@ class LammpsMinimization(BaseLammpsGenerator):
         super().__init__(template=template, settings=settings, calc_type="minimization", keep_stages=keep_stages)
 
     @property
-    def units(self):
+    def units(self) -> str:
         """Return the argument of the command 'units' passed to the generator."""
         return self.settings["units"]
 
     @property
-    def atom_style(self):
+    def atom_style(self) -> str:
         """Return the argument of the command 'atom_style' passed to the generator."""
         return self.settings["atom_style"]
 
     @property
-    def dimension(self):
+    def dimension(self) -> int:
         """Return the argument of the command 'dimension' passed to the generator."""
         return self.settings["dimension"]
 
     @property
-    def boundary(self):
+    def boundary(self) -> str:
         """Return the argument of the command 'boundary' passed to the generator."""
         return self.settings["boundary"]
 
     @property
-    def read_data(self):
+    def read_data(self) -> str:
         """Return the argument of the command 'read_data' passed to the generator."""
         return self.settings["read_data"]
 
     @property
-    def force_field(self):
+    def force_field(self) -> str:
         """Return the details of the force field commands passed to the generator."""
         return self.settings["force_field"]

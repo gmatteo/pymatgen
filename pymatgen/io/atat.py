@@ -1,14 +1,11 @@
-"""
-Classes for reading/writing mcsqs files following the rndstr.in format.
-"""
+"""Classes for reading/writing mcsqs files following the rndstr.in format."""
 
 from __future__ import annotations
 
 import numpy as np
+from monty.dev import deprecated
 
-from pymatgen.core.lattice import Lattice
-from pymatgen.core.periodic_table import get_el_sp
-from pymatgen.core.structure import Structure
+from pymatgen.core import Lattice, Structure, get_el_sp
 
 __author__ = "Matthew Horton"
 __copyright__ = "Copyright 2017, The Materials Project"
@@ -26,23 +23,26 @@ class Mcsqs:
 
     def __init__(self, structure: Structure):
         """
-        :param structure: input Structure
+        Args:
+            Structure: input Structure.
         """
         self.structure = structure
 
-    def to_string(self):
+    @deprecated(message="Use to_str instead")
+    def to_string(cls, *args, **kwargs):
+        return cls.to_str(*args, **kwargs)
+
+    def to_str(self):
         """
-        Returns a structure in mcsqs rndstr.in format.
-        :return (str):
+        Returns:
+            str: a structure in mcsqs rndstr.in format.
         """
         # add lattice vectors
         mat = self.structure.lattice.matrix
         output = [f"{vec[0]:6f} {vec[1]:6f} {vec[2]:6f}" for vec in mat]
 
         # define coord system, use Cartesian
-        output.append("1.0 0.0 0.0")
-        output.append("0.0 1.0 0.0")
-        output.append("0.0 0.0 1.0")
+        output.extend(("1.0 0.0 0.0", "0.0 1.0 0.0", "0.0 0.0 1.0"))
 
         # add species
         for site in self.structure:
@@ -59,14 +59,20 @@ class Mcsqs:
 
         return "\n".join(output)
 
+    @deprecated(message="Use from_str instead")
+    def structure_from_string(cls, *args, **kwargs):
+        return cls.from_str(*args, **kwargs)
+
     @staticmethod
-    def structure_from_string(data):
+    def structure_from_str(data):
         """
         Parses a rndstr.in, lat.in or bestsqs.out file into pymatgen's
         Structure format.
 
         :param data: contents of a rndstr.in, lat.in or bestsqs.out file
-        :return: Structure object
+
+        Returns:
+            Structure object
         """
         data = data.splitlines()
         data = [x.split() for x in data if x]  # remove empty lines
