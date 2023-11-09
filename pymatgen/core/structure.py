@@ -2882,7 +2882,7 @@ class IStructure(SiteCollection, MSONable):
 
             struct = ResIO.structure_from_file(filename, **kwargs)
         else:
-            raise ValueError("Unrecognized file extension!")
+            raise ValueError(f"Unrecognized file extension in {fname=}!")
         if sort:
             struct = struct.get_sorted_structure()
         if merge_tol:
