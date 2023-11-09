@@ -3,8 +3,10 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import sys
 import unittest
 import xml.etree.ElementTree as ElementTree
+from io import StringIO
 from pathlib import Path
 from shutil import copyfile, copyfileobj
 
@@ -578,13 +580,17 @@ class TestVasprun(PymatgenTest):
         smart_fermi = vrun.calculate_efermi()
         assert smart_fermi == approx(6.0165)
 
-    def test_sc_step_overflow(self):
+    def test_float_overflow(self):
+        # test we interpret VASP's *********** for overflowed values as NaNs
+        # https://github.com/materialsproject/pymatgen/pull/3452
         filepath = f"{TEST_FILES_DIR}/vasprun.xml.sc_overflow"
         with pytest.warns(UserWarning, match="Float overflow .* encountered in vasprun"):
             vasp_run = Vasprun(filepath)
-        vasp_run = Vasprun(filepath)
-        estep = vasp_run.ionic_steps[0]["electronic_steps"][29]
-        assert np.isnan(estep["e_wo_entrp"])
+        first_ionic_step = vasp_run.ionic_steps[0]
+        elec_step = first_ionic_step["electronic_steps"][29]
+        assert np.isnan(elec_step["e_wo_entrp"])
+        assert np.isnan(elec_step["e_fr_energy"])
+        assert np.isnan(first_ionic_step["forces"]).any()
 
     def test_update_potcar(self):
         filepath = f"{TEST_FILES_DIR}/vasprun.xml"
@@ -1380,7 +1386,6 @@ class TestChgcar(PymatgenTest):
     def test_hdf5(self):
         chgcar = Chgcar.from_file(f"{TEST_FILES_DIR}/CHGCAR.NiO_SOC.gz")
         chgcar.to_hdf5(out_path := f"{self.tmp_path}/chgcar_test.hdf5")
-        import h5py
 
         with h5py.File(out_path, "r") as f:
             assert_allclose(f["vdata"]["total"], chgcar.data["total"])
@@ -1616,9 +1621,6 @@ class TestWavecar(PymatgenTest):
 
         with pytest.raises(ValueError, match=r"cannot reshape array of size 257 into shape \(2,128\)"):
             Wavecar(f"{TEST_FILES_DIR}/WAVECAR.N2", vasp_type="n")
-
-        import sys
-        from io import StringIO
 
         saved_stdout = sys.stdout
         try:

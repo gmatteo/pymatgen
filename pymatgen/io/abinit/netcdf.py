@@ -36,25 +36,25 @@ __status__ = "Development"
 __date__ = "Feb 21, 2013M"
 
 
-def _asreader(file, cls):
-    closeit = False
+def _as_reader(file, cls):
+    close_it = False
     if not isinstance(file, cls):
-        file, closeit = cls(file), True
-    return file, closeit
+        file, close_it = cls(file), True
+    return file, close_it
 
 
 def as_ncreader(file):
     """
     Convert file into a NetcdfReader instance.
-    Returns reader, closeit where closeit is set to True
+    Returns reader, close_it where close_it is set to True
     if we have to close the file before leaving the procedure.
     """
-    return _asreader(file, NetcdfReader)
+    return _as_reader(file, NetcdfReader)
 
 
 def as_etsfreader(file):
     """Return an EtsfReader. Accepts filename or EtsfReader."""
-    return _asreader(file, EtsfReader)
+    return _as_reader(file, EtsfReader)
 
 
 class NetcdfReaderError(Exception):
@@ -344,7 +344,7 @@ def structure_from_ncdata(ncdata, site_properties=None, cls=None):
     except ImportError:
         pass
 
-    if closeit:
+    if close_it:
         ncdata.close()
 
     return structure

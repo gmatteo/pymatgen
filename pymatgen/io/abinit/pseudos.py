@@ -7,11 +7,17 @@ from __future__ import annotations
 
 import abc
 import collections
+import hashlib
 import logging
 import os
+import shutil
 import sys
+import tempfile
+import traceback
 import numpy as np
-
+from collections import defaultdict, namedtuple
+from typing import TYPE_CHECKING
+from xml.etree import ElementTree as Et
 from collections import defaultdict, namedtuple
 from typing import List, Any, Union, TYPE_CHECKING
 from xml.etree import ElementTree
@@ -21,8 +27,9 @@ from monty.itertools import iterator_from_slice
 from monty.json import MontyDecoder, MSONable
 from monty.os.path import find_exts
 from tabulate import tabulate
-from pymatgen.core.periodic_table import Element
-#from pymatgen.core.xcfunc import XcFunc
+
+from pymatgen.core import Element
+from pymatgen.core.xcfunc import XcFunc
 from pymatgen.io.core import ParseError
 from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig
 
@@ -44,7 +51,6 @@ __maintainer__ = "Matteo Giantomassi"
 
 def straceback() -> str:
     """Returns a string with the traceback."""
-    import traceback
 
     return "\n".join((traceback.format_exc(), str(sys.exc_info()[0])))
 
@@ -229,9 +235,6 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
 
     def compute_md5(self):
         """Compute and return MD5 hash value."""
-
-        import hashlib
-
         with open(self.path) as fh:
             text = fh.read()
             # usedforsecurity=False needed in FIPS mode (Federal Information Processing Standards)
@@ -286,10 +289,6 @@ class Pseudo(MSONable, metaclass=abc.ABCMeta):
             tmpdir: If None, a new temporary directory is created and files are copied here
                 else tmpdir is used.
         """
-
-        import shutil
-        import tempfile
-
         tmpdir = tempfile.mkdtemp() if tmpdir is None else tmpdir
         new_path = os.path.join(tmpdir, self.basename)
         shutil.copy(self.filepath, new_path)
@@ -476,7 +475,6 @@ class AbinitPseudo(Pseudo):
         self._summary = header.summary
 
         # Build xc from header.
-        from pymatgen.core.xcfunc import XcFunc
         self.xc = XcFunc.from_abinit_ixc(header["pspxc"])
 
         for attr_name in header:
@@ -1215,7 +1213,6 @@ class PawXmlSetup(Pseudo, PawPseudo):
 
         # Build xc from header.
         xc_info = root.find("xc_functional").attrib
-        from pymatgen.core.xcfunc import XcFunc
         self.xc = XcFunc.from_type_name(xc_info["type"], xc_info["name"])
 
         # Old XML files do not define this field!
@@ -1268,10 +1265,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
 
     @lazy_property
     def root(self):
-        """
-        Root tree of XML.
-        """
-        tree = ElementTree.parse(self.filepath)
+        """Root tree of XML."""
+        tree = Et.parse(self.filepath)
         return tree.getroot()
 
     @property
@@ -1515,8 +1510,6 @@ class PawXmlSetup(Pseudo, PawPseudo):
     #    show = kwargs.pop("show", True)
     #    savefig = kwargs.pop("savefig", None)
 
-    #    import matplotlib.pyplot as plt
-
     #    fig = plt.figure()
 
     #    ax = fig.add_subplot(1,1,1)
@@ -1591,7 +1584,6 @@ class UpfPseudo(Pseudo):
 
         # FIXME: Need to implement mapping QE --> XC
         functional = self.pp_header["functional"]
-        from pymatgen.core.xcfunc import XcFunc
         self.xc = XcFunc.from_abinit_ixc(11)
 
     @lazy_property

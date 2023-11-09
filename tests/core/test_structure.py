@@ -13,10 +13,8 @@ from monty.json import MontyDecoder, MontyEncoder
 from numpy.testing import assert_allclose, assert_array_equal
 from pytest import approx
 
-from pymatgen.core.composition import Composition
-from pymatgen.core.lattice import Lattice
+from pymatgen.core import Composition, Element, Lattice, Species
 from pymatgen.core.operations import SymmOp
-from pymatgen.core.periodic_table import Element, Species
 from pymatgen.core.structure import (
     IMolecule,
     IStructure,
@@ -28,6 +26,7 @@ from pymatgen.core.structure import (
 )
 from pymatgen.electronic_structure.core import Magmom
 from pymatgen.io.ase import AseAtomsAdaptor
+from pymatgen.io.cif import CifParser
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.util.testing import TEST_FILES_DIR, PymatgenTest
 
@@ -779,6 +778,10 @@ Direct
         # https://github.com/materialsproject/pymatgen/issues/2947
         struct = Structure.from_file(f"{TEST_FILES_DIR}/bad-unicode-gh-2947.mcif")
         assert struct.formula == "Ni32 O32"
+
+        # make sure CIfParser.parse_structures() and Structure.from_file() are consistent
+        # i.e. uses same merge_tol for site merging, same primitive=False, etc.
+        assert struct == CifParser(f"{TEST_FILES_DIR}/bad-unicode-gh-2947.mcif").parse_structures()[0]
 
     def test_to_file_alias(self):
         out_path = f"{self.tmp_path}/POSCAR"
