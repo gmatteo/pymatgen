@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+from fractions import Fraction
 from pathlib import Path
 from shutil import which
 from unittest import skipIf
@@ -1246,7 +1247,6 @@ class TestStructure(PymatgenTest):
                 ["Cs"],
                 [[0, 0, 0], [0.5, 0.5, 0.5]],
             )
-        from fractions import Fraction
 
         struct = Structure.from_spacegroup(139, np.eye(3), ["H"], [[Fraction(1, 2), Fraction(1, 4), Fraction(0)]])
         assert len(struct) == 8
@@ -2084,9 +2084,9 @@ class TestMolecule(PymatgenTest):
         for fmt in ["xyz", "json", "g03"]:
             mol = self.mol.to(fmt=fmt)
             assert mol is not None
-            m = Molecule.from_str(mol, fmt=fmt)
-            assert m == self.mol
-            assert isinstance(m, Molecule)
+            mol = Molecule.from_str(mol, fmt=fmt)
+            assert mol == self.mol
+            assert isinstance(mol, Molecule)
 
         self.mol.to(filename=f"{self.tmp_path}/CH4_testing.xyz")
         assert os.path.isfile(f"{self.tmp_path}/CH4_testing.xyz")
