@@ -241,7 +241,7 @@ class Vasprun(MSONable):
                 where no hashes will be determined and the potcar_spec dictionaries
                 will read {"symbol": ElSymbol, "hash": None}. By Default, looks in
                 the same directory as the vasprun.xml, with same extensions as
-                 Vasprun.xml. If a string is provided, looks at that filepath.
+                Vasprun.xml. If a string is provided, looks at that filepath.
             occu_tol (float): Sets the minimum tol for the determination of the
                 vbm and cbm. Usually the default of 1e-8 works well enough,
                 but there may be pathological cases.
@@ -596,7 +596,7 @@ class Vasprun(MSONable):
         if len(js) != len(us):
             js = [0] * len(us)
         if len(us) == len(symbols):
-            return {symbols[i]: us[i] - js[i] for i in range(len(symbols))}
+            return {symbols[idx]: us[idx] - js[idx] for idx in range(len(symbols))}
         if sum(us) == 0 and sum(js) == 0:
             return {}
         raise VaspParseError("Length of U value parameters and atomic symbols are mismatched")
@@ -1443,7 +1443,7 @@ class BSVasprun(Vasprun):
                 where no hashes will be determined and the potcar_spec dictionaries
                 will read {"symbol": ElSymbol, "hash": None}. By Default, looks in
                 the same directory as the vasprun.xml, with same extensions as
-                 Vasprun.xml. If a string is provided, looks at that filepath.
+                Vasprun.xml. If a string is provided, looks at that filepath.
             occu_tol: Sets the minimum tol for the determination of the
                 vbm and cbm. Usually the default of 1e-8 works well enough,
                 but there may be pathological cases.
@@ -4138,12 +4138,12 @@ def get_adjusted_fermi_level(efermi, cbm, band_structure):
     # make a working copy of band_structure
     bs_working = BandStructureSymmLine.from_dict(band_structure.as_dict())
     if bs_working.is_metal():
-        e = efermi
-        while e < cbm:
-            e += 0.01
-            bs_working._efermi = e
+        energy = efermi
+        while energy < cbm:
+            energy += 0.01
+            bs_working._efermi = energy
             if not bs_working.is_metal():
-                return e
+                return energy
     return efermi
 
 
@@ -4249,7 +4249,7 @@ class Wavecar:
                 # and occupations in way that does not span FORTRAN records, but
                 # reader below appears to assume that record boundaries can be ignored
                 # (see OUTWAV vs. OUTWAV_4 in vasp fileio.F)
-                raise ValueError(f"invalid {rtag=}, must be one of {valid_rtags}")
+                raise ValueError(f"Invalid {rtag=}, must be one of {valid_rtags}")
 
             # padding to end of fortran REC=1
             np.fromfile(f, dtype=np.float64, count=recl8 - 3)

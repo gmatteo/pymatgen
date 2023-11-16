@@ -1524,9 +1524,9 @@ class BSPlotterProjected(BSPlotter):
                 result, correct index numbers of atoms.
             sum_atoms: Sum projection of the similar atoms together (e.g.: Cu
                 on site-1 and Cu on site-5). The format is {Element: [Site numbers]}, for instance:
-                 {'Cu': [1,5], 'O': [3,4]} means summing projections over Cu on site-1 and Cu on
-                 site-5 and O on site-3 and on site-4. If you do not want to use this functional,
-                 just turn it off by setting sum_atoms = None.
+                {'Cu': [1,5], 'O': [3,4]} means summing projections over Cu on site-1 and Cu on
+                site-5 and O on site-3 and on site-4. If you do not want to use this functional,
+                just turn it off by setting sum_atoms = None.
             sum_morbs: Sum projections of individual orbitals of similar atoms
                 together (e.g.: 'dxy' and 'dxz'). The format is {Element: [individual orbitals]},
                 for instance: {'Cu': ['dxy', 'dxz'], 'O': ['px', 'py']} means summing projections
@@ -3298,7 +3298,7 @@ class BoltztrapPlotter:
 
         Args:
             temps: the default 'all' plots all the temperatures in the analyzer.
-                   Specify a list of temperatures if you want to plot only some.
+                Specify a list of temperatures if you want to plot only some.
             output: with 'average' you get an average of the three directions
                 with 'eigs' you get all the three directions.
 
@@ -3343,7 +3343,7 @@ class BoltztrapPlotter:
 
         Args:
             temps: the default 'all' plots all the temperatures in the analyzer.
-                   Specify a list of temperatures if you want to plot only some.
+                Specify a list of temperatures if you want to plot only some.
             output: with 'average' you get an average of the three directions
                 with 'eigs' you get all the three directions.
             relaxation_time: specify a constant relaxation time value
@@ -3392,7 +3392,7 @@ class BoltztrapPlotter:
 
         Args:
             temps: the default 'all' plots all the temperatures in the analyzer.
-                   Specify a list of temperatures if you want to plot only some.
+                Specify a list of temperatures if you want to plot only some.
             output: with 'average' you get an average of the three directions
                 with 'eigs' you get all the three directions.
             relaxation_time: specify a constant relaxation time value
@@ -3438,7 +3438,7 @@ class BoltztrapPlotter:
 
         Args:
             temps: the default 'all' plots all the temperatures in the analyzer.
-                   Specify a list of temperatures if you want to plot only some.
+                Specify a list of temperatures if you want to plot only some.
             output: with 'average' you get an average of the three directions
                 with 'eigs' you get all the three directions.
             relaxation_time: specify a constant relaxation time value
@@ -3489,7 +3489,7 @@ class BoltztrapPlotter:
 
         Args:
             temps: the default 'all' plots all the temperatures in the analyzer.
-                   Specify a list of temperatures if you want to plot only some.
+                Specify a list of temperatures if you want to plot only some.
             output: with 'average' you get an average of the three directions
                 with 'eigs' you get all the three directions.
             relaxation_time: specify a constant relaxation time value
