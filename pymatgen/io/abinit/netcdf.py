@@ -309,7 +309,7 @@ def structure_from_ncdata(ncdata, site_properties=None, cls=None):
     if cls is None:
         from pymatgen.core.structure import Structure
         cls = Structure
-    ncdata, closeit = as_ncreader(ncdata)
+    ncdata, close_it = as_ncreader(ncdata)
 
     # TODO check whether atomic units are used
     lattice = ArrayWithUnit(ncdata.read_value("primitive_vectors"), "bohr").to("ang")
