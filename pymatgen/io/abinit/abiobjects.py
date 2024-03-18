@@ -5,17 +5,16 @@
 from __future__ import annotations
 
 import abc
+import numpy as np
+
 from collections import namedtuple
 from collections.abc import Iterable
 from enum import Enum
 from pprint import pformat
-from typing import cast
-
-import numpy as np
+from typing import Iterable, cast, Any
 from monty.collections import AttrDict
 from monty.design_patterns import singleton
 from monty.json import MontyDecoder, MontyEncoder, MSONable
-
 from pymatgen.core import ArrayWithUnit, Lattice, Species, Structure, units
 
 
@@ -186,7 +185,7 @@ def species_by_znucl(structure: Structure) -> list[Species]:
 
 def structure_to_abivars(
     structure: Structure, enforce_znucl: list | None = None, enforce_typat: list | None = None, **kwargs
-):
+) -> dict:
     """
     Receives a structure and returns a dictionary with ABINIT variables.
 
@@ -309,7 +308,7 @@ class AbivarAble(abc.ABC):
     """
 
     @abc.abstractmethod
-    def to_abivars(self):
+    def to_abivars(self) -> dict:
         """Returns a dictionary with the abinit variables."""
 
     # @abc.abstractmethod
@@ -319,7 +318,7 @@ class AbivarAble(abc.ABC):
     def __str__(self):
         return pformat(self.to_abivars(), indent=1, width=80, depth=None)
 
-    def __contains__(self, key):
+    def __contains__(self, key: str):
         return key in self.to_abivars()
 
 
@@ -359,8 +358,8 @@ class SpinMode(namedtuple("SpinMode", "mode nsppol nspinor nspden"), AbivarAble,
     __slots__ = ()
 
     @classmethod
-    def as_spinmode(cls, obj):
-        """Converts obj into a `SpinMode` instance."""
+    def as_spinmode(cls, obj: Any):
+        """Converts obj into a `SpinMode` instance"""
         if isinstance(obj, cls):
             return obj
 
@@ -370,18 +369,18 @@ class SpinMode(namedtuple("SpinMode", "mode nsppol nspinor nspden"), AbivarAble,
         except KeyError:
             raise KeyError(f"Wrong value for spin_mode: {obj}")
 
-    def to_abivars(self):
+    def to_abivars(self) -> dict:
         """Dictionary with Abinit input variables."""
         return {"nsppol": self.nsppol, "nspinor": self.nspinor, "nspden": self.nspden}
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """Convert object to dict."""
         out = {k: getattr(self, k) for k in self._fields}
         out.update({"@module": type(self).__module__, "@class": type(self).__name__})
         return out
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> SpinMode:
         """Build object from dict."""
         return cls(**{k: d[k] for k in d if k in cls._fields})
 
@@ -412,8 +411,8 @@ class Smearing(AbivarAble, MSONable):
         gaussian=7,
     )
 
-    def __init__(self, occopt, tsmear):
-        """Build object with occopt and tsmear."""
+    def __init__(self, occopt: int, tsmear: float):
+        """Build object with occopt and tsmear"""
         self.occopt = occopt
         self.tsmear = tsmear
 
@@ -436,7 +435,7 @@ class Smearing(AbivarAble, MSONable):
         return self.mode != "nosmearing"
 
     @classmethod
-    def as_smearing(cls, obj):
+    def as_smearing(cls, obj: Any) -> Smearing:
         """
         Constructs an instance of `Smearing` from obj. Accepts obj in the form:
 
@@ -468,7 +467,7 @@ class Smearing(AbivarAble, MSONable):
         return cls(occopt, tsmear)
 
     @property
-    def mode(self):
+    def mode(self) -> str:
         """String with smearing technique."""
         for mode_str, occopt in self._mode2occopt.items():
             if occopt == self.occopt:
@@ -476,18 +475,18 @@ class Smearing(AbivarAble, MSONable):
         raise AttributeError(f"Unknown occopt {self.occopt}")
 
     @staticmethod
-    def nosmearing():
+    def nosmearing() -> Smearing:
         """Build object for calculations without smearing."""
         return Smearing(1, 0.0)
 
-    def to_abivars(self):
+    def to_abivars(self) -> dict:
         """Return dictionary with Abinit variables."""
         if self.mode == "nosmearing":
             return {"occopt": 1, "tsmear": 0.0}
         return {"occopt": self.occopt, "tsmear": self.tsmear}
 
-    def as_dict(self):
-        """JSON-friendly dict representation of Smearing."""
+    def as_dict(self) -> dict:
+        """JSON-friendly dict representation of Smearing"""
         return {
             "@module": type(self).__module__,
             "@class": type(self).__name__,
@@ -496,7 +495,7 @@ class Smearing(AbivarAble, MSONable):
         }
 
     @staticmethod
-    def from_dict(d):
+    def from_dict(d: dict) -> Smearing:
         """Build object from dict."""
         return Smearing(d["occopt"], d["tsmear"])
 
@@ -526,16 +525,16 @@ class ElectronsAlgorithm(dict, AbivarAble, MSONable):
             if key not in self._DEFAULT:
                 raise ValueError(f"{type(self).__name__}: No default value has been provided for {key=}")
 
-    def to_abivars(self):
+    def to_abivars(self) -> dict:
         """Dictionary with Abinit input variables."""
         return self.copy()
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """Convert object to dict."""
         return {"@module": type(self).__module__, "@class": type(self).__name__, **self.copy()}
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> ElectronsAlgorithm:
         """Build object from dict."""
         d = d.copy()
         d.pop("@module", None)
@@ -574,21 +573,21 @@ class Electrons(AbivarAble, MSONable):
         self.algorithm = algorithm
 
     @property
-    def nsppol(self):
+    def nsppol(self) -> int:
         """Number of independent spin polarizations."""
         return self.spin_mode.nsppol
 
     @property
-    def nspinor(self):
+    def nspinor(self) -> int:
         """Number of independent spinor components."""
         return self.spin_mode.nspinor
 
     @property
-    def nspden(self):
+    def nspden(self) -> int:
         """Number of independent density components."""
         return self.spin_mode.nspden
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """JSON friendly dict representation."""
         dct = {}
         dct["@module"] = type(self).__module__
@@ -603,7 +602,7 @@ class Electrons(AbivarAble, MSONable):
         return dct
 
     @classmethod
-    def from_dict(cls, dct):
+    def from_dict(cls, d: dict) -> Electrons:
         """Build object from dictionary."""
         dct = dct.copy()
         dct.pop("@module", None)
@@ -614,7 +613,7 @@ class Electrons(AbivarAble, MSONable):
         dct["algorithm"] = dec.process_decoded(dct["algorithm"]) if dct["algorithm"] else None
         return cls(**dct)
 
-    def to_abivars(self):
+    def to_abivars(self) -> dict:
         """Return dictionary with Abinit variables."""
         abivars = self.spin_mode.to_abivars()
 
@@ -778,12 +777,14 @@ class KSampling(AbivarAble, MSONable):
         return self.mode != "path"
 
     @classmethod
-    def gamma_only(cls):
-        """Gamma-only sampling."""
+    def gamma_only(cls) -> KSampling:
+        """Gamma-only sampling"""
         return cls(kpt_shifts=(0.0, 0.0, 0.0), comment="Gamma-only sampling")
 
     @classmethod
-    def gamma_centered(cls, kpts=(1, 1, 1), use_symmetries=True, use_time_reversal=True):
+    def gamma_centered(cls, kpts=(1, 1, 1),
+                       use_symmetries=True,
+                       use_time_reversal=True) -> KSampling:
         """
         Convenient static constructor for an automatic Gamma centered Kpoint grid.
 
@@ -814,7 +815,7 @@ class KSampling(AbivarAble, MSONable):
         use_symmetries=True,
         use_time_reversal=True,
         comment=None,
-    ):
+    ) -> KSampling:
         """
         Convenient static constructor for a Monkhorst-Pack mesh.
 
@@ -845,7 +846,7 @@ class KSampling(AbivarAble, MSONable):
         use_time_reversal=True,
         chksymbreak=None,
         comment=None,
-    ):
+    ) -> KSampling:
         """
         Convenient static constructor for an automatic Monkhorst-Pack mesh.
 
@@ -875,7 +876,7 @@ class KSampling(AbivarAble, MSONable):
         )
 
     @classmethod
-    def _path(cls, ndivsm, structure=None, kpath_bounds=None, comment=None):
+    def _path(cls, ndivsm, structure=None, kpath_bounds=None, comment=None) -> KSampling:
         """
         Static constructor for path in k-space.
 
@@ -912,8 +913,8 @@ class KSampling(AbivarAble, MSONable):
         )
 
     @classmethod
-    def path_from_structure(cls, ndivsm, structure):
-        """See _path for the meaning of the variables."""
+    def path_from_structure(cls, ndivsm, structure) -> KSampling:
+        """See _path for the meaning of the variables"""
         return cls._path(
             ndivsm,
             structure=structure,
@@ -921,8 +922,8 @@ class KSampling(AbivarAble, MSONable):
         )
 
     @classmethod
-    def explicit_path(cls, ndivsm, kpath_bounds):
-        """See _path for the meaning of the variables."""
+    def explicit_path(cls, ndivsm, kpath_bounds) -> KSampling:
+        """See _path for the meaning of the variables"""
         return cls._path(ndivsm, kpath_bounds=kpath_bounds, comment="Explicit K-path")
 
     @classmethod
@@ -934,7 +935,7 @@ class KSampling(AbivarAble, MSONable):
         use_symmetries=True,
         use_time_reversal=True,
         shifts=(0.5, 0.5, 0.5),
-    ):
+    ) -> KSampling:
         """
         Returns an automatic Kpoint object based on a structure and a kpoint
         density. Uses Gamma centered meshes for hexagonal cells and Monkhorst-Pack grids otherwise.
@@ -971,11 +972,11 @@ class KSampling(AbivarAble, MSONable):
             comment=comment,
         )
 
-    def to_abivars(self):
+    def to_abivars(self) -> dict:
         """Dictionary with Abinit variables."""
         return self.abivars
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """Convert object to dict."""
         enc = MontyEncoder()
         return {
@@ -993,7 +994,7 @@ class KSampling(AbivarAble, MSONable):
         }
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> KSampling:
         """Build object from dict."""
         d = d.copy()
         d.pop("@module", None)
@@ -1149,7 +1150,7 @@ class PPModel(AbivarAble, MSONable):
     """
 
     @classmethod
-    def as_ppmodel(cls, obj):
+    def as_ppmodel(cls, obj: Any) -> PPModel:
         """
         Constructs an instance of PPModel from obj.
 
@@ -1216,7 +1217,7 @@ class PPModel(AbivarAble, MSONable):
         """Calculation without plasmon-pole model."""
         return cls(mode="noppmodel", plasmon_freq=None)
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """Convert object to dictionary."""
         return {
             "mode": self.mode.name,
@@ -1226,7 +1227,7 @@ class PPModel(AbivarAble, MSONable):
         }
 
     @staticmethod
-    def from_dict(d):
+    def from_dict(d: dict) -> PPModel:
         """Build object from dictionary."""
         return PPModel(mode=d["mode"], plasmon_freq=d["plasmon_freq"])
 
@@ -1269,8 +1270,8 @@ class HilbertTransform(AbivarAble):
         self.freqremin = freqremin
         self.nfreqim = nfreqim
 
-    def to_abivars(self):
-        """Returns a dictionary with the abinit variables."""
+    def to_abivars(self) -> dict:
+        """Returns a dictionary with the abinit variables"""
         return {
             # Spectral function
             "nomegasf": self.nomegasf,
@@ -1294,7 +1295,7 @@ class ModelDielectricFunction(AbivarAble):
         """
         self.mdf_epsinf = mdf_epsinf
 
-    def to_abivars(self):
+    def to_abivars(self) -> dict:
         """Return dictionary with abinit variables."""
         return {"mdf_epsinf": self.mdf_epsinf}
 

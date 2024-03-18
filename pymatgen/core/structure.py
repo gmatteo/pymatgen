@@ -796,6 +796,7 @@ class SiteCollection(collections.abc.Sequence, ABC):
         calculator = self._prep_calculator(calculator, **calc_params)
 
         # check str is valid optimizer key
+        from ase.optimize.optimize import Optimizer
         def is_ase_optimizer(key):
             return isclass(obj := getattr(optimize, key)) and issubclass(obj, Optimizer)
 
