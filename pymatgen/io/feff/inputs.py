@@ -482,9 +482,9 @@ class Atoms(MSONable):
         """
         lines = [
             [
-                f"{self._cluster[0].x:f}",
-                f"{self._cluster[0].y:f}",
-                f"{self._cluster[0].z:f}",
+                f"{self._cluster[0].x}",
+                f"{self._cluster[0].y}",
+                f"{self._cluster[0].z}",
                 0,
                 self.absorbing_atom,
                 "0.0",
@@ -494,17 +494,8 @@ class Atoms(MSONable):
         for idx, site in enumerate(self._cluster[1:]):
             site_symbol = site.specie.symbol
             ipot = self.pot_dict[site_symbol]
-            lines.append(
-                [
-                    f"{site.x:f}",
-                    f"{site.y:f}",
-                    f"{site.z:f}",
-                    ipot,
-                    site_symbol,
-                    f"{self._cluster.get_distance(0, idx + 1):f}",
-                    idx + 1,
-                ]
-            )
+            dist = self._cluster.get_distance(0, idx + 1)
+            lines += [[f"{site.x}", f"{site.y}", f"{site.z}", ipot, site_symbol, f"{dist}", idx + 1]]
 
         # sort by distance from absorbing atom
         return sorted(lines, key=lambda line: float(line[5]))
@@ -669,7 +660,7 @@ class Tags(dict):
         eels_params = []
         ieels = -1
         ieels_max = -1
-        for i, line in enumerate(lines):
+        for idx, line in enumerate(lines):
             m = re.match(r"([A-Z]+\d*\d*)\s*(.*)", line)
             if m:
                 key = m.group(1).strip()
@@ -677,12 +668,12 @@ class Tags(dict):
                 val = Tags.proc_val(key, val)
                 if key not in ("ATOMS", "POTENTIALS", "END", "TITLE"):
                     if key in ["ELNES", "EXELFS"]:
-                        ieels = i
+                        ieels = idx
                         ieels_max = ieels + 5
                     else:
                         params[key] = val
-            if ieels >= 0 and ieels <= i <= ieels_max:
-                if i == ieels + 1 and int(line.split()[1]) == 1:
+            if ieels >= 0 and ieels <= idx <= ieels_max:
+                if idx == ieels + 1 and int(line.split()[1]) == 1:
                     ieels_max -= 1
                 eels_params.append(line)
 

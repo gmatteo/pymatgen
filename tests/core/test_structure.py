@@ -29,7 +29,7 @@ from pymatgen.electronic_structure.core import Magmom
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.io.cif import CifParser
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from pymatgen.util.testing import TEST_FILES_DIR, PymatgenTest
+from pymatgen.util.testing import TEST_FILES_DIR, VASP_IN_DIR, PymatgenTest
 
 try:
     from ase.atoms import Atoms
@@ -88,7 +88,7 @@ class TestIStructure(PymatgenTest):
         )
         self.V2O3 = IStructure.from_file(f"{TEST_FILES_DIR}/V2O3.cif")
 
-    @skipIf(not (mcsqs_cmd and enum_cmd), "enumlib or mcsqs executable not present")
+    @skipIf(not (mcsqs_cmd and enum_cmd), reason="enumlib or mcsqs executable not present")
     def test_get_orderings(self):
         ordered = Structure.from_spacegroup("Im-3m", Lattice.cubic(3), ["Fe"], [[0, 0, 0]])
         assert ordered.get_orderings()[0] == ordered
@@ -350,7 +350,7 @@ class TestIStructure(PymatgenTest):
             assert interpolated_structs[0].lattice == inter_struct.lattice
         assert_array_equal(interpolated_structs[1][1].frac_coords, [0.625, 0.5, 0.625])
 
-        bad_lattice = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        bad_lattice = np.eye(3)
         struct2 = IStructure(bad_lattice, ["Si"] * 2, coords2)
         with pytest.raises(ValueError, match="Structures with different lattices"):
             struct.interpolate(struct2)
@@ -484,8 +484,8 @@ class TestIStructure(PymatgenTest):
         assert_array_equal(int_s[2][1].frac_coords, [1.0, 0.5, 1.0])
 
     def test_interpolate_lattice_rotation(self):
-        l1 = Lattice([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        l2 = Lattice([[-1.01, 0, 0], [0, -1.01, 0], [0, 0, 1]])
+        l1 = Lattice(np.eye(3))
+        l2 = Lattice(np.diag((-1.01, -1.01, 1)))
         coords = [[0, 0, 0], [0.75, 0.5, 0.75]]
         struct1 = IStructure(l1, ["Si"] * 2, coords)
         struct2 = IStructure(l2, ["Si"] * 2, coords)
@@ -668,7 +668,7 @@ Direct
             assert_allclose(cy_indices2, py_indices2)
             assert len(cy_offsets) == len(py_offsets)
 
-    # @skipIf(not os.getenv("CI"), "Only run this in CI tests")
+    # @skipIf(not os.getenv("CI"), reason="Only run this in CI tests")
     # def test_get_all_neighbors_crosscheck_old(self):
     #
     #     for i in range(100):
@@ -874,12 +874,12 @@ Direct
 
         # test CIF file with unicode error
         # https://github.com/materialsproject/pymatgen/issues/2947
-        struct = Structure.from_file(f"{TEST_FILES_DIR}/bad-unicode-gh-2947.mcif")
+        struct = Structure.from_file(f"{TEST_FILES_DIR}/mcif/bad-unicode-gh-2947.mcif")
         assert struct.formula == "Ni32 O32"
 
         # make sure CIfParser.parse_structures() and Structure.from_file() are consistent
         # i.e. uses same merge_tol for site merging, same primitive=False, etc.
-        assert struct == CifParser(f"{TEST_FILES_DIR}/bad-unicode-gh-2947.mcif").parse_structures()[0]
+        assert struct == CifParser(f"{TEST_FILES_DIR}/mcif/bad-unicode-gh-2947.mcif").parse_structures()[0]
 
         # https://github.com/materialsproject/pymatgen/issues/3551
         json_path = Path("test-with-path.json")
@@ -976,6 +976,17 @@ class TestStructure(PymatgenTest):
         new_struct = struct.replace_species({"K": "Li"}, in_place=False)
         assert struct.formula == "K1.5 P0.5"
         assert new_struct.formula == "Li1.5 P0.5"
+
+    def test_replace_species_labels(self):
+        """https://github.com/materialsproject/pymatgen/issues/3658"""
+        struct = self.labeled_structure
+        new1 = struct.replace_species({"Si": "Ge"}, in_place=False)
+        assert new1.labels == ["Ge", "Ge"]
+
+        replacement = {"Si": 0.5, "Ge": 0.5}
+        label = ", ".join(f"{key}:{val:.3}" for key, val in replacement.items())
+        new2 = struct.replace_species({"Si": replacement}, in_place=False)
+        assert new2.labels == [label] * len(struct)
 
     def test_append_insert_remove_replace_substitute(self):
         struct = self.struct
@@ -1307,15 +1318,14 @@ class TestStructure(PymatgenTest):
 
     def test_to_from_abivars(self):
         """Test as_dict, from_dict with fmt == abivars."""
-        # Properties are not supported if fmt="abivars"
-        # as abivars is not a serialization protocol.
+        # Properties are not supported if fmt="abivars" as it's not a serialization protocol
         # but a format that allows one to get a dict with the abinit variables defining the structure.
-        my_struct = self.struct.copy()
-        my_struct.properties = {}
-        dct = my_struct.as_dict(fmt="abivars")
+        struct = self.struct.copy()
+        struct.properties = {}
+        dct = struct.as_dict(fmt="abivars")
         assert "properties" not in dct
         s2 = Structure.from_dict(dct, fmt="abivars")
-        assert s2 == my_struct
+        assert s2 == struct
         assert isinstance(s2, Structure)
 
     def test_to_from_file_str(self):
@@ -1549,7 +1559,7 @@ class TestStructure(PymatgenTest):
         assert super_cell.charge == 25, "Set charge not properly modifying _charge"
 
     def test_vesta_lattice_matrix(self):
-        silica_zeolite = Molecule.from_file(f"{TEST_FILES_DIR}/CON_vesta.xyz")
+        silica_zeolite = Molecule.from_file(f"{TEST_FILES_DIR}/xyz/CON_vesta.xyz")
 
         s_vesta = Structure(
             lattice=Lattice.from_parameters(22.6840, 13.3730, 12.5530, 90, 69.479, 90, vesta=True),
@@ -1695,6 +1705,7 @@ class TestStructure(PymatgenTest):
         assert traj[0] != traj[-1]
         assert os.path.isfile(traj_file)
 
+    @pytest.mark.skip("TODO remove skip once https://github.com/materialsvirtuallab/matgl/issues/238 is resolved")
     def test_calculate_m3gnet(self):
         pytest.importorskip("matgl")
         calculator = self.get_structure("Si").calculate()
@@ -1706,24 +1717,27 @@ class TestStructure(PymatgenTest):
         assert np.linalg.norm(calculator.results["forces"]) == approx(7.8123485e-06, abs=0.2)
         assert np.linalg.norm(calculator.results["stress"]) == approx(1.7861567, abs=2)
 
+    @pytest.mark.skip("TODO remove skip once https://github.com/materialsvirtuallab/matgl/issues/238 is resolved")
     def test_relax_m3gnet(self):
-        pytest.importorskip("matgl")
+        matgl = pytest.importorskip("matgl")
         struct = self.get_structure("Si")
         relaxed = struct.relax()
         assert relaxed.lattice.a == approx(3.867626620642243, rel=0.01)  # allow 1% error
-        assert hasattr(relaxed, "calc")
+        assert isinstance(relaxed.calc, matgl.ext.ase.M3GNetCalculator)
         for key, val in {"type": "optimization", "optimizer": "FIRE"}.items():
             actual = relaxed.dynamics[key]
             assert actual == val, f"expected {key} to be {val}, {actual=}"
 
+    @pytest.mark.skip("TODO remove skip once https://github.com/materialsvirtuallab/matgl/issues/238 is resolved")
     def test_relax_m3gnet_fixed_lattice(self):
-        pytest.importorskip("matgl")
+        matgl = pytest.importorskip("matgl")
         struct = self.get_structure("Si")
         relaxed = struct.relax(relax_cell=False, optimizer="BFGS")
         assert relaxed.lattice == struct.lattice
-        assert hasattr(relaxed, "calc")
+        assert isinstance(relaxed.calc, matgl.ext.ase.M3GNetCalculator)
         assert relaxed.dynamics["optimizer"] == "BFGS"
 
+    @pytest.mark.skip("TODO remove skip once https://github.com/materialsvirtuallab/matgl/issues/238 is resolved")
     def test_relax_m3gnet_with_traj(self):
         pytest.importorskip("matgl")
         struct = self.get_structure("Si")
@@ -1793,7 +1807,7 @@ Sites (8)
         assert AseAtomsAdaptor.get_structure(atoms) == self.struct
 
     def test_struct_with_isotope(self):
-        struct = Structure.from_file(f"{TEST_FILES_DIR}/POSCAR.LiFePO4")
+        struct = Structure.from_file(f"{VASP_IN_DIR}/POSCAR_LiFePO4")
         struct = struct.replace_species({"Li": "H"})
 
         struct_deuter = struct.copy()

@@ -69,7 +69,7 @@ MODULE_DIR = Path(__file__).resolve().parent
 # MODULE_DIR = os.path.dirname(__file__)
 
 
-class VaspInputSet(InputGenerator, metaclass=abc.ABCMeta):
+class VaspInputSet(InputGenerator, abc.ABC):
     """
     Base class representing a set of VASP input parameters with a structure
     supplied as init parameters. Typically, you should not inherit from this
@@ -221,6 +221,10 @@ class VaspInputSet(InputGenerator, metaclass=abc.ABCMeta):
         if verbosity == 1:
             dct.pop("structure", None)
         return dct
+
+
+# create VaspInputGenerator alias to follow atomate2 terminology
+VaspInputGenerator = VaspInputSet
 
 
 def _load_yaml_config(fname):
@@ -1810,9 +1814,8 @@ class MPSOCSet(DictSet):
             and not isinstance(self.structure[0].magmom, list)
         ):
             raise ValueError(
-                "The structure must have the 'magmom' site "
-                "property and each magnetic moment value must have 3 "
-                "components. eg:- magmom = [0,0,2]"
+                "The structure must have the 'magmom' site property and each magnetic "
+                "moment value must have 3 components. e.g. magmom = [0,0,2]"
             )
 
     @property
@@ -1862,6 +1865,7 @@ class MPSOCSet(DictSet):
             # magmom has to be 3D for SOC calculation.
             if hasattr(structure[0], "magmom"):
                 if not isinstance(structure[0].magmom, list):
+                    # project magmom to z-axis
                     structure = structure.copy(site_properties={"magmom": [[0, 0, site.magmom] for site in structure]})
             else:
                 raise ValueError("Neither the previous structure has magmom property nor magmom provided")
@@ -2307,10 +2311,10 @@ class MITNEBSet(DictSet):
         structures = [input_structures[0]]
         for s in input_structures[1:]:
             prev = structures[-1]
-            for i, site in enumerate(s):
-                t = np.round(prev[i].frac_coords - site.frac_coords)
-                if np.any(np.abs(t) > 0.5):
-                    s.translate_sites([i], t, to_unit_cell=False)
+            for idx, site in enumerate(s):
+                translate = np.round(prev[idx].frac_coords - site.frac_coords)
+                if np.any(np.abs(translate) > 0.5):
+                    s.translate_sites([idx], translate, to_unit_cell=False)
             structures.append(s)
         return structures
 
@@ -2742,7 +2746,7 @@ def get_vasprun_outcar(path: str | Path, parse_dos: bool = True, parse_eigen: bo
     if len(vruns) == 0 or len(outcars) == 0:
         raise ValueError(f"Unable to get vasprun.xml/OUTCAR from prev calculation in {path}")
     vsfile_fullpath = str(path / "vasprun.xml")
-    outcarfile_fullpath = str(path / "OUTCAR")
+    outcarfile_fullpath = str(path / "OUTCAR.gz")
     vsfile = vsfile_fullpath if vsfile_fullpath in vruns else sorted(vruns)[-1]
     outcarfile = outcarfile_fullpath if outcarfile_fullpath in outcars else sorted(outcars)[-1]
     return (
@@ -2751,7 +2755,7 @@ def get_vasprun_outcar(path: str | Path, parse_dos: bool = True, parse_eigen: bo
     )
 
 
-def get_structure_from_prev_run(vasprun, outcar=None):
+def get_structure_from_prev_run(vasprun, outcar=None) -> Structure:
     """
     Process structure from previous run.
 
@@ -2760,8 +2764,8 @@ def get_structure_from_prev_run(vasprun, outcar=None):
         outcar (Outcar): Outcar that contains the magnetization info from previous run.
 
     Returns:
-        The magmom-decorated structure that can be passed to get VASP input files, e.g.
-        get_kpoints.
+        Structure: The magmom-decorated structure that can be passed to get VASP input files, e.g.
+            get_kpoints().
     """
     structure = vasprun.final_structure
 
@@ -2772,7 +2776,7 @@ def get_structure_from_prev_run(vasprun, outcar=None):
             site_properties["magmom"] = [i["tot"] for i in outcar.magnetization]
         else:
             site_properties["magmom"] = vasprun.parameters["MAGMOM"]
-    # ldau
+    # LDAU
     if vasprun.parameters.get("LDAU", False):
         for k in ("LDAUU", "LDAUJ", "LDAUL"):
             vals = vasprun.incar[k]
@@ -2898,7 +2902,7 @@ _dummy_structure = Structure(
 )
 
 
-def get_valid_magmom_struct(structure, inplace=True, spin_mode="auto"):
+def get_valid_magmom_struct(structure: Structure, inplace: bool = True, spin_mode: str = "auto") -> Structure:
     """
     Make sure that the structure has valid magmoms based on the kind of calculation.
 
@@ -2939,17 +2943,15 @@ def get_valid_magmom_struct(structure, inplace=True, spin_mode="auto"):
     else:
         mode = spin_mode[0].lower()
 
-    new_struct = structure.copy() if not inplace else structure
-    for site in new_struct:
+    ret_struct = structure if inplace else structure.copy()
+    for site in ret_struct:
         if mode == "n":
             if "magmom" in site.properties:
                 site.properties.pop("magmom")
         elif "magmom" not in site.properties or site.properties["magmom"] is None:
             site.properties["magmom"] = default_values[mode]
 
-    if not inplace:
-        return new_struct
-    return None
+    return ret_struct
 
 
 @dataclass

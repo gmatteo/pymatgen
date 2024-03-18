@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+import pytest
 from pytest import approx
 
 from pymatgen.analysis.bond_valence import BVAnalyzer
@@ -13,7 +14,7 @@ from pymatgen.io.zeopp import (
     get_high_accuracy_voronoi_nodes,
     get_voronoi_nodes,
 )
-from pymatgen.util.testing import TEST_FILES_DIR
+from pymatgen.util.testing import TEST_FILES_DIR, VASP_IN_DIR
 
 try:
     import zeo
@@ -28,10 +29,10 @@ __email__ = "bkmedasani@lbl.gov"
 __date__ = "Aug 2, 2013"
 
 
-@unittest.skipIf(not zeo, "zeo not present.")
+@pytest.mark.skipif(zeo is None, reason="zeo not present.")
 class TestZeoCssr(unittest.TestCase):
     def setUp(self):
-        filepath = f"{TEST_FILES_DIR}/POSCAR"
+        filepath = f"{VASP_IN_DIR}/POSCAR"
         self.zeo_cssr = ZeoCssr(Structure.from_file(filepath))
 
     def test_str(self):
@@ -66,15 +67,15 @@ class TestZeoCssr(unittest.TestCase):
         assert str(self.zeo_cssr) == expected_string
 
     def test_from_file(self):
-        filename = f"{TEST_FILES_DIR}/EDI.cssr"
+        filename = f"{TEST_FILES_DIR}/cssr/EDI.cssr"
         zeo_cssr = ZeoCssr.from_file(filename)
         assert isinstance(zeo_cssr.structure, Structure)
 
 
-@unittest.skipIf(not zeo, "zeo not present.")
+@pytest.mark.skipif(zeo is None, reason="zeo not present.")
 class TestZeoCssrOxi(unittest.TestCase):
     def setUp(self):
-        filepath = f"{TEST_FILES_DIR}/POSCAR"
+        filepath = f"{VASP_IN_DIR}/POSCAR"
         structure = BVAnalyzer().get_oxi_state_decorated_structure(Structure.from_file(filepath))
         self.zeo_cssr = ZeoCssr(structure)
 
@@ -110,12 +111,12 @@ class TestZeoCssrOxi(unittest.TestCase):
         assert str(self.zeo_cssr) == expected_string
 
     def test_from_file(self):
-        filename = f"{TEST_FILES_DIR}/EDI_oxistate_decorated.cssr"
+        filename = f"{TEST_FILES_DIR}/cssr/EDI_oxistate_decorated.cssr"
         zeocssr = ZeoCssr.from_file(filename)
         assert isinstance(zeocssr.structure, Structure)
 
 
-@unittest.skipIf(not zeo, "zeo not present.")
+@pytest.mark.skipif(zeo is None, reason="zeo not present.")
 class TestZeoVoronoiXYZ(unittest.TestCase):
     def setUp(self):
         coords = [
@@ -141,15 +142,15 @@ H -0.363000 -0.513360 0.889165 0.200000"""
         assert str(self.xyz) == expected
 
     def test_from_file(self):
-        filename = f"{TEST_FILES_DIR}/EDI_voro.xyz"
+        filename = f"{TEST_FILES_DIR}/xyz/EDI_voro.xyz"
         voronoi = ZeoVoronoiXYZ.from_file(filename)
         assert isinstance(voronoi.molecule, Molecule)
 
 
-@unittest.skipIf(not zeo, "zeo not present.")
+@pytest.mark.skipif(zeo is None, reason="zeo not present.")
 class TestGetVoronoiNodes(unittest.TestCase):
     def setUp(self):
-        filepath = f"{TEST_FILES_DIR}/POSCAR"
+        filepath = f"{VASP_IN_DIR}/POSCAR"
         self.structure = Structure.from_file(filepath)
         bv = BVAnalyzer()
         valences = bv.get_valences(self.structure)
@@ -192,10 +193,10 @@ class TestGetFreeSphereParams(unittest.TestCase):
         assert free_sph_params["inc_sph_along_free_sph_path_max_dia"] == approx(2.58251, abs=1e-1)
 
 
-@unittest.skipIf(not zeo, "zeo not present.")
+@pytest.mark.skipif(zeo is None, reason="zeo not present.")
 class TestGetHighAccuracyVoronoiNodes(unittest.TestCase):
     def setUp(self):
-        filepath = f"{TEST_FILES_DIR}/POSCAR"
+        filepath = f"{VASP_IN_DIR}/POSCAR"
         self.structure = Structure.from_file(filepath)
         bv = BVAnalyzer()
         valences = bv.get_valences(self.structure)
@@ -212,10 +213,10 @@ class TestGetHighAccuracyVoronoiNodes(unittest.TestCase):
         assert isinstance(vor_node_struct, Structure)
 
 
-@unittest.skipIf(not zeo, "zeo not present.")
+@pytest.mark.skipif(zeo is None, reason="zeo not present.")
 class TestGetVoronoiNodesMultiOxi(unittest.TestCase):
     def setUp(self):
-        filepath = f"{TEST_FILES_DIR}/POSCAR"
+        filepath = f"{VASP_IN_DIR}/POSCAR"
         self.structure = Structure.from_file(filepath)
         bv = BVAnalyzer()
         self.structure = bv.get_oxi_state_decorated_structure(self.structure)

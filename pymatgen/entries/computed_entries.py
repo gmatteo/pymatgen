@@ -416,7 +416,7 @@ class ComputedEntry(Entry):
     def __repr__(self) -> str:
         n_atoms = self.composition.num_atoms
         output = [
-            f"{self.entry_id} {type(self).__name__:<10} " f"- {self.formula:<12} ({self.reduced_formula})",
+            f"{self.entry_id} {type(self).__name__:<10} - {self.formula:<12} ({self.reduced_formula})",
             f"{'Energy (Uncorrected)':<24} = {self._energy:<9.4f} eV ({self._energy / n_atoms:<8.4f} eV/atom)",
             f"{'Correction':<24} = {self.correction:<9.4f} eV ({self.correction / n_atoms:<8.4f} eV/atom)",
             f"{'Energy (Final)':<24} = {self.energy:<9.4f} eV ({self.energy_per_atom:<8.4f} eV/atom)",
@@ -785,8 +785,8 @@ class GibbsComputedStructureEntry(ComputedStructureEntry):
 
             gibbs_energy = energy * factor
         else:
-            num_atoms = len(self.structure)
-            vol_per_atom = self.structure.volume / num_atoms
+            n_atoms = len(self.structure)
+            vol_per_atom = self.structure.volume / n_atoms
             reduced_mass = self._reduced_mass(self.structure)
 
             gibbs_energy = (
@@ -830,10 +830,10 @@ class GibbsComputedStructureEntry(ComputedStructureEntry):
             float: reduced mass (amu)
         """
         reduced_comp = structure.composition.reduced_composition
-        num_elems = len(reduced_comp.elements)
+        n_elems = len(reduced_comp.elements)
         elem_dict = reduced_comp.get_el_amt_dict()
 
-        denominator = (num_elems - 1) * reduced_comp.num_atoms
+        denominator = (n_elems - 1) * reduced_comp.num_atoms
 
         all_pairs = combinations(elem_dict.items(), 2)
         mass_sum = 0

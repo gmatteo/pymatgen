@@ -50,12 +50,6 @@ __copyright__ = "Copyright 2011, The Materials Project"
 logger = logging.getLogger(__name__)
 module_dir = os.path.dirname(os.path.abspath(__file__))
 
-# hashes computed from the full POTCAR file contents by pymatgen (not 1st-party VASP hashes)
-PYMATGEN_POTCAR_HASHES = loadfn(f"{module_dir}/vasp_potcar_pymatgen_hashes.json")
-# written to some newer POTCARs by VASP
-VASP_POTCAR_HASHES = loadfn(f"{module_dir}/vasp_potcar_file_hashes.json")
-POTCAR_STATS_PATH = os.path.join(module_dir, "potcar-summary-stats.json.bz2")
-
 
 class Poscar(MSONable):
     """Object for representing the data in a POSCAR or CONTCAR file.
@@ -269,9 +263,6 @@ class Poscar(MSONable):
                     potcar = Potcar.from_file(sorted(potcars)[0])
                     names = [sym.split("_")[0] for sym in potcar.symbols]
                     [get_el_sp(n) for n in names]  # ensure valid names
-                    warnings.warn(
-                        "Cannot determine elements in POSCAR. Falling back to manual assignment.", BadPoscarWarning
-                    )
                 except Exception:
                     names = None
         with zopen(filename, mode="rt") as file:
@@ -528,13 +519,13 @@ class Poscar(MSONable):
         # This corrects for VASP really annoying bug of crashing on lattices
         # which have triple product < 0. We will just invert the lattice
         # vectors.
-        latt = self.structure.lattice
-        if np.linalg.det(latt.matrix) < 0:
-            latt = Lattice(-latt.matrix)
+        lattice = self.structure.lattice
+        if np.linalg.det(lattice.matrix) < 0:
+            lattice = Lattice(-lattice.matrix)
 
         format_str = f"{{:{significant_figures + 5}.{significant_figures}f}}"
         lines = [self.comment, "1.0"]
-        for vec in latt.matrix:
+        for vec in lattice.matrix:
             lines.append(" ".join(format_str.format(c) for c in vec))
 
         if self.true_names and not vasp4_compatible:
@@ -544,11 +535,11 @@ class Poscar(MSONable):
             lines.append("Selective dynamics")
         lines.append("direct" if direct else "cartesian")
 
-        for i, site in enumerate(self.structure):
+        for idx, site in enumerate(self.structure):
             coords = site.frac_coords if direct else site.coords
             line = " ".join(format_str.format(c) for c in coords)
             if self.selective_dynamics is not None:
-                sd = ["T" if j else "F" for j in self.selective_dynamics[i]]
+                sd = ["T" if j else "F" for j in self.selective_dynamics[idx]]
                 line += f" {sd[0]} {sd[1]} {sd[2]}"
             line += f" {site.species_string}"
             lines.append(line)
@@ -677,10 +668,6 @@ class Poscar(MSONable):
 
 class BadPoscarWarning(UserWarning):
     """Warning class for bad POSCAR entries."""
-
-
-with open(f"{module_dir}/incar_parameters.json", encoding="utf-8") as json_file:
-    incar_params = json.loads(json_file.read())
 
 
 class Incar(dict, MSONable):
@@ -970,23 +957,31 @@ class Incar(dict, MSONable):
             params[key] = val
         return Incar(params)
 
-    def check_params(self):
+    def check_params(self) -> None:
+        """Check INCAR for invalid tags or values.
+        If a tag doesn't exist, calculation will still run, however VASP
+        will ignore the tag and set it as default without letting you know.
         """
-        Raise a warning for nonexistent INCAR tags or invalid values.
-        If a tag doesn't exist (e.g. typo), calculation will still run,
-        however VASP will ignore the tag without letting you know.
-        """
+        # Load INCAR tag/value check reference file
+        with open(os.path.join(module_dir, "incar_parameters.json"), encoding="utf-8") as json_file:
+            incar_params = json.loads(json_file.read())
+
         for tag, val in self.items():
-            # First check if this tag exists
+            # Check if the tag exists
             if tag not in incar_params:
                 warnings.warn(f"Cannot find {tag} in the list of INCAR tags", BadIncarWarning, stacklevel=2)
+                continue
 
-            # Now check if the tag type is appropriate
-            elif isinstance(incar_params[tag], str) and type(val).__name__ != incar_params[tag]:
-                warnings.warn(f"{tag}: {val} is not a {incar_params[tag]}", BadIncarWarning, stacklevel=2)
+            # Check value and its type
+            param_type = incar_params[tag].get("type")
+            allowed_values = incar_params[tag].get("values")
 
-            # Check if the given value is in the list
-            elif isinstance(incar_params[tag], list) and val not in incar_params[tag]:
+            if param_type is not None and not isinstance(val, eval(param_type)):
+                warnings.warn(f"{tag}: {val} is not a {param_type}", BadIncarWarning, stacklevel=2)
+
+            # Only check value when it's not None,
+            # meaning there is recording for corresponding value
+            if allowed_values is not None and val not in allowed_values:
                 warnings.warn(f"{tag}: Cannot find {val} in the list of values", BadIncarWarning, stacklevel=2)
 
 
@@ -1597,8 +1592,11 @@ Orbital = namedtuple("Orbital", ["n", "l", "j", "E", "occ"])
 OrbitalDescription = namedtuple("OrbitalDescription", ["l", "E", "Type", "Rcut", "Type2", "Rcut2"])
 
 
-class UnknownPotcarWarning(UserWarning):
-    """Warning raised when POTCAR hashes do not pass validation."""
+# hashes computed from the full POTCAR file contents by pymatgen (not 1st-party VASP hashes)
+PYMATGEN_POTCAR_HASHES = loadfn(f"{module_dir}/vasp_potcar_pymatgen_hashes.json")
+# written to some newer POTCARs by VASP
+VASP_POTCAR_HASHES = loadfn(f"{module_dir}/vasp_potcar_file_hashes.json")
+POTCAR_STATS_PATH = os.path.join(module_dir, "potcar-summary-stats.json.bz2")
 
 
 class PotcarSingle:
@@ -2376,10 +2374,11 @@ def _gen_potcar_summary_stats(
     append: bool = False, vasp_psp_dir: str | None = None, summary_stats_filename: str | None = POTCAR_STATS_PATH
 ):
     """
-    This function solely intended to be used for PMG development to regenerate the
-    potcar-summary-stats.json.bz2 file used to validate POTCARs
+    This function is intended for internal use only. It regenerates the reference data in
+    potcar-summary-stats.json.bz2 used to validate POTCARs by comparing header values and
+    several statistics of copyrighted POTCAR data without having to record the POTCAR data itself.
 
-    THIS FUNCTION IS DESTRUCTIVE. It will completely overwrite your potcar-summary-stats.json.bz2.
+    THIS FUNCTION IS DESTRUCTIVE. It will completely overwrite potcar-summary-stats.json.bz2.
 
     Args:
         append (bool): Change whether data is appended to the existing potcar-summary-stats.json.bz2,
@@ -2406,10 +2405,7 @@ def _gen_potcar_summary_stats(
     for func, func_dir in func_dir_exist.items():
         new_summary_stats.setdefault(func, {})  # initialize dict if key missing
 
-        potcar_list = [
-            *glob(f"{vasp_psp_dir}/{func_dir}/POTCAR*"),
-            *glob(f"{vasp_psp_dir}/{func_dir}/*/POTCAR*"),
-        ]
+        potcar_list = glob(f"{vasp_psp_dir}/{func_dir}/POTCAR*") + glob(f"{vasp_psp_dir}/{func_dir}/*/POTCAR*")
         for potcar in potcar_list:
             psp = PotcarSingle.from_file(potcar)
             titel_key = psp.TITEL.replace(" ", "")
@@ -2570,6 +2566,10 @@ class Potcar(list, MSONable):
             self.extend(PotcarSingle.from_symbol_and_functional(el, functional) for el in symbols)
 
 
+class UnknownPotcarWarning(UserWarning):
+    """Warning raised when POTCAR hashes do not pass validation."""
+
+
 class VaspInput(dict, MSONable):
     """Class to contain a set of vasp input objects corresponding to a run."""
 
@@ -2709,7 +2709,9 @@ class VaspInput(dict, MSONable):
         if not vasp_cmd:
             raise RuntimeError("You need to supply vasp_cmd or set the PMG_VASP_EXE in .pmgrc.yaml to run VASP.")
 
-        with cd(run_dir), open(output_file, mode="w", encoding="utf-8") as stdout_file, open(
-            err_file, mode="w", encoding="utf-8", buffering=1
-        ) as stderr_file:
+        with (
+            cd(run_dir),
+            open(output_file, mode="w", encoding="utf-8") as stdout_file,
+            open(err_file, mode="w", encoding="utf-8", buffering=1) as stderr_file,
+        ):
             subprocess.check_call(vasp_cmd, stdout=stdout_file, stderr=stderr_file)

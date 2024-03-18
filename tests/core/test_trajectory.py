@@ -10,13 +10,13 @@ from pymatgen.core.structure import Molecule, Structure
 from pymatgen.core.trajectory import Trajectory
 from pymatgen.io.qchem.outputs import QCOutput
 from pymatgen.io.vasp.outputs import Xdatcar
-from pymatgen.util.testing import TEST_FILES_DIR, PymatgenTest
+from pymatgen.util.testing import TEST_FILES_DIR, VASP_IN_DIR, VASP_OUT_DIR, PymatgenTest
 
 
 class TestTrajectory(PymatgenTest):
     def setUp(self):
-        xdatcar = Xdatcar(f"{TEST_FILES_DIR}/Traj_XDATCAR")
-        self.traj = Trajectory.from_file(f"{TEST_FILES_DIR}/Traj_XDATCAR")
+        xdatcar = Xdatcar(f"{VASP_OUT_DIR}/XDATCAR_traj")
+        self.traj = Trajectory.from_file(f"{VASP_OUT_DIR}/XDATCAR_traj")
         self.structures = xdatcar.structures
 
         out = QCOutput(f"{TEST_FILES_DIR}/molecules/new_qchem_files/ts.out")
@@ -221,15 +221,15 @@ class TestTrajectory(PymatgenTest):
         traj = copy.deepcopy(self.traj)
 
         # Case of compatible trajectories
-        compatible_traj = Trajectory.from_file(f"{TEST_FILES_DIR}/Traj_Combine_Test_XDATCAR_1")
+        compatible_traj = Trajectory.from_file(f"{VASP_OUT_DIR}/XDATCAR_traj_combine_test_1")
         traj.extend(compatible_traj)
 
-        full_traj = Trajectory.from_file(f"{TEST_FILES_DIR}/Traj_Combine_Test_XDATCAR_Full")
+        full_traj = Trajectory.from_file(f"{VASP_OUT_DIR}/XDATCAR_traj_combine_test_full")
         compatible_success = self._check_traj_equality(self.traj, full_traj)
 
         # Case of incompatible trajectories
         traj = copy.deepcopy(self.traj)
-        incompatible_traj = Trajectory.from_file(f"{TEST_FILES_DIR}/Traj_Combine_Test_XDATCAR_2")
+        incompatible_traj = Trajectory.from_file(f"{VASP_OUT_DIR}/XDATCAR_traj_combine_test_2")
         incompatible_test_success = False
         try:
             traj.extend(incompatible_traj)
@@ -285,7 +285,7 @@ class TestTrajectory(PymatgenTest):
 
     def test_extend_site_props(self):
         lattice, species, coords = self._get_lattice_species_and_coords()
-        num_frames = len(coords)
+        n_frames = len(coords)
 
         props_1 = {
             "selective_dynamics": [[False, False, False], [False, False, False]],
@@ -327,25 +327,25 @@ class TestTrajectory(PymatgenTest):
         # const & const (both constant but different site properties)
         traj_combined = copy.deepcopy(traj_1)
         traj_combined.extend(traj_2)
-        expected_site_props = [props_1] * num_frames + [props_2] * num_frames
+        expected_site_props = [props_1] * n_frames + [props_2] * n_frames
         assert traj_combined.site_properties == expected_site_props
 
         # const & changing
         traj_combined = copy.deepcopy(traj_1)
         traj_combined.extend(traj_3)
-        expected_site_props = [props_1] * num_frames + props_3
+        expected_site_props = [props_1] * n_frames + props_3
         assert traj_combined.site_properties == expected_site_props
 
         # const & none
         traj_combined = copy.deepcopy(traj_1)
         traj_combined.extend(traj_4)
-        expected_site_props = [props_1] * num_frames + [None] * num_frames
+        expected_site_props = [props_1] * n_frames + [None] * n_frames
         assert traj_combined.site_properties == expected_site_props
 
         # changing & const
         traj_combined = copy.deepcopy(traj_3)
         traj_combined.extend(traj_1)
-        expected_site_props = props_3 + [props_1] * num_frames
+        expected_site_props = props_3 + [props_1] * n_frames
         assert traj_combined.site_properties == expected_site_props
 
         # changing & changing
@@ -357,19 +357,19 @@ class TestTrajectory(PymatgenTest):
         # changing & none
         traj_combined = copy.deepcopy(traj_3)
         traj_combined.extend(traj_4)
-        expected_site_props = props_3 + [None] * num_frames
+        expected_site_props = props_3 + [None] * n_frames
         assert traj_combined.site_properties == expected_site_props
 
         # none & const
         traj_combined = copy.deepcopy(traj_4)
         traj_combined.extend(traj_1)
-        expected_site_props = [None] * num_frames + [props_1] * num_frames
+        expected_site_props = [None] * n_frames + [props_1] * n_frames
         assert traj_combined.site_properties == expected_site_props
 
         # none & changing
         traj_combined = copy.deepcopy(traj_4)
         traj_combined.extend(traj_3)
-        expected_site_props = [None] * num_frames + props_3
+        expected_site_props = [None] * n_frames + props_3
         assert traj_combined.site_properties == expected_site_props
 
         # none & none
@@ -418,7 +418,7 @@ class TestTrajectory(PymatgenTest):
         assert len(self.traj_mols) == len(self.molecules)
 
     def test_displacements(self):
-        structures = [Structure.from_file(f"{TEST_FILES_DIR}/POSCAR")]
+        structures = [Structure.from_file(f"{VASP_IN_DIR}/POSCAR")]
         displacements = np.zeros((11, *np.shape(structures[-1].frac_coords)))
 
         for i in range(10):

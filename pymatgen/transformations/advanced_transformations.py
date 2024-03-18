@@ -41,7 +41,7 @@ from pymatgen.transformations.standard_transformations import (
 from pymatgen.transformations.transformation_abc import AbstractTransformation
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
     from typing import Any
 
 try:
@@ -338,7 +338,9 @@ class EnumerateStructureTransformation(AbstractTransformation):
         if max_cell_size and max_disordered_sites:
             raise ValueError("Cannot set both max_cell_size and max_disordered_sites!")
 
-    def apply_transformation(self, structure: Structure, return_ranked_list: bool | int = False):
+    def apply_transformation(
+        self, structure: Structure, return_ranked_list: bool | int = False
+    ) -> Structure | list[dict]:
         """Returns either a single ordered structure or a sequence of all ordered
         structures.
 
@@ -879,7 +881,7 @@ class MagOrderingTransformation(AbstractTransformation):
             # remove dummy species and replace Spin.up or Spin.down
             # with spin magnitudes given in mag_species_spin arg
             alls = self._remove_dummy_species(alls)
-            alls = self._add_spin_magnitudes(alls)
+            alls = self._add_spin_magnitudes(alls)  # type: ignore[arg-type]
         else:
             for idx in range(len(alls)):
                 alls[idx]["structure"] = self._remove_dummy_species(alls[idx]["structure"])
@@ -891,7 +893,7 @@ class MagOrderingTransformation(AbstractTransformation):
             num_to_return = 1
 
         if num_to_return == 1 or not return_ranked_list:
-            return alls[0]["structure"] if num_to_return else alls
+            return alls[0]["structure"] if num_to_return else alls  # type: ignore[return-value]
 
         # remove duplicate structures and group according to energy model
         matcher = StructureMatcher(comparator=SpinComparator())
@@ -926,22 +928,23 @@ class MagOrderingTransformation(AbstractTransformation):
         return True
 
 
-def _find_codopant(target, oxidation_state, allowed_elements=None):
+def find_codopant(target: Species, oxidation_state: float, allowed_elements: Sequence[str] | None = None) -> Species:
     """Finds the element from "allowed elements" that (i) possesses the desired
     "oxidation state" and (ii) is closest in ionic radius to the target specie.
 
     Args:
-        target: (Species) provides target ionic radius.
-        oxidation_state: (float) codopant oxidation state.
-        allowed_elements: ([str]) List of allowed elements. If None,
+        target (Species): provides target ionic radius.
+        oxidation_state (float): co-dopant oxidation state.
+        allowed_elements (list[str]): List of allowed elements. If None,
             all elements are tried.
 
     Returns:
-        (Species) with oxidation_state that has ionic radius closest to
-        target.
+        Species: with oxidation_state that has ionic radius closest to target.
     """
     ref_radius = target.ionic_radius
-    candidates = []
+    if ref_radius is None:
+        raise ValueError(f"Target species {target} has no ionic radius.")
+    candidates: list[tuple[float, Species]] = []
     symbols = allowed_elements or [el.symbol for el in Element]
     for sym in symbols:
         try:
@@ -1010,11 +1013,10 @@ class DopingTransformation(AbstractTransformation):
         Args:
             structure (Structure): Input structure to dope
             return_ranked_list (bool | int, optional): If return_ranked_list is int, that number of structures.
-
                 is returned. If False, only the single lowest energy structure is returned. Defaults to False.
 
         Returns:
-            [{"structure": Structure, "energy": float}]
+            list[dict] | Structure: each dict has shape {"structure": Structure, "energy": float}.
         """
         comp = structure.composition
         logger.info(f"Composition: {comp}")
@@ -1059,7 +1061,7 @@ class DopingTransformation(AbstractTransformation):
         logger.info(f"{lengths=}")
         logger.info(f"{scaling=}")
 
-        all_structures = []
+        all_structures: list[dict] = []
         trafo = EnumerateStructureTransformation(**self.kwargs)
 
         for sp in compatible_species:
@@ -1069,7 +1071,7 @@ class DopingTransformation(AbstractTransformation):
                 supercell.replace_species({sp: {sp: (nsp - 1) / nsp, self.dopant: 1 / nsp}})  # type: ignore
                 logger.info(f"Doping {sp} for {self.dopant} at level {1 / nsp:.3f}")
             elif self.codopant:
-                codopant = _find_codopant(sp, 2 * sp.oxi_state - ox)  # type: ignore
+                codopant = find_codopant(sp, 2 * sp.oxi_state - ox)  # type: ignore
                 supercell.replace_species({sp: {sp: (nsp - 2) / nsp, self.dopant: 1 / nsp, codopant: 1 / nsp}})  # type: ignore
                 logger.info(f"Doping {sp} for {self.dopant} + {codopant} at level {1 / nsp:.3f}")
             elif abs(sp.oxi_state) < abs(ox):  # type: ignore
@@ -1131,10 +1133,9 @@ class DopingTransformation(AbstractTransformation):
                     }
                 )
 
-            ss = trafo.apply_transformation(supercell, return_ranked_list=self.max_structures_per_enum)
-            logger.info(f"{len(ss)} distinct structures")
-            all_structures.extend(ss)
-
+            structs = trafo.apply_transformation(supercell, return_ranked_list=self.max_structures_per_enum)
+            logger.info(f"{len(structs)} distinct structures")
+            all_structures.extend(structs)
         logger.info(f"Total {len(all_structures)} doped structures")
         if return_ranked_list:
             return all_structures[:return_ranked_list]
@@ -1518,8 +1519,8 @@ class CubicSupercellTransformation(AbstractTransformation):
                 please use max_atoms
             angle_tolerance: tolerance to determine the 90 degree angles.
         """
-        self.min_atoms = min_atoms or -np.Inf
-        self.max_atoms = max_atoms or np.Inf
+        self.min_atoms = min_atoms or -np.inf
+        self.max_atoms = max_atoms or np.inf
         self.min_length = min_length
         self.force_diagonal = force_diagonal
         self.force_90_degrees = force_90_degrees

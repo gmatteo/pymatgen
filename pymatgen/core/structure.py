@@ -17,7 +17,7 @@ import random
 import re
 import sys
 import warnings
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from fnmatch import fnmatch
 from inspect import isclass
 from io import StringIO
@@ -191,7 +191,7 @@ class PeriodicNeighbor(PeriodicSite):
         return super(Site, cls).from_dict(dct)
 
 
-class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
+class SiteCollection(collections.abc.Sequence, ABC):
     """Basic SiteCollection. Essentially a sequence of Sites or PeriodicSites.
     This serves as a base class for Molecule (a collection of Site, i.e., no
     periodicity) and Structure (a collection of PeriodicSites, i.e.,
@@ -528,11 +528,13 @@ class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
     ) -> SiteCollection:
         """Swap species.
 
+        Note that this clears the label of any affected site.
+
         Args:
             species_mapping (dict): Species to swap. Species can be elements too. E.g.,
                 {Element("Li"): Element("Na")} performs a Li for Na substitution. The second species can
                 be a sp_and_occu dict. For example, a site with 0.5 Si that is passed the mapping
-                {Element('Si): {Element('Ge'): 0.75, Element('C'): 0.25} } will have .375 Ge and .125 C.
+                {Element('Si'): {Element('Ge'): 0.75, Element('C'): 0.25} } will have .375 Ge and .125 C.
             in_place (bool): Whether to perform the substitution in place or modify a copy.
                 Defaults to True.
 
@@ -559,6 +561,7 @@ class SiteCollection(collections.abc.Sequence, metaclass=ABCMeta):
                     except Exception:
                         comp += {new_sp: amt}
                 site.species = comp
+                site.label = None  # type: ignore[assignment]
 
         return site_coll
 
@@ -1131,7 +1134,7 @@ class IStructure(SiteCollection, MSONable):
             raise ValueError(f"Supplied species and coords lengths ({len(species)} vs {len(coords)}) are different!")
 
         frac_coords = (
-            np.array(coords, dtype=np.float_) if not coords_are_cartesian else latt.get_fractional_coords(coords)
+            np.array(coords, dtype=np.float64) if not coords_are_cartesian else latt.get_fractional_coords(coords)
         )
 
         props = {} if site_properties is None else site_properties
@@ -1754,7 +1757,7 @@ class IStructure(SiteCollection, MSONable):
         # expand the output tuple by symmetry_indices and symmetry_ops.
         n_bonds = len(bonds[0])
         symmetry_indices = np.empty(n_bonds)
-        symmetry_indices[:] = np.NaN
+        symmetry_indices[:] = np.nan
         symmetry_ops = np.empty(len(symmetry_indices), dtype=object)
         symmetry_identity = SymmOp.from_rotation_and_translation(np.eye(3), np.zeros(3))
         symmetry_index = 0
@@ -2237,8 +2240,8 @@ class IStructure(SiteCollection, MSONable):
         images = np.arange(nimages + 1) / nimages if not isinstance(nimages, collections.abc.Iterable) else nimages
 
         # Check that both structures have the same species
-        for i, site in enumerate(self):
-            if site.species != end_structure[i].species:
+        for idx, site in enumerate(self):
+            if site.species != end_structure[idx].species:
                 raise ValueError(f"Different species!\nStructure 1:\n{self}\nStructure 2\n{end_structure}")
 
         start_coords = np.array(self.frac_coords)
@@ -2248,31 +2251,31 @@ class IStructure(SiteCollection, MSONable):
             dist_matrix = self.lattice.get_all_distances(start_coords, end_coords)
             site_mappings: dict[int, list[int]] = collections.defaultdict(list)
             unmapped_start_ind = []
-            for i, row in enumerate(dist_matrix):
+            for idx, row in enumerate(dist_matrix):
                 ind = np.where(row < autosort_tol)[0]
                 if len(ind) == 1:
-                    site_mappings[i].append(ind[0])
+                    site_mappings[idx].append(ind[0])
                 else:
-                    unmapped_start_ind.append(i)
+                    unmapped_start_ind.append(idx)
 
             if len(unmapped_start_ind) > 1:
                 raise ValueError(f"Unable to reliably match structures with {autosort_tol = }, {unmapped_start_ind = }")
 
             sorted_end_coords = np.zeros_like(end_coords)
             matched = []
-            for i, j in site_mappings.items():
+            for idx, j in site_mappings.items():
                 if len(j) > 1:
                     raise ValueError(
                         f"Unable to reliably match structures with auto_sort_tol = {autosort_tol}. "
                         "More than one site match!"
                     )
-                sorted_end_coords[i] = end_coords[j[0]]
+                sorted_end_coords[idx] = end_coords[j[0]]
                 matched.append(j[0])
 
             if len(unmapped_start_ind) == 1:
-                i = unmapped_start_ind[0]
+                idx = unmapped_start_ind[0]
                 j = next(iter(set(range(len(start_coords))) - set(matched)))  # type: ignore
-                sorted_end_coords[i] = end_coords[j]
+                sorted_end_coords[idx] = end_coords[j]
 
             end_coords = sorted_end_coords
 
@@ -3693,13 +3696,13 @@ class IMolecule(SiteCollection, MSONable):
 class Structure(IStructure, collections.abc.MutableSequence):
     """Mutable version of structure."""
 
-    __hash__ = None  # type: ignore
+    __hash__ = None  # type: ignore[assignment]
 
     def __init__(
         self,
         lattice: ArrayLike | Lattice,
         species: Sequence[CompositionLike],
-        coords: Sequence[ArrayLike],
+        coords: Sequence[ArrayLike] | np.ndarray,
         charge: float | None = None,
         validate_proximity: bool = False,
         to_unit_cell: bool = False,
@@ -4501,7 +4504,7 @@ class Molecule(IMolecule, collections.abc.MutableSequence):
     it allows a user to perform edits on the molecule.
     """
 
-    __hash__ = None  # type: ignore
+    __hash__ = None  # type: ignore[assignment]
 
     def __init__(
         self,

@@ -564,9 +564,9 @@ class StructureGraph(MSONable):
             raise ValueError("Image must be supplied, to avoid ambiguity.")
 
         if existing_edges:
-            for i, properties in existing_edges.items():
-                if properties["to_jimage"] == to_jimage:
-                    edge_index = i
+            for idx, props in existing_edges.items():
+                if props["to_jimage"] == to_jimage:
+                    edge_index = idx
 
             self.graph.remove_edge(from_index, to_index, edge_index)
 
@@ -575,9 +575,9 @@ class StructureGraph(MSONable):
                 existing_reverse = self.graph.get_edge_data(to_index, from_index)
 
             if existing_reverse:
-                for i, properties in existing_reverse.items():
-                    if properties["to_jimage"] == to_jimage:
-                        edge_index = i
+                for idx, props in existing_reverse.items():
+                    if props["to_jimage"] == to_jimage:
+                        edge_index = idx
 
                 self.graph.remove_edge(to_index, from_index, edge_index)
             else:
@@ -654,8 +654,8 @@ class StructureGraph(MSONable):
             atoms = len(grp) - 1
             offset = len(self.structure) - atoms
 
-            for i in range(atoms):
-                grp_map[i] = i + offset
+            for idx in range(atoms):
+                grp_map[idx] = idx + offset
 
             return grp_map
 
@@ -1011,7 +1011,7 @@ class StructureGraph(MSONable):
 
             if anonymous:
                 mapping = {centre_sp: "A"}
-                available_letters = [chr(66 + i) for i in range(25)]
+                available_letters = [chr(66 + idx) for idx in range(25)]
                 for label in labels:
                     sp = label[1]
                     if sp not in mapping:
@@ -1623,7 +1623,7 @@ class MoleculeGraph(MSONable):
             if props is not None:
                 weight = props.pop("weight", None)
                 if len(props.items()) == 0:
-                    props = None  # type: ignore
+                    props = None  # type: ignore[assignment]
             else:
                 weight = None
 
@@ -2086,7 +2086,7 @@ class MoleculeGraph(MSONable):
         for key, fragments in unique_frag_dict.items():
             unique_mol_graph_list = []
             for fragment in fragments:
-                mapping = {e: i for i, e in enumerate(sorted(fragment.nodes))}
+                mapping = {edge: idx for idx, edge in enumerate(sorted(fragment.nodes))}
                 remapped = nx.relabel_nodes(fragment, mapping)
 
                 species = nx.get_node_attributes(remapped, "specie")
@@ -2164,8 +2164,8 @@ class MoleculeGraph(MSONable):
             atoms = len(grp) - 1
             offset = len(self.molecule) - atoms
 
-            for i in range(atoms):
-                grp_map[i] = i + offset
+            for idx in range(atoms):
+                grp_map[idx] = idx + offset
 
             return grp_map
 
@@ -2298,9 +2298,9 @@ class MoleculeGraph(MSONable):
                 sizes[neighbor[2]] = len(nx.descendants(disconnected, neighbor[2]))
 
             keep = max(sizes, key=lambda x: sizes[x])
-            for i in sizes:
-                if i != keep:
-                    to_remove.add(i)
+            for idx in sizes:
+                if idx != keep:
+                    to_remove.add(idx)
 
             self.remove_nodes(list(to_remove))
             self.substitute_group(

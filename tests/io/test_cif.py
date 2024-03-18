@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import unittest
-
 import numpy as np
 import pytest
 from pytest import approx
@@ -11,7 +9,7 @@ from pymatgen.core import Composition, DummySpecies, Element, Lattice, Species, 
 from pymatgen.electronic_structure.core import Magmom
 from pymatgen.io.cif import CifBlock, CifParser, CifWriter
 from pymatgen.symmetry.structure import SymmetrizedStructure
-from pymatgen.util.testing import TEST_FILES_DIR, PymatgenTest
+from pymatgen.util.testing import TEST_FILES_DIR, VASP_IN_DIR, PymatgenTest
 
 try:
     import pybtex
@@ -193,6 +191,7 @@ class TestCifIO(PymatgenTest):
 
         with open(f"{TEST_FILES_DIR}/FePO4.cif") as cif_file:
             cif_str = cif_file.read()
+
         parser = CifParser.from_str(cif_str)
         struct = parser.parse_structures(primitive=False)[0]
         assert struct.formula == "Fe4 P4 O16"
@@ -420,7 +419,7 @@ class TestCifIO(PymatgenTest):
             assert parser._parse_symbol(sym) == expected_symbol
 
     def test_cif_writer(self):
-        filepath = f"{TEST_FILES_DIR}/POSCAR"
+        filepath = f"{VASP_IN_DIR}/POSCAR"
         struct = Structure.from_file(filepath)
         writer = CifWriter(struct, symprec=0.01)
         answer = """# generated using pymatgen
@@ -465,7 +464,7 @@ loop_
             assert l1.strip() == l2.strip()
 
     def test_symmetrized(self):
-        filepath = f"{TEST_FILES_DIR}/POSCAR"
+        filepath = f"{VASP_IN_DIR}/POSCAR"
         struct = Structure.from_file(filepath)
         writer = CifWriter(struct, symprec=0.1)
 
@@ -711,7 +710,7 @@ loop_
 """
         parser = CifParser.from_str(cif_structure)
         s_test = parser.parse_structures(primitive=False)[0]
-        filepath = f"{TEST_FILES_DIR}/POSCAR"
+        filepath = f"{VASP_IN_DIR}/POSCAR"
         struct = Structure.from_file(filepath)
 
         sm = StructureMatcher(stol=0.05, ltol=0.01, angle_tol=0.1)
@@ -855,7 +854,7 @@ Si1 Si 0 0 0 1 0.0
             assert structs[0].species.as_dict()["Te"] == 1.5
 
     def test_cif_writer_write_file(self):
-        struct1 = Structure.from_file(f"{TEST_FILES_DIR}/POSCAR")
+        struct1 = Structure.from_file(f"{VASP_IN_DIR}/POSCAR")
         out_path = f"{self.tmp_path}/test.cif"
         CifWriter(struct1).write_file(out_path)
         read_structs = CifParser(out_path).parse_structures()
@@ -933,10 +932,18 @@ Si1 Si 0 0 0 1 0.0
         failure_reason = cif.check(Structure.from_file(f"{TEST_FILES_DIR}/LiFePO4.cif"))
         assert failure_reason == "'X' is not a valid Element"
 
+    def test_skipping_relative_stoichiometry_check(self):
+        cif = CifParser(f"{TEST_FILES_DIR}/Li10GeP2S12.cif")
+        struct = cif.parse_structures()[0]
+        failure_reason = cif.check(struct)
+        assert failure_reason is None
+        assert len(cif.warnings) == 2
+        assert cif.warnings[-1] == "Skipping relative stoichiometry check because CIF does not contain formula keys."
+
     def test_cif_writer_site_properties(self):
         # check CifWriter(write_site_properties=True) adds Structure site properties to
         # CIF with _atom_site_ prefix
-        struct = Structure.from_file(f"{TEST_FILES_DIR}/POSCAR")
+        struct = Structure.from_file(f"{VASP_IN_DIR}/POSCAR")
         struct.add_site_property(label := "hello", [1.0] * (len(struct) - 1) + [-1.0])
         out_path = f"{self.tmp_path}/test2.cif"
         CifWriter(struct, write_site_properties=True).write_file(out_path)
@@ -949,11 +956,11 @@ Si1 Si 0 0 0 1 0.0
 
 class TestMagCif(PymatgenTest):
     def setUp(self):
-        self.mcif = CifParser(f"{TEST_FILES_DIR}/magnetic.example.NiO.mcif")
-        self.mcif_ncl = CifParser(f"{TEST_FILES_DIR}/magnetic.ncl.example.GdB4.mcif")
-        self.mcif_incommensurate = CifParser(f"{TEST_FILES_DIR}/magnetic.incommensurate.example.Cr.mcif")
-        self.mcif_disordered = CifParser(f"{TEST_FILES_DIR}/magnetic.disordered.example.CuMnO2.mcif")
-        self.mcif_ncl2 = CifParser(f"{TEST_FILES_DIR}/Mn3Ge_IR2.mcif")
+        self.mcif = CifParser(f"{TEST_FILES_DIR}/mcif/magnetic.example.NiO.mcif")
+        self.mcif_ncl = CifParser(f"{TEST_FILES_DIR}/mcif/magnetic.ncl.example.GdB4.mcif")
+        self.mcif_incommensurate = CifParser(f"{TEST_FILES_DIR}/mcif/magnetic.incommensurate.example.Cr.mcif")
+        self.mcif_disordered = CifParser(f"{TEST_FILES_DIR}/mcif/magnetic.disordered.example.CuMnO2.mcif")
+        self.mcif_ncl2 = CifParser(f"{TEST_FILES_DIR}/mcif/Mn3Ge_IR2.mcif")
 
     def test_mcif_detection(self):
         assert self.mcif.feature_flags["magcif"]
@@ -1019,7 +1026,7 @@ Gd1 5.05 5.05 0.0"""
         assert s_ncl.matches(s_ncl_from_msg)
 
     def test_write(self):
-        with open(f"{TEST_FILES_DIR}/GdB4-writer-ref.mcif") as file:
+        with open(f"{TEST_FILES_DIR}/mcif/GdB4-writer-ref.mcif") as file:
             cw_ref_string = file.read()
         s_ncl = self.mcif_ncl.parse_structures(primitive=False)[0]
 
@@ -1039,7 +1046,7 @@ Gd1 5.05 5.05 0.0"""
         s_ncl.add_site_property("magmom", float_magmoms)
         cw = CifWriter(s_ncl, write_magmoms=True)
 
-        with open(f"{TEST_FILES_DIR}/GdB4-str-magnitudes-ref.mcif") as file:
+        with open(f"{TEST_FILES_DIR}/mcif/GdB4-str-magnitudes-ref.mcif") as file:
             cw_ref_string_magnitudes = file.read()
 
         assert str(cw).strip() == cw_ref_string_magnitudes.strip()
@@ -1057,13 +1064,13 @@ Gd1 5.05 5.05 0.0"""
         cw = CifWriter(s_manual, write_magmoms=True)
 
         # check oxidation state
-        with open(f"{TEST_FILES_DIR}/CsCl-manual-oxi-ref.mcif") as file:
+        with open(f"{TEST_FILES_DIR}/mcif/CsCl-manual-oxi-ref.mcif") as file:
             cw_manual_oxi_string = file.read()
         s_manual.add_oxidation_state_by_site([1, 1])
         cw = CifWriter(s_manual, write_magmoms=True)
         assert str(cw) == cw_manual_oxi_string
 
-    @unittest.skipIf(pybtex is None, "pybtex not present")
+    @pytest.mark.skipif(pybtex is None, reason="pybtex not present")
     def test_bibtex(self):
         ref_bibtex_string = """@article{cifref0,
     author = "Blanco, J.A.",

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import unittest
 from math import pi
 from shutil import which
 from typing import get_args
@@ -46,7 +45,7 @@ TEST_DIR = f"{TEST_FILES_DIR}/fragmenter_files"
 class TestValenceIonicRadiusEvaluator(PymatgenTest):
     def setUp(self):
         """Setup MgO rocksalt structure for testing Vacancy."""
-        mgo_latt = [[4.212, 0, 0], [0, 4.212, 0], [0, 0, 4.212]]
+        mgo_latt = np.eye(3) * 4.212
         mgo_specie = ["Mg"] * 4 + ["O"] * 4
         mgo_frac_cord = [
             [0, 0, 0],
@@ -63,12 +62,12 @@ class TestValenceIonicRadiusEvaluator(PymatgenTest):
 
     def test_valences_ionic_structure(self):
         valence_dict = self._mgo_val_rad_evaluator.valences
-        for val in list(valence_dict.values()):
+        for val in valence_dict.values():
             assert val in {2, -2}
 
     def test_radii_ionic_structure(self):
         radii_dict = self._mgo_val_rad_evaluator.radii
-        for rad in list(radii_dict.values()):
+        for rad in radii_dict.values():
             assert rad in {0.86, 1.26}
 
 
@@ -112,7 +111,7 @@ class TestVoronoiNN(PymatgenTest):
 
     def test_nn_shell(self):
         # First, make a SC lattice. Make my math easier
-        struct = Structure([[1, 0, 0], [0, 1, 0], [0, 0, 1]], ["Cu"], [[0, 0, 0]])
+        struct = Structure(np.eye(3), ["Cu"], [[0, 0, 0]])
 
         # Get the 1NN shell
         self.nn.targets = None
@@ -155,7 +154,7 @@ class TestVoronoiNN(PymatgenTest):
 
     def test_adj_neighbors(self):
         # Make a simple cubic structure
-        struct = Structure([[1, 0, 0], [0, 1, 0], [0, 0, 1]], ["Cu"], [[0, 0, 0]])
+        struct = Structure(np.eye(3), ["Cu"], [[0, 0, 0]])
 
         # Compute the NNs with adjacency
         self.nn.targets = None
@@ -173,9 +172,9 @@ class TestVoronoiNN(PymatgenTest):
         all_sites = self.nn.get_all_voronoi_polyhedra(self.struct)
 
         # Make sure they are the same as the single-atom ones
-        for i, site in enumerate(all_sites):
+        for idx, site in enumerate(all_sites):
             # Compute the tessellation using only one site
-            by_one = self.nn.get_voronoi_polyhedra(self.struct, i)
+            by_one = self.nn.get_voronoi_polyhedra(self.struct, idx)
 
             # Match the coordinates the of the neighbors, as site matching does not seem to work?
             all_coords = np.sort([x["site"].coords for x in site.values()], axis=0)
@@ -185,9 +184,9 @@ class TestVoronoiNN(PymatgenTest):
 
         # Test the nn_info operation
         all_nn_info = self.nn.get_all_nn_info(self.struct)
-        for i, info in enumerate(all_nn_info):
+        for idx, info in enumerate(all_nn_info):
             # Compute using the by-one method
-            by_one = self.nn.get_nn_info(self.struct, i)
+            by_one = self.nn.get_nn_info(self.struct, idx)
 
             # Get the weights
             all_weights = sorted(x["weight"] for x in info)
@@ -217,7 +216,7 @@ class TestVoronoiNN(PymatgenTest):
 
         # Make a bcc crystal
         bcc = Structure(
-            [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+            np.eye(3),
             ["Cu", "Cu"],
             [[0, 0, 0], [0.5, 0.5, 0.5]],
             coords_are_cartesian=False,
@@ -287,8 +286,8 @@ class TestIsayevNN(PymatgenTest):
 class TestOpenBabelNN(PymatgenTest):
     def setUp(self):
         pytest.importorskip("openbabel")
-        self.benzene = Molecule.from_file(f"{TEST_FILES_DIR}/benzene.xyz")
-        self.acetylene = Molecule.from_file(f"{TEST_FILES_DIR}/acetylene.xyz")
+        self.benzene = Molecule.from_file(f"{TEST_FILES_DIR}/xyz/benzene.xyz")
+        self.acetylene = Molecule.from_file(f"{TEST_FILES_DIR}/xyz/acetylene.xyz")
 
     def test_nn_orders(self):
         strategy = OpenBabelNN()
@@ -318,8 +317,8 @@ class TestOpenBabelNN(PymatgenTest):
 
 class TestCovalentBondNN(PymatgenTest):
     def setUp(self):
-        self.benzene = Molecule.from_file(f"{TEST_FILES_DIR}/benzene.xyz")
-        self.acetylene = Molecule.from_file(f"{TEST_FILES_DIR}/acetylene.xyz")
+        self.benzene = Molecule.from_file(f"{TEST_FILES_DIR}/xyz/benzene.xyz")
+        self.acetylene = Molecule.from_file(f"{TEST_FILES_DIR}/xyz/acetylene.xyz")
 
     def test_nn_orders(self):
         strategy = CovalentBondNN()
@@ -509,7 +508,7 @@ class TestMotifIdentification(PymatgenTest):
             site_properties=None,
         )
         self.square_pyramid = Structure(
-            Lattice([[100, 0, 0], [0, 100, 0], [0, 0, 100]]),
+            Lattice(np.eye(3) * 100),
             ["C", "C", "C", "C", "C", "C"],
             [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1]],
             validate_proximity=False,
@@ -518,7 +517,7 @@ class TestMotifIdentification(PymatgenTest):
             site_properties=None,
         )
         self.trigonal_bipyramid = Structure(
-            Lattice([[100, 0, 0], [0, 100, 0], [0, 0, 100]]),
+            Lattice(np.eye(3) * 100),
             ["P", "Cl", "Cl", "Cl", "Cl", "Cl"],
             [
                 [0, 0, 0],
@@ -1326,7 +1325,7 @@ class TestCutOffDictNN(PymatgenTest):
             CutOffDictNN.from_preset("test")
 
 
-@unittest.skipIf(not which("critic2"), "critic2 executable not present")
+@pytest.mark.skipif(not which("critic2"), reason="critic2 executable not present")
 class TestCritic2NN(PymatgenTest):
     def setUp(self):
         self.diamond = Structure(
