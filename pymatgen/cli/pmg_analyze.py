@@ -104,11 +104,11 @@ def get_magnetizations(dir: str, ion_list: list[int]):
     data = []
     max_row = 0
     for parent, _subdirs, files in os.walk(dir):
-        for f in files:
-            if re.match(r"OUTCAR*", f):
+        for file in files:
+            if re.match(r"OUTCAR*", file):
                 try:
                     row = []
-                    fullpath = os.path.join(parent, f)
+                    fullpath = os.path.join(parent, file)
                     outcar = Outcar(fullpath)
                     mags = outcar.magnetization
                     mags = [m["tot"] for m in mags]
@@ -143,15 +143,15 @@ def analyze(args):
     default_energies = not (args.get_energies or args.ion_list)
 
     if args.get_energies or default_energies:
-        for d in args.directories:
-            return get_energies(d, args.reanalyze, args.verbose, args.quick, args.sort, args.format)
+        for folder in args.directories:
+            return get_energies(folder, args.reanalyze, args.verbose, args.quick, args.sort, args.format)
     if args.ion_list:
         if args.ion_list[0] == "All":
             ion_list = None
         else:
-            (start, end) = (int(i) for i in re.split(r"-", args.ion_list[0]))
+            start, end = (int(i) for i in re.split(r"-", args.ion_list[0]))
             ion_list = list(range(start, end + 1))
-        for d in args.directories:
-            return get_magnetizations(d, ion_list)
+        for folder in args.directories:
+            return get_magnetizations(folder, ion_list)
 
     return -1

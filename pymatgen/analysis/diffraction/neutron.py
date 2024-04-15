@@ -79,15 +79,15 @@ class NDCalculator(AbstractDiffractionPatternCalculator):
                 sphere of radius 2 / wavelength.
 
         Returns:
-            (NDPattern)
+            DiffractionPattern: ND pattern
         """
         if self.symprec:
             finder = SpacegroupAnalyzer(structure, symprec=self.symprec)
             structure = finder.get_refined_structure()
 
         wavelength = self.wavelength
-        latt = structure.lattice
-        is_hex = latt.is_hexagonal()
+        lattice = structure.lattice
+        is_hex = lattice.is_hexagonal()
 
         # Obtained from Bragg condition. Note that reciprocal lattice
         # vector length is 1 / d_hkl.
@@ -98,7 +98,7 @@ class NDCalculator(AbstractDiffractionPatternCalculator):
         )
 
         # Obtain crystallographic reciprocal lattice points within range
-        recip_latt = latt.reciprocal_lattice_crystallographic
+        recip_latt = lattice.reciprocal_lattice_crystallographic
         recip_pts = recip_latt.get_points_in_sphere([[0, 0, 0]], [0, 0, 0], max_r)
         if min_r:
             recip_pts = [pt for pt in recip_pts if pt[1] >= min_r]

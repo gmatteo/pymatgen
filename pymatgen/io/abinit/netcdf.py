@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 import os.path
 import warnings
+from typing import TYPE_CHECKING
 
 import numpy as np
 from monty.collections import AttrDict
@@ -17,6 +18,9 @@ from monty.string import marquee
 from pymatgen.core.units import ArrayWithUnit
 #from pymatgen.core.xcfunc import XcFunc
 #from pymatgen.core.structure import Structure
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 try:
     import netCDF4
@@ -93,7 +97,7 @@ class NetcdfReader:
         # See also https://github.com/Unidata/netcdf4-python/issues/785
         self.rootgrp.set_auto_mask(False)
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Activated when used in the with statement."""
         return self
 

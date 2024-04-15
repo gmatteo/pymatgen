@@ -21,6 +21,8 @@ from pymatgen.util.string import transformation_to_string
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from typing_extensions import Self
+
     from pymatgen.core.lattice import Lattice
 
 __author__ = "Matthew Horton, Shyue Ping Ong"
@@ -191,10 +193,10 @@ class MagneticSpaceGroup(SymmetryGroup):
             n = 1  # nth Wyckoff site
             num_wyckoff = b[0]
             while len(wyckoff_sites) < num_wyckoff:
-                m = b[1 + o]  # multiplicity
-                label = str(b[2 + o] * m) + get_label(num_wyckoff - n)
+                multiplicity = b[1 + o]
+                label = str(b[2 + o] * multiplicity) + get_label(num_wyckoff - n)
                 sites = []
-                for j in range(m):
+                for j in range(multiplicity):
                     s = b[3 + o + (j * 22) : 3 + o + (j * 22) + 22]  # data corresponding to specific Wyckoff position
                     translation_vec = [s[0] / s[3], s[1] / s[3], s[2] / s[3]]
                     matrix = [
@@ -225,7 +227,7 @@ class MagneticSpaceGroup(SymmetryGroup):
                 # could do something else with these in future
                 wyckoff_sites.append({"label": label, "str": " ".join(s["str"] for s in sites)})
                 n += 1
-                o += m * 22 + 2
+                o += multiplicity * 22 + 2
 
             return wyckoff_sites
 
@@ -284,7 +286,7 @@ class MagneticSpaceGroup(SymmetryGroup):
         db.close()
 
     @classmethod
-    def from_og(cls, label: Sequence[int] | str) -> MagneticSpaceGroup:
+    def from_og(cls, label: Sequence[int] | str) -> Self:
         """Initialize from Opechowski and Guccione (OG) label or number.
 
         Args:

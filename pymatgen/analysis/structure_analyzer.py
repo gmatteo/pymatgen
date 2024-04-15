@@ -228,12 +228,12 @@ class RelaxationAnalyzer:
                 reason to duplicate the information or computation.
         """
         data: dict[int, dict[int, float]] = collections.defaultdict(dict)
-        for inds in itertools.combinations(list(range(len(self.initial))), 2):
-            (i, j) = sorted(inds)
-            initial_dist = self.initial[i].distance(self.initial[j])
+        for indices in itertools.combinations(list(range(len(self.initial))), 2):
+            ii, jj = sorted(indices)
+            initial_dist = self.initial[ii].distance(self.initial[jj])
             if initial_dist < max_radius:
-                final_dist = self.final[i].distance(self.final[j])
-                data[i][j] = final_dist / initial_dist - 1
+                final_dist = self.final[ii].distance(self.final[jj])
+                data[ii][jj] = final_dist / initial_dist - 1
         return data
 
 
@@ -518,7 +518,7 @@ def sulfide_type(structure):
         structure (Structure): Input structure.
 
     Returns:
-        (str) sulfide/polysulfide or None if structure is a sulfate.
+        str: sulfide/polysulfide or None if structure is a sulfate.
     """
     structure = structure.copy().remove_oxidation_states()
     sulphur = Element("S")
@@ -549,7 +549,7 @@ def sulfide_type(structure):
         neighbors = sorted(neighbors, key=lambda n: n.nn_distance)
         dist = neighbors[0].nn_distance
         coord_elements = [nn.specie for nn in neighbors if nn.nn_distance < dist + 0.4][:4]
-        avg_electroneg = np.mean([e.X for e in coord_elements])
+        avg_electroneg = np.mean([elem.X for elem in coord_elements])
         if avg_electroneg > sulphur.X:
             return "sulfate"
         if avg_electroneg == sulphur.X and sulphur in coord_elements:

@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 import sys
 import warnings
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from monty.json import MSONable
@@ -27,6 +27,9 @@ from pymatgen.io.lobster import Cohpcar
 from pymatgen.util.coord import get_linear_interpolated_value
 from pymatgen.util.due import Doi, due
 from pymatgen.util.num import round_to_sigfigs
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 __author__ = "Marco Esters, Janine George"
 __copyright__ = "Copyright 2017, The Materials Project"
@@ -166,8 +169,8 @@ class Cohp(MSONable):
             return None
         if spin is None:
             dict_to_return = {}
-            for sp, cohpvalues in populations.items():
-                if (max(cohpvalues[0:n_energies_below_efermi])) > limit:
+            for sp, cohp_vals in populations.items():
+                if (max(cohp_vals[0:n_energies_below_efermi])) > limit:
                     dict_to_return[sp] = True
                 else:
                     dict_to_return[sp] = False
@@ -176,8 +179,7 @@ class Cohp(MSONable):
             if isinstance(spin, int):
                 spin = Spin(spin)
             elif isinstance(spin, str):
-                s = {"up": 1, "down": -1}[spin.lower()]
-                spin = Spin(s)
+                spin = Spin({"up": 1, "down": -1}[spin.lower()])
             if (max(populations[spin][0:n_energies_below_efermi])) > limit:
                 dict_to_return[spin] = True
             else:
@@ -186,12 +188,12 @@ class Cohp(MSONable):
         return dict_to_return
 
     @classmethod
-    def from_dict(cls, dct: dict[str, Any]) -> Cohp:
+    def from_dict(cls, dct: dict[str, Any]) -> Self:
         """Returns a COHP object from a dict representation of the COHP."""
         icohp = {Spin(int(key)): np.array(val) for key, val in dct["ICOHP"].items()} if "ICOHP" in dct else None
         are_cobis = dct.get("are_cobis", False)
         are_multi_center_cobis = dct.get("are_multi_center_cobis", False)
-        return Cohp(
+        return cls(
             dct["efermi"],
             dct["energies"],
             {Spin(int(key)): np.array(val) for key, val in dct["COHP"].items()},
@@ -439,7 +441,7 @@ class CompleteCohp(Cohp):
         first_cohpobject = self.get_orbital_resolved_cohp(label_list[0], orbital_list[0])
         summed_cohp = first_cohpobject.cohp.copy()
         summed_icohp = first_cohpobject.icohp.copy()
-        for ilabel, label in enumerate(label_list[1:], 1):
+        for ilabel, label in enumerate(label_list[1:], start=1):
             cohp_here = self.get_orbital_resolved_cohp(label, orbital_list[ilabel])
             summed_cohp[Spin.up] = np.sum([summed_cohp[Spin.up], cohp_here.cohp.copy()[Spin.up]], axis=0)
             if Spin.down in summed_cohp:
@@ -543,7 +545,7 @@ class CompleteCohp(Cohp):
         )
 
     @classmethod
-    def from_dict(cls, dct):
+    def from_dict(cls, dct: dict) -> Self:
         """Returns CompleteCohp object from dict representation."""
         # TODO: clean that mess up?
         cohp_dict = {}
@@ -584,7 +586,7 @@ class CompleteCohp(Cohp):
                 cohp_dict[label] = Cohp(efermi, energies, cohp, icohp=icohp)
 
         if "orb_res_cohp" in dct:
-            orb_cohp = {}
+            orb_cohp: dict[str, dict] = {}
             for label in dct["orb_res_cohp"]:
                 orb_cohp[label] = {}
                 for orb in dct["orb_res_cohp"][label]:
@@ -607,7 +609,7 @@ class CompleteCohp(Cohp):
                     }
                 # If no total COHPs are present, calculate the total
                 # COHPs from the single-orbital populations. Total COHPs
-                # may not be present when the cohpgenerator keyword is used
+                # may not be present when the COHP generator keyword is used
                 # in LOBSTER versions 2.2.0 and earlier.
                 if label not in dct["COHP"] or dct["COHP"][label] is None:
                     cohp = {
@@ -640,11 +642,11 @@ class CompleteCohp(Cohp):
                     except KeyError:
                         pass
         else:
-            orb_cohp = None
+            orb_cohp = {}
 
         are_cobis = dct.get("are_cobis", False)
 
-        return CompleteCohp(
+        return cls(
             structure,
             avg_cohp,
             cohp_dict,
@@ -658,7 +660,7 @@ class CompleteCohp(Cohp):
     @classmethod
     def from_file(
         cls, fmt, filename=None, structure_file=None, are_coops=False, are_cobis=False, are_multi_center_cobis=False
-    ):
+    ) -> Self:
         """
         Creates a CompleteCohp object from an output file of a COHP
         calculation. Valid formats are either LMTO (for the Stuttgart
@@ -695,7 +697,7 @@ class CompleteCohp(Cohp):
                 structure_file = "CTRL"
             if filename is None:
                 filename = "COPL"
-            cohp_file = LMTOCopl(filename=filename, to_eV=True)
+            cohp_file: LMTOCopl | Cohpcar = LMTOCopl(filename=filename, to_eV=True)
         elif fmt == "LOBSTER":
             if (
                 (are_coops and are_cobis)
@@ -762,7 +764,7 @@ class CompleteCohp(Cohp):
         if fmt == "LMTO":
             # Calculate the average COHP for the LMTO file to be
             # consistent with LOBSTER output.
-            avg_data = {"COHP": {}, "ICOHP": {}}
+            avg_data: dict[str, dict] = {"COHP": {}, "ICOHP": {}}
             for i in avg_data:
                 for spin in spins:
                     rows = np.array([v[i][spin] for v in cohp_data.values()])
@@ -770,57 +772,52 @@ class CompleteCohp(Cohp):
                     # LMTO COHPs have 5 significant figures
                     avg_data[i].update({spin: np.array([round_to_sigfigs(a, 5) for a in avg], dtype=float)})
             avg_cohp = Cohp(efermi, energies, avg_data["COHP"], icohp=avg_data["ICOHP"])
+        elif not are_multi_center_cobis:
+            avg_cohp = Cohp(
+                efermi,
+                energies,
+                cohp_data["average"]["COHP"],
+                icohp=cohp_data["average"]["ICOHP"],
+                are_coops=are_coops,
+                are_cobis=are_cobis,
+                are_multi_center_cobis=are_multi_center_cobis,
+            )
+            del cohp_data["average"]
         else:
-            if not are_multi_center_cobis:
-                avg_cohp = Cohp(
-                    efermi,
-                    energies,
-                    cohp_data["average"]["COHP"],
-                    icohp=cohp_data["average"]["ICOHP"],
-                    are_coops=are_coops,
-                    are_cobis=are_cobis,
-                    are_multi_center_cobis=are_multi_center_cobis,
-                )
-                del cohp_data["average"]
-            else:
-                # only include two-center cobis in average
-                # do this for both spin channels
-                cohp = {}
-                cohp[Spin.up] = np.array(
-                    [np.array(c["COHP"][Spin.up]) for c in cohp_file.cohp_data.values() if len(c["sites"]) <= 2]
+            # only include two-center cobis in average
+            # do this for both spin channels
+            cohp = {}
+            cohp[Spin.up] = np.array(
+                [np.array(c["COHP"][Spin.up]) for c in cohp_file.cohp_data.values() if len(c["sites"]) <= 2]
+            ).mean(axis=0)
+            try:
+                cohp[Spin.down] = np.array(
+                    [np.array(c["COHP"][Spin.down]) for c in cohp_file.cohp_data.values() if len(c["sites"]) <= 2]
+                ).mean(axis=0)
+            except KeyError:
+                pass
+            try:
+                icohp = {}
+                icohp[Spin.up] = np.array(
+                    [np.array(c["ICOHP"][Spin.up]) for c in cohp_file.cohp_data.values() if len(c["sites"]) <= 2]
                 ).mean(axis=0)
                 try:
-                    cohp[Spin.down] = np.array(
-                        [np.array(c["COHP"][Spin.down]) for c in cohp_file.cohp_data.values() if len(c["sites"]) <= 2]
+                    icohp[Spin.down] = np.array(
+                        [np.array(c["ICOHP"][Spin.down]) for c in cohp_file.cohp_data.values() if len(c["sites"]) <= 2]
                     ).mean(axis=0)
                 except KeyError:
                     pass
-                try:
-                    icohp = {}
-                    icohp[Spin.up] = np.array(
-                        [np.array(c["ICOHP"][Spin.up]) for c in cohp_file.cohp_data.values() if len(c["sites"]) <= 2]
-                    ).mean(axis=0)
-                    try:
-                        icohp[Spin.down] = np.array(
-                            [
-                                np.array(c["ICOHP"][Spin.down])
-                                for c in cohp_file.cohp_data.values()
-                                if len(c["sites"]) <= 2
-                            ]
-                        ).mean(axis=0)
-                    except KeyError:
-                        pass
-                except KeyError:
-                    icohp = None
-                avg_cohp = Cohp(
-                    efermi,
-                    energies,
-                    cohp,
-                    icohp=icohp,
-                    are_coops=are_coops,
-                    are_cobis=are_cobis,
-                    are_multi_center_cobis=are_multi_center_cobis,
-                )
+            except KeyError:
+                icohp = None
+            avg_cohp = Cohp(
+                efermi,
+                energies,
+                cohp,
+                icohp=icohp,
+                are_coops=are_coops,
+                are_cobis=are_cobis,
+                are_multi_center_cobis=are_multi_center_cobis,
+            )
 
         cohp_dict = {
             key: Cohp(
@@ -843,7 +840,7 @@ class CompleteCohp(Cohp):
             for key, dct in cohp_data.items()
         }
 
-        return CompleteCohp(
+        return cls(
             structure,
             avg_cohp,
             cohp_dict,
@@ -1004,7 +1001,7 @@ class IcohpValue(MSONable):
     @property
     def icohp(self):
         """Dict with icohps for spinup and spindown
-        Return:
+        Returns:
             dict={Spin.up: icohpvalue for spin.up, Spin.down: icohpvalue for spin.down}.
         """
         return self._icohp

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-import unittest
+from unittest import TestCase
 
 import numpy as np
 import pytest
@@ -268,7 +268,7 @@ class TestCohpcar(PymatgenTest):
                             assert cohp1 == approx(cohp2, abs=1e-3)
 
     def test_orbital_resolved_cohp(self):
-        orbitals = [(Orbital(i), Orbital(j)) for j in range(4) for i in range(4)]
+        orbitals = [(Orbital(jj), Orbital(ii)) for ii in range(4) for jj in range(4)]
         assert self.cohp_bise.orb_res_cohp is None
         assert self.coop_bise.orb_res_cohp is None
         assert self.cohp_fe.orb_res_cohp is None
@@ -369,7 +369,7 @@ class TestCohpcar(PymatgenTest):
         assert len(self.cobi6.orb_res_cohp["21"]["2py-1s-2s"]["COHP"][Spin.down]) == 12
 
 
-class TestIcohplist(unittest.TestCase):
+class TestIcohplist(TestCase):
     def setUp(self):
         self.icohp_bise = Icohplist(filename=f"{TEST_FILES_DIR}/cohp/ICOHPLIST.lobster.BiSe")
         self.icoop_bise = Icohplist(
@@ -639,7 +639,7 @@ class TestIcohplist(unittest.TestCase):
                 assert getattr(icohplist_from_dict, attr_name) == attr_value
 
 
-class TestNciCobiList(unittest.TestCase):
+class TestNciCobiList(TestCase):
     def setUp(self):
         self.ncicobi = NciCobiList(filename=f"{TEST_FILES_DIR}/cohp/NcICOBILIST.lobster")
         self.ncicobi_gz = NciCobiList(filename=f"{TEST_FILES_DIR}/cohp/NcICOBILIST.lobster.gz")
@@ -677,7 +677,7 @@ class TestNciCobiList(unittest.TestCase):
         )
 
 
-class TestDoscar(unittest.TestCase):
+class TestDoscar(TestCase):
     def setUp(self):
         # first for spin polarized version
         doscar = f"{VASP_OUT_DIR}/DOSCAR.lobster.spin"
@@ -693,7 +693,7 @@ class TestDoscar(unittest.TestCase):
         self.DOSCAR_spin_pol = Doscar(doscar=doscar, structure_file=poscar)
         self.DOSCAR_nonspin_pol = Doscar(doscar=doscar2, structure_file=poscar2)
 
-        with open(f"{TEST_FILES_DIR}/structure_KF.json") as file:
+        with open(f"{TEST_FILES_DIR}/structure_KF.json", encoding="utf-8") as file:
             data = json.load(file)
 
         self.structure = Structure.from_dict(data)
@@ -1556,7 +1556,7 @@ class TestFatband(PymatgenTest):
         assert bs_p_x.get_projection_on_elements()[Spin.up][0][0]["Si"] == approx(3 * (0.001 + 0.064), abs=1e-2)
 
 
-class TestLobsterin(unittest.TestCase):
+class TestLobsterin(TestCase):
     def setUp(self):
         self.Lobsterinfromfile = Lobsterin.from_file(f"{TEST_FILES_DIR}/cohp/lobsterin.1")
         self.Lobsterinfromfile2 = Lobsterin.from_file(f"{TEST_FILES_DIR}/cohp/lobsterin.2")
@@ -1612,11 +1612,11 @@ class TestLobsterin(unittest.TestCase):
         assert lobsterin["basisfunctions"][0] == "Fe 3d 4p 4s"
         assert lobsterin["basisfunctions"][1] == "Co 3d 4p 4s"
         assert {*lobsterin} >= {"skipdos", "skipcohp", "skipcoop", "skippopulationanalysis", "skipgrosspopulation"}
-        with pytest.raises(IOError, match="There are duplicates for the keywords! The program will stop here."):
+        with pytest.raises(KeyError, match="There are duplicates for the keywords!"):
             lobsterin2 = Lobsterin({"cohpstartenergy": -15.0, "cohpstartEnergy": -20.0})
         lobsterin2 = Lobsterin({"cohpstartenergy": -15.0})
         # can only calculate nbands if basis functions are provided
-        with pytest.raises(IOError, match="No basis functions are provided. The program cannot calculate nbands"):
+        with pytest.raises(ValueError, match="No basis functions are provided. The program cannot calculate nbands"):
             lobsterin2._get_nbands(structure=Structure.from_file(f"{VASP_IN_DIR}/POSCAR_Fe3O4"))
 
     def test_standard_settings(self):
@@ -1752,7 +1752,7 @@ class TestLobsterin(unittest.TestCase):
     def test_diff(self):
         # test diff
         assert self.Lobsterinfromfile.diff(self.Lobsterinfromfile2)["Different"] == {}
-        assert self.Lobsterinfromfile.diff(self.Lobsterinfromfile2)["Same"]["COHPSTARTENERGY"] == approx(-15.0)
+        assert self.Lobsterinfromfile.diff(self.Lobsterinfromfile2)["Same"]["cohpstartenergy"] == approx(-15.0)
 
         # test diff in both directions
         for entry in self.Lobsterinfromfile.diff(self.Lobsterinfromfile3)["Same"]:
@@ -1765,8 +1765,8 @@ class TestLobsterin(unittest.TestCase):
             assert entry in self.Lobsterinfromfile.diff(self.Lobsterinfromfile3)["Different"]
 
         assert (
-            self.Lobsterinfromfile.diff(self.Lobsterinfromfile3)["Different"]["SKIPCOHP"]["lobsterin1"]
-            == self.Lobsterinfromfile3.diff(self.Lobsterinfromfile)["Different"]["SKIPCOHP"]["lobsterin2"]
+            self.Lobsterinfromfile.diff(self.Lobsterinfromfile3)["Different"]["skipcohp"]["lobsterin1"]
+            == self.Lobsterinfromfile3.diff(self.Lobsterinfromfile)["Different"]["skipcohp"]["lobsterin2"]
         )
 
     def test_dict_functionality(self):
@@ -1792,8 +1792,6 @@ class TestLobsterin(unittest.TestCase):
         lobsterin1.write_lobsterin(outfile_path)
         lobsterin2 = Lobsterin.from_file(outfile_path)
         assert lobsterin1.diff(lobsterin2)["Different"] == {}
-
-        # TODO: will integer vs float break cohpsteps?
 
     def test_get_basis(self):
         # get basis functions
@@ -2030,7 +2028,7 @@ class TestLobsterin(unittest.TestCase):
         new_lobsterin.to_json()
 
 
-class TestBandoverlaps(unittest.TestCase):
+class TestBandoverlaps(TestCase):
     def setUp(self):
         # test spin-polarized calc and non spinpolarized calc
 
@@ -2189,7 +2187,7 @@ class TestBandoverlaps(unittest.TestCase):
         assert len(bo_dict_new[Spin.down]["matrices"]) == 73
 
 
-class TestGrosspop(unittest.TestCase):
+class TestGrosspop(TestCase):
     def setUp(self):
         self.grosspop1 = Grosspop(f"{TEST_FILES_DIR}/cohp/GROSSPOP.lobster")
 
@@ -2590,7 +2588,7 @@ class TestLobsterMatrices(PymatgenTest):
             self.hamilton_matrices = LobsterMatrices(filename=f"{TEST_FILES_DIR}/cohp/Na_hamiltonMatrices.lobster.gz")
 
         with pytest.raises(
-            OSError,
-            match=r"Please check provided input file, it seems to be empty",
+            RuntimeError,
+            match="Please check provided input file, it seems to be empty",
         ):
             self.hamilton_matrices = LobsterMatrices(filename=f"{TEST_FILES_DIR}/cohp/hamiltonMatrices.lobster")

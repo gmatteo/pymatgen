@@ -49,12 +49,12 @@ class InsertSitesTransformation(AbstractTransformation):
     def apply_transformation(self, structure: Structure):
         """Apply the transformation.
 
-        Arg:
+        Args:
             structure (Structure): A structurally similar structure in
                 regards to crystal and site positions.
 
-        Return:
-            Returns a copy of structure with sites inserted.
+        Returns:
+            A copy of structure with sites inserted.
         """
         struct = structure.copy()
         for idx, sp in enumerate(self.species):
@@ -72,12 +72,12 @@ class InsertSitesTransformation(AbstractTransformation):
 
     @property
     def inverse(self):
-        """Return: None."""
+        """Returns None."""
         return
 
     @property
     def is_one_to_many(self) -> bool:
-        """Return: False."""
+        """Returns False."""
         return False
 
 
@@ -99,31 +99,31 @@ class ReplaceSiteSpeciesTransformation(AbstractTransformation):
     def apply_transformation(self, structure: Structure):
         """Apply the transformation.
 
-        Arg:
+        Args:
             structure (Structure): A structurally similar structure in
                 regards to crystal and site positions.
 
-        Return:
-            Returns a copy of structure with sites replaced.
+        Returns:
+            A copy of structure with sites replaced.
         """
         struct = structure.copy()
-        for i, sp in self.indices_species_map.items():
-            struct[int(i)] = sp
+        for idx, sp in self.indices_species_map.items():
+            struct[int(idx)] = sp
         return struct
 
     def __repr__(self):
         return "ReplaceSiteSpeciesTransformation :" + ", ".join(
-            [f"{k}->{v}" + v for k, v in self.indices_species_map.items()]
+            [f"{key}->{val}" + val for key, val in self.indices_species_map.items()]
         )
 
     @property
     def inverse(self):
-        """Return: None."""
+        """Returns None."""
         return
 
     @property
     def is_one_to_many(self) -> bool:
-        """Return: False."""
+        """Returns False."""
         return False
 
 
@@ -140,12 +140,12 @@ class RemoveSitesTransformation(AbstractTransformation):
     def apply_transformation(self, structure: Structure):
         """Apply the transformation.
 
-        Arg:
+        Args:
             structure (Structure): A structurally similar structure in
                 regards to crystal and site positions.
 
-        Return:
-            Returns a copy of structure with sites removed.
+        Returns:
+            A copy of structure with sites removed.
         """
         struct = structure.copy()
         struct.remove_sites(self.indices_to_remove)
@@ -156,12 +156,12 @@ class RemoveSitesTransformation(AbstractTransformation):
 
     @property
     def inverse(self):
-        """Return: None."""
+        """Returns None."""
         return
 
     @property
     def is_one_to_many(self) -> bool:
-        """Return: False."""
+        """Returns False."""
         return False
 
 
@@ -187,12 +187,12 @@ class TranslateSitesTransformation(AbstractTransformation):
     def apply_transformation(self, structure: Structure):
         """Apply the transformation.
 
-        Arg:
+        Args:
             structure (Structure): A structurally similar structure in
                 regards to crystal and site positions.
 
-        Return:
-            Returns a copy of structure with sites translated.
+        Returns:
+            A copy of structure with sites translated.
         """
         struct = structure.copy()
         if self.translation_vector.shape == (len(self.indices_to_move), 3):
@@ -219,7 +219,7 @@ class TranslateSitesTransformation(AbstractTransformation):
 
     @property
     def is_one_to_many(self) -> bool:
-        """Return: False."""
+        """Returns False."""
         return False
 
     def as_dict(self):
@@ -487,12 +487,12 @@ class PartialRemoveSitesTransformation(AbstractTransformation):
 
     @property
     def inverse(self) -> None:
-        """Return: None."""
+        """Returns None."""
         return
 
     @property
     def is_one_to_many(self) -> bool:
-        """Return: True."""
+        """Returns True."""
         return True
 
 
@@ -509,12 +509,12 @@ class AddSitePropertyTransformation(AbstractTransformation):
     def apply_transformation(self, structure: Structure):
         """Apply the transformation.
 
-        Arg:
+        Args:
             structure (Structure): A structurally similar structure in
                 regards to crystal and site positions.
 
-        Return:
-            Returns a copy of structure with sites properties added.
+        Returns:
+            A copy of structure with sites properties added.
         """
         new_struct = structure.copy()
         for prop in self.site_properties:
@@ -523,12 +523,12 @@ class AddSitePropertyTransformation(AbstractTransformation):
 
     @property
     def inverse(self):
-        """Return: None."""
+        """Returns None."""
         return
 
     @property
     def is_one_to_many(self) -> bool:
-        """Return: False."""
+        """Returns False."""
         return False
 
 

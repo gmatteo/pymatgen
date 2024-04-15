@@ -6,7 +6,7 @@ import bisect
 from copy import copy, deepcopy
 from datetime import datetime
 from math import log, pi, sqrt
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 import numpy as np
@@ -16,6 +16,9 @@ from scipy.special import comb, erfc
 
 from pymatgen.core.structure import Structure
 from pymatgen.util.due import Doi, due
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 __author__ = "Shyue Ping Ong, William Davidson Richard"
 __copyright__ = "Copyright 2011, The Materials Project"
@@ -288,7 +291,7 @@ class EwaldSummation(MSONable):
             site_index (int): Index of site
 
         Returns:
-        (float) - Energy of that site
+            float: Energy of that site
         """
         if not self._initialized:
             self._calc_ewald_terms()
@@ -341,8 +344,7 @@ class EwaldSummation(MSONable):
 
         for g, g2, gr, exp_val, s_real, s_imag in zip(gs, g2s, grs, exp_vals, s_reals, s_imags):
             # Uses the identity sin(x)+cos(x) = 2**0.5 sin(x + pi/4)
-            m = (gr[None, :] + pi / 4) - gr[:, None]
-            np.sin(m, m)
+            m = np.sin((gr[None, :] + pi / 4) - gr[:, None])
             m *= exp_val / g2
 
             e_recip += m
@@ -444,11 +446,11 @@ class EwaldSummation(MSONable):
         }
 
     @classmethod
-    def from_dict(cls, dct: dict[str, Any], fmt: str | None = None, **kwargs) -> EwaldSummation:
+    def from_dict(cls, dct: dict[str, Any], fmt: str | None = None, **kwargs) -> Self:
         """Create an EwaldSummation instance from JSON-serialized dictionary.
 
         Args:
-            d (dict): Dictionary representation
+            dct (dict): Dictionary representation
             fmt (str, optional): Unused. Defaults to None.
 
         Returns:

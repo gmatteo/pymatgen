@@ -351,21 +351,21 @@ class GulpIO:
         """
         gulp_lib_set = "GULP_LIB" in os.environ
 
-        def readable(f):
-            return os.path.isfile(f) and os.access(f, os.R_OK)
+        def readable(file):
+            return os.path.isfile(file) and os.access(file, os.R_OK)
 
         gin = ""
         dirpath, _fname = os.path.split(file_name)
         if dirpath and readable(file_name):  # Full path specified
-            gin = "library " + file_name
+            gin = f"library {file_name}"
         else:
             fpath = os.path.join(os.getcwd(), file_name)  # Check current dir
             if readable(fpath):
-                gin = "library " + fpath
+                gin = f"library {fpath}"
             elif gulp_lib_set:  # Check the GULP_LIB path
                 fpath = os.path.join(os.environ["GULP_LIB"], file_name)
                 if readable(fpath):
-                    gin = "library " + file_name
+                    gin = f"library {file_name}"
         if gin:
             return gin + "\n"
         raise GulpError("GULP library not found")
@@ -541,7 +541,7 @@ class GulpIO:
             gout (str): GULP output string.
 
         Returns:
-            (Structure) relaxed structure.
+            Structure: relaxed structure.
         """
         # Find the structure lines
         structure_lines = []
@@ -549,6 +549,7 @@ class GulpIO:
         output_lines = gout.split("\n")
         n_lines = len(output_lines)
         idx = 0
+        a = b = c = alpha = beta = gamma = 0.0
         # Compute the input lattice parameters
         while idx < n_lines:
             line = output_lines[idx]
@@ -621,9 +622,13 @@ class GulpIO:
             alpha = float(cell_param_lines[3].split()[1])
             beta = float(cell_param_lines[4].split()[1])
             gamma = float(cell_param_lines[5].split()[1])
-        latt = Lattice.from_parameters(a, b, c, alpha, beta, gamma)
+        if not all([a, b, c, alpha, beta, gamma]):
+            raise ValueError(
+                f"Missing lattice parameters in Gulp output: {a=}, {b=}, {c=}, {alpha=}, {beta=}, {gamma=}"
+            )
+        lattice = Lattice.from_parameters(a, b, c, alpha, beta, gamma)
 
-        return Structure(latt, sp, coords)
+        return Structure(lattice, sp, coords)
 
 
 class GulpCaller:
