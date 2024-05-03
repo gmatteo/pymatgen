@@ -288,11 +288,10 @@ class ACstrExtractor(ACExtractorBase):
     def get_atom_energies(self) -> np.ndarray | None:
         """Return the energies of individual atoms in material system.
 
-        Returns:
-            np.ndarray | None : The energies of individual atoms within the material system.
+        When turning on `ENERGY DEPOSITION`, PWmat will output energy per atom.
 
-        Description:
-            When turn on `ENERGY DEPOSITION`, PWmat will output energy per atom.
+        Returns:
+            np.ndarray | None: The energies of individual atoms within the material system.
         """
         energies = []
         aim_content = "Atomic-Energy, ".upper()
@@ -405,7 +404,7 @@ class AtomConfig(MSONable):
 
     @classmethod
     def from_file(cls, filename: PathLike, mag: bool = False) -> Self:
-        """Returns a AtomConfig from a file
+        """Get a AtomConfig from a file
 
         Args:
             filename (PathLike): File name containing AtomConfig data
@@ -419,7 +418,7 @@ class AtomConfig(MSONable):
 
     @classmethod
     def from_dict(cls, dct: dict) -> Self:
-        """Returns a AtomConfig object from a dictionary.
+        """Get a AtomConfig object from a dictionary.
 
         Args:
             dct: dict containing atom.config data
@@ -460,7 +459,7 @@ class AtomConfig(MSONable):
         return "".join(lines)
 
     def write_file(self, filename: PathLike, **kwargs):
-        """Writes AtomConfig to a file."""
+        """Write AtomConfig to a file."""
         with zopen(filename, "wt") as file:
             file.write(self.get_str(**kwargs))
 
@@ -535,7 +534,7 @@ class GenKpt(MSONable):
         return cls(rec_lattice, kpts, path, density * 2 * np.pi)
 
     def get_str(self):
-        """Returns a string to be written as a gen.kpt file."""
+        """Get a string to be written as a gen.kpt file."""
 
         def calc_distance(hsp1: str, hsp2: str) -> float:
             """Calculate the distance between two high symmetry points.
@@ -545,7 +544,7 @@ class GenKpt(MSONable):
                 hsp2 (str): The name of the second high symmetry point.
 
             Returns:
-                distance (float): Distance between two high symmetry points.With factor of 2*pi
+                float: The distance between two high symmetry points. With factor of 2*pi.
             """
             hsp1_coord: np.ndarray = np.dot(
                 np.array(self.kpath["kpoints"][hsp1]).reshape(1, 3), self.reciprocal_lattice
@@ -576,7 +575,7 @@ class GenKpt(MSONable):
         return gen_kpt_str
 
     def write_file(self, filename: PathLike):
-        """Writes gen.kpt to a file.
+        """Write gen.kpt to a file.
 
         Args:
             filename (PathLike): The absolute path of file to be written.
@@ -618,13 +617,13 @@ class HighSymmetryPoint(MSONable):
         return cls(reciprocal_lattice, gen_kpt.kpath["kpoints"], gen_kpt.kpath["path"], density * 2 * np.pi)
 
     def get_str(self) -> str:
-        """Returns a string describing high symmetry points in HIGH_SYMMETRY_POINTS format."""
+        """Get a string describing high symmetry points in HIGH_SYMMETRY_POINTS format."""
 
         def calc_distance(hsp1: str, hsp2: str) -> float:
             """Calculate the distance of two high symmetry points.
 
             Returns:
-                distance (float): Calculate the distance of two high symmetry points. With factor of 2*pi.
+                float: The distance between two high symmetry points with factor of 2*pi.
             """
             hsp1_coord: np.ndarray = np.dot(
                 np.array(self.kpath["kpoints"][hsp1]).reshape(1, 3), self.reciprocal_lattice

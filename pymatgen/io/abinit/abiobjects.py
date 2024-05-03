@@ -22,10 +22,9 @@ if TYPE_CHECKING:
 
 
 def lattice_from_abivars(cls=None, *args, **kwargs):
-    """
-    Returns a `Lattice` object from a dictionary
-    with the Abinit variables `acell` and either `rprim` in Bohr or `angdeg`
-    If acell is not given, the Abinit default is used i.e. [1,1,1] Bohr.
+    """Get a `Lattice` object from a dictionary with the Abinit variables `acell`
+    and either `rprim` in Bohr or `angdeg`. If acell is not given, the Abinit default
+    of [1, 1, 1] Bohr is used.
 
     Args:
         cls: Lattice class to be instantiated. Defaults to pymatgen.core.Lattice.
@@ -164,8 +163,7 @@ def structure_from_abivars(cls=None, *args, **kwargs) -> Structure:
 
 
 def species_by_znucl(structure: Structure) -> list[Species]:
-    """
-    Return list of unique specie found in structure **ordered according to sites**.
+    """Get list of unique specie found in structure **ordered according to sites**.
 
     Example:
         Site0: 0.5 0 0 O
@@ -312,7 +310,7 @@ class AbivarAble(abc.ABC):
 
     @abc.abstractmethod
     def to_abivars(self) -> dict:
-        """Returns a dictionary with the abinit variables."""
+        """Get a dictionary with the abinit variables."""
 
     # @abc.abstractmethod
     # def from_abivars(cls, vars):
@@ -362,7 +360,7 @@ class SpinMode(namedtuple("SpinMode", "mode nsppol nspinor nspden"), AbivarAble,
 
     @classmethod
     def as_spinmode(cls, obj: Any):
-        """Converts obj into a `SpinMode` instance"""
+        """Convert obj into a `SpinMode` instance."""
         if isinstance(obj, cls):
             return obj
 
@@ -683,7 +681,7 @@ class KSampling(AbivarAble, MSONable):
                 Not used for the other modes
             kpts: Number of divisions. Even when only a single specification is
                 required, e.g. in the automatic scheme, the kpts should still
-                be specified as a 2D array. e.g., [[20]] or [[2,2,2]].
+                be specified as a 2D array. e.g. [[20]] or [[2,2,2]].
             kpt_shifts: Shifts for Kpoints.
             use_symmetries: False if spatial symmetries should not be used
                 to reduce the number of independent k-points.
@@ -880,8 +878,7 @@ class KSampling(AbivarAble, MSONable):
 
     @classmethod
     def _path(cls, ndivsm, structure=None, kpath_bounds=None, comment=None) -> KSampling:
-        """
-        Static constructor for path in k-space.
+        """Static constructor for path in k-space.
 
         Args:
             structure: Structure object.
@@ -916,8 +913,8 @@ class KSampling(AbivarAble, MSONable):
         )
 
     @classmethod
-    def path_from_structure(cls, ndivsm, structure) -> KSampling:
-        """See _path for the meaning of the variables"""
+    def path_from_structure(cls, ndivsm, structure) -> Self:
+        """See _path for the meaning of the variables."""
         return cls._path(
             ndivsm,
             structure=structure,
@@ -939,8 +936,7 @@ class KSampling(AbivarAble, MSONable):
         use_time_reversal=True,
         shifts=(0.5, 0.5, 0.5),
     ) -> KSampling:
-        """
-        Returns an automatic Kpoint object based on a structure and a kpoint
+        """Get an automatic Kpoint object based on a structure and a kpoint
         density. Uses Gamma centered meshes for hexagonal cells and Monkhorst-Pack grids otherwise.
 
         Algorithm:
@@ -1086,7 +1082,7 @@ class RelaxationMethod(AbivarAble, MSONable):
         return self.abivars.optcell != 0
 
     def to_abivars(self):
-        """Returns a dictionary with the abinit variables."""
+        """Get a dictionary with the abinit variables."""
         # These variables are always present.
         out_vars = {
             "ionmov": self.abivars.ionmov,
@@ -1274,7 +1270,7 @@ class HilbertTransform(AbivarAble):
         self.nfreqim = nfreqim
 
     def to_abivars(self) -> dict:
-        """Returns a dictionary with the abinit variables"""
+        """Get a dictionary with the abinit variables."""
         return {
             # Spectral function
             "nomegasf": self.nomegasf,
@@ -1378,7 +1374,7 @@ class Screening(AbivarAble):
     #    return dig1.strip() + dig0.strip()
 
     def to_abivars(self):
-        """Returns a dictionary with the abinit variables."""
+        """Get a dictionary with the abinit variables."""
         abivars = {
             "ecuteps": self.ecuteps,
             "ecutwfn": self.ecutwfn,
@@ -1495,7 +1491,7 @@ class SelfEnergy(AbivarAble):
 
     @property
     def gwcalctyp(self):
-        """Returns the value of the gwcalctyp input variable."""
+        """The value of the gwcalctyp input variable."""
         dig0 = str(self._SIGMA_TYPES[self.type])
         dig1 = str(self._SC_MODES[self.sc_mode])
         return dig1.strip() + dig0.strip()
@@ -1506,7 +1502,7 @@ class SelfEnergy(AbivarAble):
         return 1 if self.sc_mode == "one_shot" else 0
 
     def to_abivars(self):
-        """Returns a dictionary with the abinit variables."""
+        """Get a dictionary with the abinit variables."""
         abivars = {
             "gwcalctyp": self.gwcalctyp,
             "ecuteps": self.ecuteps,
@@ -1640,7 +1636,7 @@ class ExcHamiltonian(AbivarAble):
         return self.algo == "direct_diago"
 
     def to_abivars(self):
-        """Returns a dictionary with the abinit variables."""
+        """Get a dictionary with the abinit variables."""
         abivars = {
             "bs_calctype": 1,
             "bs_loband": self.bs_loband,

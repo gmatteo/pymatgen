@@ -1,4 +1,4 @@
-"""Utility functions for classical md subpackage."""
+"""Utility functions for classical MD subpackage."""
 
 from __future__ import annotations
 
@@ -86,10 +86,7 @@ def mol_graph_from_openff_mol(molecule: tk.Molecule) -> MoleculeGraph:
     Returns:
         MoleculeGraph: The converted MoleculeGraph.
     """
-    mol_graph = MoleculeGraph.with_empty_graph(
-        Molecule([], []),
-        name="none",
-    )
+    mol_graph = MoleculeGraph.with_empty_graph(Molecule([], []), name="none")
     p_table = {el.Z: str(el) for el in Element}
     total_charge = 0
     cum_atoms = 0

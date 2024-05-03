@@ -67,8 +67,7 @@ class EwaldSummation(MSONable):
         w=1 / 2**0.5,
         compute_forces=False,
     ):
-        """
-        Initializes and calculates the Ewald sum. Default convergence
+        """Initialize and calculate the Ewald sum. Default convergence
         parameters have been specified, but you can override them if you wish.
 
         Args:
@@ -131,10 +130,7 @@ class EwaldSummation(MSONable):
         )
 
     def compute_partial_energy(self, removed_indices):
-        """
-        Gives total Ewald energy for certain sites being removed, i.e. zeroed
-        out.
-        """
+        """Get total Ewald energy for certain sites being removed, i.e. zeroed out."""
         total_energy_matrix = self.total_energy_matrix.copy()
         for idx in removed_indices:
             total_energy_matrix[idx, :] = 0
@@ -142,8 +138,7 @@ class EwaldSummation(MSONable):
         return sum(sum(total_energy_matrix))
 
     def compute_sub_structure(self, sub_structure, tol: float = 1e-3):
-        """
-        Gives total Ewald energy for an sub structure in the same
+        """Get total Ewald energy for an sub structure in the same
         lattice. The sub_structure must be a subset of the original
         structure, with possible different charges.
 
@@ -196,8 +191,7 @@ class EwaldSummation(MSONable):
 
     @property
     def reciprocal_space_energy_matrix(self):
-        """
-        The reciprocal space energy matrix. Each matrix element (i, j)
+        """The reciprocal space energy matrix. Each matrix element (i, j)
         corresponds to the interaction energy between site i and site j in
         reciprocal space.
         """
@@ -216,8 +210,7 @@ class EwaldSummation(MSONable):
 
     @property
     def real_space_energy_matrix(self):
-        """
-        The real space energy matrix. Each matrix element (i, j) corresponds to
+        """The real space energy matrix. Each matrix element (i, j) corresponds to
         the interaction energy between site i and site j in real space.
         """
         if not self._initialized:
@@ -235,8 +228,7 @@ class EwaldSummation(MSONable):
 
     @property
     def point_energy_matrix(self):
-        """
-        The point space matrix. A diagonal matrix with the point terms for each
+        """The point space matrix. A diagonal matrix with the point terms for each
         site in the diagonal elements.
         """
         if not self._initialized:
@@ -254,8 +246,7 @@ class EwaldSummation(MSONable):
 
     @property
     def total_energy_matrix(self):
-        """
-        The total energy matrix. Each matrix element (i, j) corresponds to the
+        """The total energy matrix. Each matrix element (i, j) corresponds to the
         total interaction energy between site i and site j.
 
         Note that this does not include the charged-cell energy, which is only important
@@ -272,10 +263,7 @@ class EwaldSummation(MSONable):
 
     @property
     def forces(self):
-        """
-        The forces on each site as a Nx3 matrix. Each row corresponds to a
-        site.
-        """
+        """The forces on each site as a Nx3 matrix. Each row corresponds to a site."""
         if not self._initialized:
             self._calc_ewald_terms()
             self._initialized = True
@@ -302,7 +290,7 @@ class EwaldSummation(MSONable):
         return np.sum(self._recip[:, site_index]) + np.sum(self._real[:, site_index]) + self._point[site_index]
 
     def _calc_ewald_terms(self):
-        """Calculates and sets all Ewald terms (point, real and reciprocal)."""
+        """Calculate and sets all Ewald terms (point, real and reciprocal)."""
         self._recip, recip_forces = self._calc_recip()
         self._real, self._point, real_point_forces = self._calc_real_and_point()
         if self._compute_forces:
@@ -360,7 +348,7 @@ class EwaldSummation(MSONable):
         return e_recip, forces
 
     def _calc_real_and_point(self):
-        """Determines the self energy -(eta/pi)**(1/2) * sum_{i=1}^{N} q_i**2."""
+        """Determine the self energy -(eta/pi)**(1/2) * sum_{i=1}^{N} q_i**2."""
         frac_coords = self._struct.frac_coords
         force_pf = 2 * self._sqrt_eta / sqrt(pi)
         coords = self._coords
@@ -409,7 +397,7 @@ class EwaldSummation(MSONable):
 
     @property
     def eta(self):
-        """Returns: eta value used in Ewald summation."""
+        """Eta value used in Ewald summation."""
         return self._eta
 
     def __str__(self):
@@ -578,8 +566,7 @@ class EwaldMinimizer:
             self._current_minimum = self._output_lists[-1][0]
 
     def best_case(self, matrix, m_list, indices_left):
-        """
-        Computes a best case given a matrix and manipulation list.
+        """Compute a best case given a matrix and manipulation list.
 
         Args:
             matrix: the current matrix (with some permutations already
@@ -621,7 +608,7 @@ class EwaldMinimizer:
             elapsed_time = datetime.utcnow() - self._start_time
             speedup_parameter = elapsed_time.total_seconds() / 1800
             avg_int = np.sum(interaction_matrix, axis=None)
-            avg_frac = np.average(np.outer(1 - fractions, 1 - fractions))
+            avg_frac = np.mean(np.outer(1 - fractions, 1 - fractions))
             average_correction = avg_int * avg_frac
 
             interaction_correction = average_correction * speedup_parameter + interaction_correction * (
@@ -632,8 +619,7 @@ class EwaldMinimizer:
 
     @classmethod
     def get_next_index(cls, matrix, manipulation, indices_left):
-        """
-        Returns an index that should have the most negative effect on the
+        """Get an index that should have the most negative effect on the
         matrix sum.
         """
 
@@ -703,17 +689,17 @@ class EwaldMinimizer:
 
     @property
     def best_m_list(self):
-        """Returns: Best m_list found."""
+        """The best manipulation list found."""
         return self._best_m_list
 
     @property
     def minimized_sum(self):
-        """Returns: Minimized sum."""
+        """The minimized Ewald sum."""
         return self._minimized_sum
 
     @property
     def output_lists(self):
-        """Returns: output lists."""
+        """Output lists."""
         return self._output_lists
 
 

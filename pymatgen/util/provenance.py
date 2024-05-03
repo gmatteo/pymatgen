@@ -74,7 +74,7 @@ class HistoryNode(namedtuple("HistoryNode", ["name", "url", "description"])):
     __slots__ = ()
 
     def as_dict(self) -> dict[str, str]:
-        """Returns: Dict."""
+        """Get MSONable dict."""
         return {"name": self.name, "url": self.url, "description": self.description}
 
     @classmethod
@@ -90,7 +90,7 @@ class HistoryNode(namedtuple("HistoryNode", ["name", "url", "description"])):
 
     @classmethod
     def parse_history_node(cls, h_node) -> Self:
-        """Parses a History Node object from either a dict or a tuple.
+        """Parse a History Node object from either a dict or a tuple.
 
         Args:
             h_node: A dict with name/url/description fields or a 3-element tuple.
@@ -118,7 +118,7 @@ class Author(namedtuple("Author", ["name", "email"])):
         return f"{self.name} <{self.email}>"
 
     def as_dict(self):
-        """Returns: MSONable dict."""
+        """Get MSONable dict."""
         return {"name": self.name, "email": self.email}
 
     @classmethod
@@ -134,7 +134,7 @@ class Author(namedtuple("Author", ["name", "email"])):
 
     @classmethod
     def parse_author(cls, author) -> Self:
-        """Parses an Author object from either a String, dict, or tuple.
+        """Parse an Author object from either a String, dict, or tuple.
 
         Args:
             author: A String formatted as "NAME <email@domain.com>",
@@ -257,7 +257,7 @@ class StructureNL:
         self.created_at = created_at or datetime.datetime.utcnow()
 
     def as_dict(self):
-        """Returns: MSONable dict."""
+        """Get MSONable dict."""
         dct = self.structure.as_dict()
         dct["@module"] = type(self).__module__
         dct["@class"] = type(self).__name__

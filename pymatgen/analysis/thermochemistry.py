@@ -45,7 +45,7 @@ class ThermoData:
                 Fe2O3.
             phaseinfo (str): Denoting the phase. For example, "solid", "liquid",
                 "gas" or "tetragonal".
-            formula (str): A proper string formula, e.g., Fe2O3
+            formula (str): A proper string formula, e.g. Fe2O3
             value (float): The value of the data.
             ref (str): A reference, if any, for the data.
             method (str): The method by which the data was determined,
@@ -89,7 +89,7 @@ class ThermoData:
         )
 
     def as_dict(self):
-        """Returns: MSONable dict."""
+        """Get MSONable dict."""
         return {
             "@module": type(self).__module__,
             "@class": type(self).__name__,

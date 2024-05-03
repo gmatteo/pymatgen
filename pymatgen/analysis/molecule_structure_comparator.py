@@ -138,8 +138,7 @@ class CovalentRadius:
 
 
 class MoleculeStructureComparator(MSONable):
-    """
-    Class to check whether the connection tables of the two molecules are the
+    """Check whether the connection tables of the two molecules are the
     same. The atom in the two molecule must be paired accordingly.
     """
 
@@ -255,7 +254,7 @@ class MoleculeStructureComparator(MSONable):
         return [bond for bond, dist, cap in zip(all_pairs, pair_dists, max_length) if dist <= cap]
 
     def as_dict(self):
-        """Returns: MSONable dict."""
+        """Get MSONable dict."""
         return {
             "version": __version__,
             "@module": type(self).__module__,

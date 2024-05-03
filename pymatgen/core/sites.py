@@ -39,15 +39,15 @@ class Site(collections.abc.Hashable, MSONable):
         label: str | None = None,
         skip_checks: bool = False,
     ) -> None:
-        """Creates a non-periodic Site.
+        """Create a non-periodic Site.
 
         Args:
             species: Species on the site. Can be:
                 i.  A Composition-type object (preferred)
                 ii. An  element / species specified either as a string
                     symbols, e.g. "Li", "Fe2+", "P" or atomic numbers,
-                    e.g., 3, 56, or actual Element or Species objects.
-                iii.Dict of elements/species and occupancies, e.g.,
+                    e.g. 3, 56, or actual Element or Species objects.
+                iii.Dict of elements/species and occupancies, e.g.
                     {"Fe" : 0.5, "Mn":0.5}. This allows the setup of
                     disordered structures.
             coords: Cartesian coordinates of site.
@@ -82,7 +82,7 @@ class Site(collections.abc.Hashable, MSONable):
 
     @property
     def species(self) -> Composition:
-        """The species on the site as a composition, e.g., Fe0.5Mn0.5."""
+        """The species on the site as a composition, e.g. Fe0.5Mn0.5."""
         return self._species
 
     @species.setter
@@ -145,7 +145,7 @@ class Site(collections.abc.Hashable, MSONable):
         return float(np.linalg.norm(other.coords - self.coords))
 
     def distance_from_point(self, pt) -> float:
-        """Returns distance between the site and a point in space.
+        """Get distance between the site and a point in space.
 
         Args:
             pt: Cartesian coordinates of point.
@@ -221,7 +221,7 @@ class Site(collections.abc.Hashable, MSONable):
         return f"Site: {name} ({self.coords[0]:.4f}, {self.coords[1]:.4f}, {self.coords[2]:.4f})"
 
     def __lt__(self, other):
-        """Sets a default sort order for atomic species by electronegativity. Very
+        """Set a default sort order for atomic species by electronegativity. Very
         useful for getting correct formulas. For example, FeO4PLi is
         automatically sorted in LiFePO4.
         """
@@ -231,8 +231,6 @@ class Site(collections.abc.Hashable, MSONable):
             return False
         if self.species_string < other.species_string:
             return True
-        if self.species_string > other.species_string:
-            return False
         return False
 
     def __str__(self) -> str:
@@ -240,16 +238,16 @@ class Site(collections.abc.Hashable, MSONable):
 
     def as_dict(self) -> dict:
         """JSON-serializable dict representation for Site."""
-        species_list = []
+        species = []
         for spec, occu in self.species.items():
             spec_dct = spec.as_dict()
             del spec_dct["@module"]
             del spec_dct["@class"]
             spec_dct["occu"] = occu
-            species_list.append(spec_dct)
+            species.append(spec_dct)
         dct = {
             "name": self.species_string,
-            "species": species_list,
+            "species": species,
             "xyz": [float(c) for c in self.coords],
             "properties": self.properties,
             "@module": type(self).__module__,
@@ -305,8 +303,8 @@ class PeriodicSite(Site, MSONable):
                 i.  A Composition-type object (preferred)
                 ii. An  element / species specified either as a string
                     symbols, e.g. "Li", "Fe2+", "P" or atomic numbers,
-                    e.g., 3, 56, or actual Element or Species objects.
-                iii.Dict of elements/species and occupancies, e.g.,
+                    e.g. 3, 56, or actual Element or Species objects.
+                iii.Dict of elements/species and occupancies, e.g.
                     {"Fe" : 0.5, "Mn":0.5}. This allows the setup of
                     disordered structures.
             coords: Coordinates of site, fractional coordinates
@@ -361,7 +359,7 @@ class PeriodicSite(Site, MSONable):
 
     @lattice.setter
     def lattice(self, lattice: Lattice) -> None:
-        """Sets Lattice associated with PeriodicSite."""
+        """Set Lattice associated with PeriodicSite."""
         self._lattice = lattice
         self._coords = self._lattice.get_cartesian_coords(self._frac_coords)
 
@@ -458,7 +456,7 @@ class PeriodicSite(Site, MSONable):
         return PeriodicSite(self.species, frac_coords, self.lattice, properties=self.properties, label=self.label)
 
     def is_periodic_image(self, other: PeriodicSite, tolerance: float = 1e-8, check_lattice: bool = True) -> bool:
-        """Returns True if sites are periodic images of each other.
+        """Get True if sites are periodic images of each other.
 
         Args:
             other (PeriodicSite): Other site
@@ -491,7 +489,7 @@ class PeriodicSite(Site, MSONable):
     def distance_and_image_from_frac_coords(
         self, fcoords: ArrayLike, jimage: ArrayLike | None = None
     ) -> tuple[float, np.ndarray]:
-        """Gets distance between site and a fractional coordinate assuming
+        """Get distance between site and a fractional coordinate assuming
         periodic boundary conditions. If the index jimage of two sites atom j
         is not specified it selects the j image nearest to the i atom and
         returns the distance and jimage indices in terms of lattice vector
@@ -502,7 +500,7 @@ class PeriodicSite(Site, MSONable):
         Args:
             fcoords (3x1 array): fractional coordinates to get distance from.
             jimage (3x1 array): Specific periodic image in terms of
-                lattice translations, e.g., [1,0,0] implies to take periodic
+                lattice translations, e.g. [1,0,0] implies to take periodic
                 image that is one a-lattice vector away. If jimage is None,
                 the image that is nearest to the site is found.
 
@@ -513,7 +511,7 @@ class PeriodicSite(Site, MSONable):
         return self.lattice.get_distance_and_image(self.frac_coords, fcoords, jimage=jimage)
 
     def distance_and_image(self, other: PeriodicSite, jimage: ArrayLike | None = None) -> tuple[float, np.ndarray]:
-        """Gets distance and instance between two sites assuming periodic boundary
+        """Get distance and instance between two sites assuming periodic boundary
         conditions. If the index jimage of two sites atom j is not specified it
         selects the j image nearest to the i atom and returns the distance and
         jimage indices in terms of lattice vector translations. If the index
@@ -523,7 +521,7 @@ class PeriodicSite(Site, MSONable):
         Args:
             other (PeriodicSite): Other site to get distance from.
             jimage (3x1 array): Specific periodic image in terms of lattice
-                translations, e.g., [1,0,0] implies to take periodic image
+                translations, e.g. [1,0,0] implies to take periodic image
                 that is one a-lattice vector away. If jimage is None,
                 the image that is nearest to the site is found.
 
@@ -539,12 +537,12 @@ class PeriodicSite(Site, MSONable):
         Args:
             other (PeriodicSite): Other site to get distance from.
             jimage (3x1 array): Specific periodic image in terms of lattice
-                translations, e.g., [1,0,0] implies to take periodic image
+                translations, e.g. [1,0,0] implies to take periodic image
                 that is one a-lattice vector away. If jimage is None,
                 the image that is nearest to the site is found.
 
         Returns:
-            distance (float): Distance between the two sites
+            float: distance between the two sites.
         """
         return self.distance_and_image(other, jimage)[0]
 
@@ -566,16 +564,16 @@ class PeriodicSite(Site, MSONable):
             verbosity (int): Verbosity level. Default of 0 only includes the matrix
                 representation. Set to 1 for more details such as Cartesian coordinates, etc.
         """
-        species_list = []
+        species = []
         for spec, occu in self._species.items():
             dct = spec.as_dict()
             del dct["@module"]
             del dct["@class"]
             dct["occu"] = occu
-            species_list.append(dct)
+            species.append(dct)
 
         dct = {
-            "species": species_list,
+            "species": species,
             "abc": [float(c) for c in self._frac_coords],  # type: ignore
             "lattice": self._lattice.as_dict(verbosity=verbosity),
             "@module": type(self).__module__,

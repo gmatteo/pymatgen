@@ -71,7 +71,7 @@ class Correction(abc.ABC):
 
     @abc.abstractmethod
     def get_correction(self, entry: AnyComputedEntry) -> EnergyAdjustment:
-        """Returns correction and uncertainty for a single entry.
+        """Get correction and uncertainty for a single entry.
 
         Args:
             entry: A ComputedEntry object.
@@ -113,7 +113,7 @@ class Correction(abc.ABC):
 
 
 class PotcarCorrection(Correction):
-    """Checks that POTCARs are valid within a pre-defined input set. This
+    """Check that POTCARs are valid within a pre-defined input set. This
     ensures that calculations performed using different InputSets are not
     compared against each other.
 
@@ -296,7 +296,7 @@ class AnionCorrection(Correction):
                 else:
                     warnings.warn(
                         "No structure or oxide_type parameter present. Note that peroxide/superoxide corrections "
-                        "are not as reliable and relies only on detection of special formulas, e.g., Li2O2."
+                        "are not as reliable and relies only on detection of special formulas, e.g. Li2O2."
                     )
                     rform = entry.reduced_formula
                     if rform in UCorrection.common_peroxides:
@@ -680,7 +680,7 @@ class CorrectionsList(Compatibility):
         return adjustment_list
 
     def get_corrections_dict(self, entry: AnyComputedEntry) -> tuple[dict[str, float], dict[str, float]]:
-        """Returns the correction values and uncertainties applied to a particular entry.
+        """Get the correction values and uncertainties applied to a particular entry.
 
         Args:
             entry: A ComputedEntry object.
@@ -699,9 +699,8 @@ class CorrectionsList(Compatibility):
         return corrections, uncertainties
 
     def get_explanation_dict(self, entry):
-        """Provides an explanation dict of the corrections that are being applied
-        for a given compatibility scheme. Inspired by the "explain" methods
-        in many database methodologies.
+        """Explain the corrections applied for a given compatibility scheme. Inspired by the
+        "explain" methods in many database methodologies.
 
         Args:
             entry: A ComputedEntry.
@@ -770,8 +769,7 @@ class MaterialsProjectCompatibility(CorrectionsList):
     """This class implements the GGA/GGA+U mixing scheme, which allows mixing of
     entries. Note that this should only be used for VASP calculations using the
     MaterialsProject parameters (see pymatgen.io.vasp.sets.MPVaspInputSet).
-    Using this compatibility scheme on runs with different parameters is not
-    valid.
+    Using this compatibility scheme on runs with different parameters is not valid.
     """
 
     def __init__(
@@ -995,7 +993,7 @@ class MaterialsProject2020Compatibility(Compatibility):
                 else:
                     warnings.warn(
                         "No structure or oxide_type parameter present. Note that peroxide/superoxide corrections "
-                        "are not as reliable and relies only on detection of special formulas, e.g., Li2O2."
+                        "are not as reliable and relies only on detection of special formulas, e.g. Li2O2."
                     )
 
                     common_peroxides = "Li2O2 Na2O2 K2O2 Cs2O2 Rb2O2 BeO2 MgO2 CaO2 SrO2 BaO2".split()
@@ -1277,7 +1275,7 @@ class MaterialsProjectAqueousCompatibility(Compatibility):
         super().__init__()
 
     def get_adjustments(self, entry: ComputedEntry) -> list[EnergyAdjustment]:
-        """Returns the corrections applied to a particular entry.
+        """Get the corrections applied to a particular entry.
 
         Args:
             entry: A ComputedEntry object.

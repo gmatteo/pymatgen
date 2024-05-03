@@ -16,7 +16,7 @@ __maintainer__ = "Matteo Giantomassi"
 
 
 class XSF:
-    """Class for parsing XCrysden files."""
+    """Parse XCrysden files."""
 
     def __init__(self, structure: Structure):
         """
@@ -26,8 +26,7 @@ class XSF:
         self.structure = structure
 
     def to_str(self, atom_symbol: bool = True) -> str:
-        """
-        Returns a string with the structure in XSF format
+        """Get a string with the structure in XSF format
         See http://www.xcrysden.org/doc/XSF.html.
 
         Args:

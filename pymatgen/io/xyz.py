@@ -42,15 +42,14 @@ class XYZ:
 
     @property
     def molecule(self) -> Molecule:
-        """
-        Returns molecule associated with this XYZ. In case of multi-frame
+        """Molecule associated with this XYZ. In case of multi-frame
         XYZ, returns the last frame.
         """
         return self._mols[-1]  # type: ignore[return-value]
 
     @property
     def all_molecules(self) -> list[Molecule]:
-        """Returns all the frames of molecule associated with this XYZ."""
+        """All the frames of molecule associated with this XYZ."""
         return self._mols  # type: ignore[return-value]
 
     @staticmethod
@@ -112,8 +111,7 @@ class XYZ:
             return cls.from_str(file.read())
 
     def as_dataframe(self):
-        """
-        Generates a coordinates data frame with columns: atom, x, y, and z
+        """Generate a coordinates data frame with columns: atom, x, y, and z
         In case of multiple frame XYZ, returns the last frame.
 
         Returns:

@@ -1,4 +1,6 @@
-"""Defines the classes relating to 3D lattices."""
+"""This module defines the Lattice class, the fundamental class for representing
+periodic crystals. It is essentially a matrix with some extra methods and attributes.
+"""
 
 from __future__ import annotations
 
@@ -25,8 +27,7 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
     from typing_extensions import Self
 
-    from pymatgen.core.trajectory import Vector3D
-    from pymatgen.util.typing import PbcLike
+    from pymatgen.util.typing import PbcLike, Vector3D
 
 __author__ = "Shyue Ping Ong, Michael Kocher"
 __copyright__ = "Copyright 2011, The Materials Project"
@@ -54,7 +55,7 @@ class Lattice(MSONable):
                 iii) [1, 0, 0 , 0, 1, 0, 0, 0, 1]
                 iv) (1, 0, 0, 0, 1, 0, 0, 0, 1)
                 Each row should correspond to a lattice vector.
-                E.g., [[10, 0, 0], [20, 10, 0], [0, 0, 30]] specifies a lattice
+                e.g. [[10, 0, 0], [20, 10, 0], [0, 0, 30]] specifies a lattice
                 with lattice vectors [10, 0, 0], [20, 10, 0] and [0, 0, 30].
             pbc: a tuple defining the periodic boundary conditions along the three
                 axis of the lattice.
@@ -108,7 +109,7 @@ class Lattice(MSONable):
         """Support format printing.
 
         Supported fmt_spec (str) are:
-        1. "l" for a list format that can be easily copied and pasted, e.g.,
+        1. "l" for a list format that can be easily copied and pasted, e.g.
            ".3fl" prints something like
            "[[10.000, 0.000, 0.000], [0.000, 10.000, 0.000], [0.000, 0.000, 10.000]]"
         2. "p" for lattice parameters ".1fp" prints something like
@@ -130,8 +131,8 @@ class Lattice(MSONable):
             fmt = "{} {} {}\n{} {} {}\n{} {} {}"
         return fmt.format(*(format(c, fmt_spec) for row in matrix for c in row))
 
-    def copy(self):
-        """Deep copy of self."""
+    def copy(self) -> Self:
+        """Make a copy of this lattice."""
         return type(self)(self.matrix.copy(), pbc=self.pbc)
 
     @property
@@ -163,7 +164,7 @@ class Lattice(MSONable):
         return np.dot(self._matrix, self._matrix.T)
 
     def get_cartesian_coords(self, fractional_coords: ArrayLike) -> np.ndarray:
-        """Returns the Cartesian coordinates given fractional coordinates.
+        """Get the Cartesian coordinates given fractional coordinates.
 
         Args:
             fractional_coords (3x1 array): Fractional coords.
@@ -174,7 +175,7 @@ class Lattice(MSONable):
         return np.dot(fractional_coords, self._matrix)
 
     def get_fractional_coords(self, cart_coords: ArrayLike) -> np.ndarray:
-        """Returns the fractional coordinates given Cartesian coordinates.
+        """Get the fractional coordinates given Cartesian coordinates.
 
         Args:
             cart_coords (3x1 array): Cartesian coords.
@@ -185,7 +186,7 @@ class Lattice(MSONable):
         return np.dot(cart_coords, self.inv_matrix)
 
     def get_vector_along_lattice_directions(self, cart_coords: ArrayLike) -> np.ndarray:
-        """Returns the coordinates along lattice directions given Cartesian coordinates.
+        """Get the coordinates along lattice directions given Cartesian coordinates.
 
         Note, this is different than a projection of the Cartesian vector along the
         lattice parameters. It is simply the fractional coordinates multiplied by the
@@ -204,13 +205,13 @@ class Lattice(MSONable):
         return self.lengths * self.get_fractional_coords(cart_coords)  # type: ignore
 
     def d_hkl(self, miller_index: ArrayLike) -> float:
-        """Returns the distance between the hkl plane and the origin.
+        """Get the distance between the hkl plane and the origin.
 
         Args:
             miller_index ([h,k,l]): Miller index of plane
 
         Returns:
-            d_hkl (float)
+            float: distance between hkl plane and origin
         """
         g_star = self.reciprocal_lattice_crystallographic.metric_tensor
         hkl = np.array(miller_index)
@@ -432,7 +433,7 @@ class Lattice(MSONable):
 
     @property
     def parameters(self) -> tuple[float, float, float, float, float, float]:
-        """Returns 6-tuple of floats (a, b, c, alpha, beta, gamma)."""
+        """6-tuple of floats (a, b, c, alpha, beta, gamma)."""
         return (*self.lengths, *self.angles)
 
     @property
@@ -442,7 +443,7 @@ class Lattice(MSONable):
 
     @property
     def reciprocal_lattice(self) -> Self:
-        """Return the reciprocal lattice. Note that this is the standard
+        """The reciprocal lattice. Note that this is the standard
         reciprocal lattice used for solid state physics with a factor of 2 *
         pi. If you are looking for the crystallographic reciprocal lattice,
         use the reciprocal_lattice_crystallographic property.
@@ -454,7 +455,7 @@ class Lattice(MSONable):
 
     @property
     def reciprocal_lattice_crystallographic(self) -> Self:
-        """Returns the *crystallographic* reciprocal lattice, i.e. no factor of 2 * pi."""
+        """The *crystallographic* reciprocal lattice, i.e. no factor of 2 * pi."""
         cls = type(self)
         return cls(self.reciprocal_lattice.matrix / (2 * np.pi))
 
@@ -479,7 +480,7 @@ class Lattice(MSONable):
 
     @property
     def selling_vector(self) -> np.ndarray:
-        """Returns the (1,6) array of Selling Scalars."""
+        """The (1,6) array of Selling Scalars."""
         a, b, c = self.matrix
         d = -(a + b + c)
         tol = 1e-10
@@ -545,7 +546,7 @@ class Lattice(MSONable):
         return selling_vector
 
     def selling_dist(self, other):
-        """Returns the minimum Selling distance between two lattices."""
+        """Get the minimum Selling distance between two lattices."""
         vcp_matrices = [
             [
                 [-1, 0, 0, 0, 0, 0],
@@ -865,7 +866,7 @@ class Lattice(MSONable):
         atol: float = 1,
         skip_rotation_matrix: bool = False,
     ) -> Iterator[tuple[Lattice, np.ndarray | None, np.ndarray]]:
-        """Finds all mappings between current lattice and another lattice.
+        """Find all mappings between current lattice and another lattice.
 
         Args:
             other_lattice (Lattice): Another lattice that is equivalent to this one.
@@ -933,7 +934,7 @@ class Lattice(MSONable):
         atol: float = 1,
         skip_rotation_matrix: bool = False,
     ) -> tuple[Lattice, np.ndarray | None, np.ndarray] | None:
-        """Finds a mapping between current lattice and another lattice. There
+        """Find a mapping between current lattice and another lattice. There
         are an infinite number of choices of basis vectors for two entirely
         equivalent lattices. This method returns a mapping that maps
         other_lattice to this lattice.
@@ -979,7 +980,7 @@ class Lattice(MSONable):
         return cls(self._lll_matrix_mappings[delta][0])
 
     def _calculate_lll(self, delta: float = 0.75) -> tuple[np.ndarray, np.ndarray]:
-        """Performs a Lenstra-Lenstra-Lovasz lattice basis reduction to obtain a
+        """Perform a Lenstra-Lenstra-Lovasz lattice basis reduction to obtain a
         c-reduced basis. This method returns a basis which is as "good" as
         possible, with "good" defined by orthogonality of the lattice vectors.
 
@@ -1211,7 +1212,7 @@ class Lattice(MSONable):
         return type(self)(versors * (new_c * ratios), pbc=self.pbc)
 
     def get_wigner_seitz_cell(self) -> list[list[np.ndarray]]:
-        """Returns the Wigner-Seitz cell for the given lattice.
+        """Get the Wigner-Seitz cell for the given lattice.
 
         Returns:
             A list of list of coordinates.
@@ -1234,7 +1235,7 @@ class Lattice(MSONable):
         return out
 
     def get_brillouin_zone(self) -> list[list[np.ndarray]]:
-        """Returns the Wigner-Seitz cell for the reciprocal lattice, aka the
+        """Get the Wigner-Seitz cell for the reciprocal lattice, aka the
         Brillouin Zone.
 
         Returns:
@@ -1297,8 +1298,7 @@ class Lattice(MSONable):
         zip_results=True,
     ) -> list[tuple[np.ndarray, float, int, np.ndarray]] | tuple[np.ndarray, ...] | list:
         """Find all points within a sphere from the point taking into account
-        periodic boundary conditions. This includes sites in other periodic
-        images.
+        periodic boundary conditions. This includes sites in other periodic images.
 
         Algorithm:
 
@@ -1306,7 +1306,7 @@ class Lattice(MSONable):
            (parallelepiped) which would contain a sphere of radius r. for this
            we need the projection of a_1 on a unit vector perpendicular
            to a_2 & a_3 (i.e. the unit vector in the direction b_1) to
-           determine how many a_1"s it will take to contain the sphere.
+           determine how many a_1's it will take to contain the sphere.
 
            Nxmax = r * length_of_b_1 / (2 Pi)
 
@@ -1341,10 +1341,12 @@ class Lattice(MSONable):
                 all_coords=cart_coords, center_coords=center_coords, r=float(r), pbc=pbc, lattice=latt_matrix, tol=1e-8
             )
             if len(indices) < 1:
-                return [] if zip_results else [()] * 4
+                # return empty np.array (not list or tuple) to ensure consistent return type
+                # whether sphere contains points or not
+                return np.array([]) if zip_results else tuple(np.array([]) for _ in range(4))
             frac_coords = frac_points[indices] + images
             if zip_results:
-                return list(zip(frac_coords, distances, indices, images))
+                return tuple(zip(frac_coords, distances, indices, images))
             return frac_coords, distances, indices, images
 
     def get_points_in_sphere_py(
@@ -1364,7 +1366,7 @@ class Lattice(MSONable):
            (parallelepiped) which would contain a sphere of radius r. for this
            we need the projection of a_1 on a unit vector perpendicular
            to a_2 & a_3 (i.e. the unit vector in the direction b_1) to
-           determine how many a_1"s it will take to contain the sphere.
+           determine how many a_1's it will take to contain the sphere.
 
            Nxmax = r * length_of_b_1 / (2 Pi)
 
@@ -1421,7 +1423,7 @@ class Lattice(MSONable):
            (parallelepiped) which would contain a sphere of radius r. for this
            we need the projection of a_1 on a unit vector perpendicular
            to a_2 & a_3 (i.e. the unit vector in the direction b_1) to
-           determine how many a_1"s it will take to contain the sphere.
+           determine how many a_1's it will take to contain the sphere.
 
            Nxmax = r * length_of_b_1 / (2 Pi)
 
@@ -1498,14 +1500,14 @@ class Lattice(MSONable):
         frac_coords1: ArrayLike,
         frac_coords2: ArrayLike,
     ) -> np.ndarray:
-        """Returns the distances between two lists of coordinates taking into
+        """Get the distances between two lists of coordinates taking into
         account periodic boundary conditions and the lattice. Note that this
         computes an MxN array of distances (i.e. the distance between each
         point in frac_coords1 and every coordinate in frac_coords2). This is
         different functionality from pbc_diff.
 
         Args:
-            frac_coords1: First set of fractional coordinates. e.g., [0.5, 0.6,
+            frac_coords1: First set of fractional coordinates. e.g. [0.5, 0.6,
                 0.7] or [[1.1, 1.2, 4.3], [0.5, 0.6, 0.7]]. It can be a single
                 coord or any array of coords.
             frac_coords2: Second set of fractional coordinates.
@@ -1545,7 +1547,7 @@ class Lattice(MSONable):
         frac_coords2: ArrayLike,
         jimage: ArrayLike | None = None,
     ) -> tuple[float, np.ndarray]:
-        """Gets distance between two frac_coords assuming periodic boundary
+        """Get distance between two frac_coords assuming periodic boundary
         conditions. If the index jimage is not specified it selects the j
         image nearest to the i atom and returns the distance and jimage
         indices in terms of lattice vector translations. If the index jimage
@@ -1557,7 +1559,7 @@ class Lattice(MSONable):
             frac_coords1 (3x1 array): Reference frac_coords to get distance from.
             frac_coords2 (3x1 array): frac_coords to get distance from.
             jimage (3x1 array): Specific periodic image in terms of
-                lattice translations, e.g., [1,0,0] implies to take periodic
+                lattice translations, e.g. [1,0,0] implies to take periodic
                 image that is one a-lattice vector away. If jimage is None,
                 the image that is nearest to the site is found.
 
@@ -1661,7 +1663,7 @@ def get_integer_index(miller_index: Sequence[float], round_dp: int = 4, verbose:
     mi /= min(m for m in mi if m != 0)
     mi /= np.max(np.abs(mi))
 
-    # deal with the case we have nice fractions
+    # deal with the case where we have nice fractions
     md = [Fraction(n).limit_denominator(12).denominator for n in mi]
     mi *= reduce(operator.mul, md)
     int_miller_index = np.round(mi, 1).astype(int)

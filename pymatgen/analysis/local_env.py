@@ -90,12 +90,11 @@ class ValenceIonicRadiusEvaluator:
 
     @property
     def structure(self):
-        """Returns oxidation state decorated structure."""
+        """Oxidation state decorated structure."""
         return self._structure.copy()
 
     def _get_ionic_radii(self):
-        """
-        Computes ionic radii of elements for all sites in the structure.
+        """Compute ionic radii of elements for all sites in the structure.
         If valence is zero, atomic radius is used.
         """
         radii = []
@@ -163,7 +162,7 @@ class ValenceIonicRadiusEvaluator:
         return radii
 
     def _get_valences(self):
-        """Computes ionic valences of elements for all sites in the structure."""
+        """Compute ionic valences of elements for all sites in the structure."""
         try:
             bv = BVAnalyzer()
             self._structure = bv.get_oxi_state_decorated_structure(self._structure)
@@ -286,8 +285,7 @@ class NearNeighbors:
         use_weights: bool = False,
         on_disorder: on_disorder_options = "take_majority_strict",
     ) -> float:
-        """
-        Get coordination number, CN, of site with index n in structure.
+        """Get coordination number, CN, of site with index n in structure.
 
         Args:
             structure (Structure): input structure.
@@ -303,15 +301,14 @@ class NearNeighbors:
                 'take_max_species' will use Fe as the site specie.
 
         Returns:
-            cn (float): coordination number.
+            int | float: coordination number (float if weighted)
         """
         structure = _handle_disorder(structure, on_disorder)
         siw = self.get_nn_info(structure, n)
         return sum(e["weight"] for e in siw) if use_weights else len(siw)
 
     def get_cn_dict(self, structure: Structure, n: int, use_weights: bool = False):
-        """
-        Get coordination number, CN, of each element bonded to site with index n in structure.
+        """Get coordination number, CN, of each element bonded to site with index n in structure.
 
         Args:
             structure (Structure): input structure
@@ -322,7 +319,7 @@ class NearNeighbors:
                 weight).
 
         Returns:
-            cn (dict): dictionary of CN of each element bonded to site
+            dict[str, float]: coordination number of each element bonded to site with index n in structure.
         """
         siw = self.get_nn_info(structure, n)
 
@@ -341,8 +338,7 @@ class NearNeighbors:
         return cn_dict
 
     def get_nn(self, structure: Structure, n: int):
-        """
-        Get near neighbors of site with index n in structure.
+        """Get near neighbors of site with index n in structure.
 
         Args:
             structure (Structure): input structure.
@@ -355,8 +351,7 @@ class NearNeighbors:
         return [e["site"] for e in self.get_nn_info(structure, n)]
 
     def get_weights_of_nn_sites(self, structure: Structure, n: int):
-        """
-        Get weight associated with each near neighbor of site with
+        """Get weight associated with each near neighbor of site with
         index n in structure.
 
         Args:
@@ -369,8 +364,7 @@ class NearNeighbors:
         return [e["weight"] for e in self.get_nn_info(structure, n)]
 
     def get_nn_images(self, structure: Structure, n: int):
-        """
-        Get image location of all near neighbors of site with index n in
+        """Get image location of all near neighbors of site with index n in
         structure.
 
         Args:
@@ -385,8 +379,7 @@ class NearNeighbors:
         return [e["image"] for e in self.get_nn_info(structure, n)]
 
     def get_nn_info(self, structure: Structure, n: int) -> list[dict]:
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n.
 
         Args:
@@ -409,6 +402,7 @@ class NearNeighbors:
 
         Args:
             structure (Structure): Input structure
+
         Returns:
             List of NN site information for each site in the structure. Each
                 entry has the same format as `get_nn_info`
@@ -575,14 +569,12 @@ class NearNeighbors:
         if isinstance(site, PeriodicNeighbor):
             return site.index
 
-        if isinstance(structure, (IStructure, Structure)):
-            for idx, struc_site in enumerate(structure):
+        for idx, struc_site in enumerate(structure):
+            if isinstance(structure, (IStructure, Structure)):
                 if site.is_periodic_image(struc_site):
                     return idx
-        else:
-            for idx, struc_site in enumerate(structure):
-                if site == struc_site:
-                    return idx
+            elif site == struc_site:
+                return idx
         raise ValueError("Site not found in structure")
 
     def get_bonded_structure(
@@ -594,9 +586,7 @@ class NearNeighbors:
         on_disorder: on_disorder_options = "take_majority_strict",
     ) -> StructureGraph | MoleculeGraph:
         """
-        Obtain a StructureGraph object using this NearNeighbor
-        class. Requires the optional dependency networkx
-        (pip install networkx).
+        Obtain a StructureGraph object using this NearNeighbor class. Requires pip install networkx.
 
         Args:
             structure: Structure object.
@@ -729,8 +719,7 @@ class VoronoiNN(NearNeighbors):
         return False
 
     def get_voronoi_polyhedra(self, structure: Structure, n: int):
-        """
-        Gives a weighted polyhedra around a site.
+        """Get a weighted polyhedra around a site.
 
         See ref: A Proposed Rigorous Definition of Coordination Number,
         M. O'Keeffe, Acta Cryst. (1979). A35, 772-775
@@ -978,8 +967,7 @@ class VoronoiNN(NearNeighbors):
         return result_weighted
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n in structure
         using Voronoi decomposition.
 
@@ -1082,8 +1070,7 @@ class IsayevNN(VoronoiNN):
         self.compute_adj_neighbors = compute_adj_neighbors
 
     def get_nn_info(self, structure: Structure, n: int) -> list[dict[str, Any]]:
-        """
-        Get all near-neighbor site information.
+        """Get all near-neighbor site information.
 
         Gets the associated image locations and weights of the site with index n
         in structure using Voronoi decomposition and distance cutoff.
@@ -1175,8 +1162,7 @@ def _is_in_targets(site, targets):
 
 
 def _get_elements(site):
-    """
-    Get the list of elements for a Site.
+    """Get the list of elements for a Site.
 
     Args:
         site (Site): Site to assess
@@ -1267,8 +1253,7 @@ class JmolNN(NearNeighbors):
         return sqrt((self.el_radius[el1_sym] + self.el_radius[el2_sym] + self.tol) ** 2)
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n using the bond identification
         algorithm underlying Jmol.
 
@@ -1358,8 +1343,7 @@ class MinimumDistanceNN(NearNeighbors):
         return True
 
     def get_nn_info(self, structure: Structure, n: int) -> list[dict[str, Any]]:
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n using the closest neighbor
         distance-based method.
 
@@ -1452,8 +1436,7 @@ class OpenBabelNN(NearNeighbors):
         return False
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites and weights (orders) of bonds for a given
+        """Get all near-neighbor sites and weights (orders) of bonds for a given
         atom.
 
         Args:
@@ -1612,8 +1595,7 @@ class CovalentBondNN(NearNeighbors):
         return False
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites and weights (orders) of bonds for a given
+        """Get all near-neighbor sites and weights (orders) of bonds for a given
         atom.
 
         Args:
@@ -1760,8 +1742,7 @@ class MinimumOKeeffeNN(NearNeighbors):
         return True
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n using the closest relative
         neighbor distance-based method with O'Keeffe parameters.
 
@@ -1846,8 +1827,7 @@ class MinimumVIRENN(NearNeighbors):
         return False
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n using the closest relative
         neighbor distance-based method with VIRE atomic/ionic radii.
 
@@ -1973,11 +1953,9 @@ def vol_tetra(vt1, vt2, vt3, vt4):
 
 
 def get_okeeffe_params(el_symbol):
-    """
-    Returns the elemental parameters related to atom size and
-    electronegativity which are used for estimating bond-valence
-    parameters (bond length) of pairs of atoms on the basis of data
-    provided in 'Atoms Sizes and Bond Lengths in Molecules and Crystals'
+    """Get the elemental parameters related to atom size and electronegativity which are
+    used for estimating bond-valence parameters (bond length) of pairs of atoms on the
+    basis of data provided in 'Atoms Sizes and Bond Lengths in Molecules and Crystals'
     (O'Keeffe & Brese, 1991).
 
     Args:
@@ -1997,8 +1975,7 @@ def get_okeeffe_params(el_symbol):
 
 
 def get_okeeffe_distance_prediction(el1, el2):
-    """
-    Returns an estimate of the bond valence parameter (bond length) using
+    """Get an estimate of the bond valence parameter (bond length) using
     the derived parameters from 'Atoms Sizes and Bond Lengths in Molecules
     and Crystals' (O'Keeffe & Brese, 1991). The estimate is based on two
     experimental parameters: r and c. The value for r  is based off radius,
@@ -2024,9 +2001,7 @@ def get_okeeffe_distance_prediction(el1, el2):
 
 
 def get_neighbors_of_site_with_index(struct, n, approach="min_dist", delta=0.1, cutoff=10):
-    """
-    Returns the neighbors of a given site using a specific neighbor-finding
-    method.
+    """Get the neighbors of a given site using a specific neighbor-finding method.
 
     Args:
         struct (Structure): input structure.
@@ -2057,8 +2032,7 @@ def get_neighbors_of_site_with_index(struct, n, approach="min_dist", delta=0.1, 
 
 
 def site_is_of_motif_type(struct, n, approach="min_dist", delta=0.1, cutoff=10, thresh=None):
-    """
-    Returns the motif type of the site with index n in structure struct;
+    """Get the motif type of the site with index n in structure struct;
     currently featuring "tetrahedral", "octahedral", "bcc", and "cp"
     (close-packed: fcc and hcp) as well as "square pyramidal" and
     "trigonal bipyramidal". If the site is not recognized,
@@ -2126,8 +2100,7 @@ def site_is_of_motif_type(struct, n, approach="min_dist", delta=0.1, cutoff=10, 
 
 
 def gramschmidt(vin, uin):
-    """
-    Returns that part of the first input vector
+    """Get that part of the first input vector
     that is orthogonal to the second input vector.
     The output vector is not normalized.
 
@@ -2376,28 +2349,20 @@ class LocalStructOrderParams:
         self._cos_n_p: dict[int, list[float]] = {}
 
     @property
-    def num_ops(self):
-        """
-        Returns:
-            int: the number of different order parameters that are targeted to be calculated.
-        """
+    def num_ops(self) -> int:
+        """Number of different order parameters that are targeted to be calculated."""
         return len(self._types)
 
     @property
     def last_nneigh(self):
-        """
-        Returns:
-            int: the number of neighbors encountered during the most
-                recent order parameter calculation. A value of -1 indicates
-                that no such calculation has yet been performed for this instance.
+        """Number of neighbors encountered during the most recent order parameter calculation.
+        A value of -1 indicates that no such calculation has yet been performed for this instance.
         """
         return len(self._last_nneigh)
 
     def compute_trigonometric_terms(self, thetas, phis):
-        """
-        Computes trigonometric terms that are required to
-        calculate bond orientational order parameters using
-        internal variables.
+        """Compute trigonometric terms that are required to calculate
+        bond orientational order parameters using internal variables.
 
         Args:
             thetas ([float]): polar angles of all neighbors in radians.
@@ -2770,8 +2735,7 @@ class LocalStructOrderParams:
         return sqrt(4 * pi * acc / (13 * float(n_nn * n_nn)))
 
     def get_type(self, index):
-        """
-        Return type of order parameter at the index provided and
+        """Get type of order parameter at the index provided and
         represented by a short string.
 
         Args:
@@ -2786,8 +2750,7 @@ class LocalStructOrderParams:
         return self._types[index]
 
     def get_parameters(self, index):
-        """
-        Returns list of floats that represents
+        """Get list of floats that represents
         the parameters associated
         with calculation of the order
         parameter that was defined at the index provided.
@@ -3418,8 +3381,7 @@ class BrunnerNNReciprocal(NearNeighbors):
         return False
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n in structure.
 
         Args:
@@ -3497,8 +3459,7 @@ class BrunnerNNRelative(NearNeighbors):
         return False
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n in structure.
 
         Args:
@@ -3577,8 +3538,7 @@ class BrunnerNNReal(NearNeighbors):
         return False
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n in structure.
 
         Args:
@@ -3681,8 +3641,7 @@ class EconNN(NearNeighbors):
         return True
 
     def get_nn_info(self, structure: Structure, n: int):
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n in structure.
 
         Args:
@@ -3738,8 +3697,7 @@ class EconNN(NearNeighbors):
 
 
 def _get_fictive_ionic_radius(site: Site, neighbor: PeriodicNeighbor) -> float:
-    """
-    Get fictive ionic radius.
+    """Get fictive ionic radius.
 
     Follows equation 1 of:
 
@@ -3748,8 +3706,8 @@ def _get_fictive_ionic_radius(site: Site, neighbor: PeriodicNeighbor) -> float:
     150.1-4 (1979): 23-52.
 
     Args:
-        site: The central site.
-        neighbor neighboring site.
+        site (Site): The central site.
+        neighbor (PeriodicNeighbor): The neighboring site.
 
     Returns:
         Hoppe's fictive ionic radius.
@@ -3769,8 +3727,7 @@ def _get_mean_fictive_ionic_radius(
     fictive_ionic_radii: list[float],
     minimum_fir: float | None = None,
 ) -> float:
-    """
-    Returns the mean fictive ionic radius.
+    """Get the mean fictive ionic radius.
 
     Follows equation 2:
 
@@ -3877,8 +3834,7 @@ class CrystalNN(NearNeighbors):
         return False
 
     def get_nn_info(self, structure: Structure, n: int) -> list[dict]:
-        """
-        Get all near-neighbor information.
+        """Get all near-neighbor information.
 
         Args:
             structure: (Structure) pymatgen Structure
@@ -4044,8 +4000,7 @@ class CrystalNN(NearNeighbors):
         return self.transform_to_length(self.NNData(nn, cn_weights, cn_nninfo), length)
 
     def get_cn(self, structure: Structure, n: int, **kwargs) -> float:  # type: ignore
-        """
-        Get coordination number, CN, of site with index n in structure.
+        """Get coordination number, CN, of site with index n in structure.
 
         Args:
             structure (Structure): input structure.
@@ -4063,7 +4018,7 @@ class CrystalNN(NearNeighbors):
                 'take_max_species' will use Fe as the site specie.
 
         Returns:
-            cn (float): coordination number.
+            float: coordination number.
         """
         use_weights = kwargs.get("use_weights", False)
         if self.weighted_cn != use_weights:
@@ -4072,8 +4027,7 @@ class CrystalNN(NearNeighbors):
         return super().get_cn(structure, n, **kwargs)
 
     def get_cn_dict(self, structure: Structure, n: int, use_weights: bool = False, **kwargs):
-        """
-        Get coordination number, CN, of each element bonded to site with index n in structure.
+        """Get coordination number, CN, of each element bonded to site with index n in structure.
 
         Args:
             structure (Structure): input structure
@@ -4084,7 +4038,7 @@ class CrystalNN(NearNeighbors):
                 weight).
 
         Returns:
-            cn (dict): dictionary of CN of each element bonded to site
+            dict[int, list[dict]]: coordination number and list of coordinated sites
         """
         if self.weighted_cn != use_weights:
             raise ValueError("The weighted_cn parameter and use_weights parameter should match!")
@@ -4179,7 +4133,7 @@ def _get_radius(site):
         if oxi in el.ionic_radii:
             return el.ionic_radii[oxi]
 
-        # e.g., oxi = 2.667, average together 2+ and 3+ radii
+        # e.g. oxi = 2.667, average together 2+ and 3+ radii
         if math.floor(oxi) in el.ionic_radii and math.ceil(oxi) in el.ionic_radii:
             oxi_low = el.ionic_radii[math.floor(oxi)]
             oxi_high = el.ionic_radii[math.ceil(oxi)]
@@ -4277,8 +4231,7 @@ class CutOffDictNN(NearNeighbors):
         raise ValueError(f"Unknown {preset=}")
 
     def get_nn_info(self, structure: Structure, n: int) -> list[dict]:
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n in structure.
 
         Args:
@@ -4381,8 +4334,7 @@ class Critic2NN(NearNeighbors):
         return sg
 
     def get_nn_info(self, structure: Structure, n: int) -> list[dict]:
-        """
-        Get all near-neighbor sites as well as the associated image locations
+        """Get all near-neighbor sites as well as the associated image locations
         and weights of the site with index n in structure.
 
         Args:
@@ -4437,8 +4389,7 @@ def metal_edge_extender(
     metals: list | tuple | None = ("Li", "Mg", "Ca", "Zn", "B", "Al"),
     coordinators: list | tuple = ("O", "N", "F", "S", "Cl"),
 ):
-    """
-    Function to identify and add missed coordinate bond edges for metals.
+    """Identify and add missed coordinate bond edges for metals.
 
     Args:
         mol_graph: pymatgen.analysis.graphs.MoleculeGraph object

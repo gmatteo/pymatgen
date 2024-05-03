@@ -322,7 +322,7 @@ class CollinearMagneticStructureAnalyzer:
         return np.array(magmoms)
 
     def get_structure_with_spin(self) -> Structure:
-        """Returns a Structure with species decorated with spin values instead
+        """Get a Structure with species decorated with spin values instead
         of using magmom site properties.
         """
         structure = self.structure.copy()
@@ -332,7 +332,7 @@ class CollinearMagneticStructureAnalyzer:
         return structure
 
     def get_structure_with_only_magnetic_atoms(self, make_primitive: bool = True) -> Structure:
-        """Returns a Structure with only magnetic atoms present.
+        """Get a Structure with only magnetic atoms present.
 
         Args:
             make_primitive: Whether to make structure primitive after
@@ -351,7 +351,7 @@ class CollinearMagneticStructureAnalyzer:
         return structure
 
     def get_nonmagnetic_structure(self, make_primitive: bool = True) -> Structure:
-        """Returns a Structure without magnetic moments defined.
+        """Get a Structure without magnetic moments defined.
 
         Args:
             make_primitive: Whether to make structure primitive after
@@ -369,7 +369,7 @@ class CollinearMagneticStructureAnalyzer:
         return structure
 
     def get_ferromagnetic_structure(self, make_primitive: bool = True) -> Structure:
-        """Returns a Structure with all magnetic moments positive
+        """Get a Structure with all magnetic moments positive
         or zero.
 
         Args:
@@ -417,7 +417,7 @@ class CollinearMagneticStructureAnalyzer:
 
     @property
     def magnetic_species_and_magmoms(self) -> dict[str, Any]:
-        """Returns a dict of magnetic species and the magnitude of
+        """A dict of magnetic species and the magnitude of
         their associated magmoms. Will return a list if there are
         multiple magmoms per species.
 
@@ -470,7 +470,7 @@ class CollinearMagneticStructureAnalyzer:
 
     @property
     def ordering(self) -> Ordering:
-        """Applies heuristics to return a magnetic ordering for a collinear
+        """Apply heuristics to return a magnetic ordering for a collinear
         magnetic structure. Result is not guaranteed to be correct, just a best
         guess. Tolerance for minimum total magnetization to be considered
         ferro/ferrimagnetic is self.threshold_ordering and defaults to 1e-8.
@@ -507,7 +507,7 @@ class CollinearMagneticStructureAnalyzer:
         return Ordering.NM
 
     def get_exchange_group_info(self, symprec: float = 1e-2, angle_tolerance: float = 5) -> tuple[str, int]:
-        """Returns the information on the symmetry of the Hamiltonian
+        """Get the information on the symmetry of the Hamiltonian
         describing the exchange energy of the system, taking into
         account relative direction of magnetic moments but not their
         absolute direction.
@@ -560,8 +560,7 @@ class CollinearMagneticStructureAnalyzer:
         return cmag_analyzer.matches(b_positive) or cmag_analyzer.matches(analyzer)
 
     def __str__(self):
-        """
-        Sorts a Structure (by fractional coordinate), and
+        """Sorts a Structure (by fractional coordinate), and
         prints sites with magnetic information. This is
         useful over Structure.__str__ because sites are in
         a consistent order, which makes visual comparison between
@@ -1057,7 +1056,7 @@ MagneticDeformation = namedtuple("MagneticDeformation", "type deformation")
     description="A Simple Computational Proxy for Screening Magnetocaloric Compounds",
 )
 def magnetic_deformation(structure_A: Structure, structure_B: Structure) -> MagneticDeformation:
-    """Calculates 'magnetic deformation proxy',
+    """Calculate 'magnetic deformation proxy',
     a measure of deformation (norm of finite strain)
     between 'non-magnetic' (non-spin-polarized) and
     ferromagnetic structures.
