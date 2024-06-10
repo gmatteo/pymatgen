@@ -17,7 +17,7 @@ from monty.string import marquee
 
 from pymatgen.core.units import ArrayWithUnit
 #from pymatgen.core.xcfunc import XcFunc
-#from pymatgen.core.structure import Structure
+from pymatgen.core.structure import Structure
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -260,7 +260,6 @@ class EtsfReader(NetcdfReader):
     def read_structure(self, cls=Structure):
         """Get the crystalline structure stored in the rootgrp."""
         if cls is None:
-            from pymatgen.core.structure import Structure
             cls = Structure
         return structure_from_ncdata(self, cls=cls)
 
