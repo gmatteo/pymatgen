@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 from monty.dev import requires
@@ -12,13 +12,15 @@ from monty.json import MSONable
 from pymatgen.core.structure import Structure
 from pymatgen.io.vasp import Kpoints
 
-if TYPE_CHECKING:
-    from typing_extensions import Self
-
 try:
     import f90nml
 except ImportError:
     f90nml = None
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from typing_extensions import Self
 
 __author__ = "Rees Chang, Alex Ganose"
 __copyright__ = "Copyright 2019, The Materials Project"
@@ -150,8 +152,7 @@ class Control(MSONable, dict):
 
     @classmethod
     def from_dict(cls, control_dict: dict) -> Self:
-        """
-        Write a CONTROL file from a Python dictionary. Description and default
+        """Write a CONTROL file from a Python dictionary. Description and default
         parameters can be found at
         https://bitbucket.org/sousaw/shengbte/src/master/.
         Note some parameters are mandatory. Optional parameters default here to
@@ -167,8 +168,7 @@ class Control(MSONable, dict):
         "ShengBTE Control object requires f90nml to be installed. Please get it at https://pypi.org/project/f90nml.",
     )
     def to_file(self, filename: str = "CONTROL") -> None:
-        """
-        Writes ShengBTE CONTROL file from 'Control' object.
+        """Write ShengBTE CONTROL file from 'Control' object.
 
         Args:
             filename: A file name.

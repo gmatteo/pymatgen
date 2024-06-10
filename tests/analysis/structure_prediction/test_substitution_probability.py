@@ -28,9 +28,8 @@ def get_table():
 
 class TestSubstitutionProbability(TestCase):
     def test_full_lambda_table(self):
-        """
-        This test tests specific values in the data folder. If the
-        json is updated, these tests will have to be as well.
+        """Check specific values in the data folder. If the
+        JSON is updated, these tests will have to be as well.
         """
         sp = SubstitutionProbability(alpha=-5.0)
         sp1 = Species("Fe", 4)

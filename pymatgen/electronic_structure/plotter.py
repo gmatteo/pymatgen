@@ -3976,7 +3976,7 @@ def plot_fermi_surface(
     if transparency_factor is None:
         transparency_factor = [1] * n_surfaces
 
-    fig = mlab_figure if mlab_figure else None
+    fig = mlab_figure or None
 
     if kpoints_dict is None:
         kpoints_dict = {}
@@ -4062,7 +4062,7 @@ def plot_fermi_surface(
 
         polydata = cp.actor.actors[0].mapper.input
         pts = np.array(polydata.points)  # - 1
-        polydata.points = np.dot(pts, cell / np.array(data.shape)[:, np.newaxis])
+        polydata.points = np.dot(pts, cell / np.array(data.shape)[:, None])
 
         cx, cy, cz = (np.mean(np.array(polydata.points)[:, i]) for i in range(3))
 

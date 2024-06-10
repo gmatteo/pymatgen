@@ -5,16 +5,18 @@ from __future__ import annotations
 import gzip
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
 from pymatgen.core import Lattice, Molecule, Structure
 from pymatgen.core.tensors import Tensor
+from pymatgen.util.typing import Tuple3Floats
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
     from io import TextIOWrapper
+    from typing import Any
 
     from pymatgen.util.typing import Matrix3D, Vector3D
 
@@ -488,7 +490,7 @@ class AimsOutCalcChunk(AimsOutChunk):
         """
         species, coords, velocities, lattice = self._parse_lattice_atom_pos()
 
-        site_properties: dict[str, Sequence[Any]] = dict()
+        site_properties: dict[str, Sequence[Any]] = {}
         if len(velocities) > 0:
             site_properties["velocity"] = np.array(velocities)
 
@@ -566,9 +568,9 @@ class AimsOutCalcChunk(AimsOutChunk):
             elif "atom   " in line:
                 line_split = line.split()
                 species.append(line_split[4])
-                coords.append(cast(tuple[float, float, float], tuple(float(inp) for inp in line_split[1:4])))
+                coords.append(cast(Tuple3Floats, tuple(float(inp) for inp in line_split[1:4])))
             elif "velocity   " in line:
-                velocities.append(cast(tuple[float, float, float], tuple(float(inp) for inp in line.split()[1:4])))
+                velocities.append(cast(Tuple3Floats, tuple(float(inp) for inp in line.split()[1:4])))
 
         lattice = Lattice(lattice_vectors) if len(lattice_vectors) == 3 else None
         return species, coords, velocities, lattice

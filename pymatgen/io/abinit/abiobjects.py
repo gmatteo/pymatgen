@@ -1,6 +1,4 @@
-#
-
-"""Low-level objects providing an abstraction for the objects involved in the calculation."""
+"""Low-level classes and functions to work with Abinit input files."""
 
 from __future__ import annotations
 
@@ -18,6 +16,8 @@ from monty.json import MontyDecoder, MontyEncoder, MSONable
 from pymatgen.core import ArrayWithUnit, Lattice, Species, Structure, units
 
 if TYPE_CHECKING:
+    from typing import Any, ClassVar
+
     from typing_extensions import Self
 
 
@@ -343,7 +343,7 @@ MANDATORY = MandatoryVariable()
 DEFAULT = DefaultVariable()
 
 
-class SpinMode(namedtuple("SpinMode", "mode nsppol nspinor nspden"), AbivarAble, MSONable):
+class SpinMode(namedtuple("SpinMode", "mode nsppol nspinor nspden"), AbivarAble, MSONable):  # noqa: PYI024
     """
     Different configurations of the electron density as implemented in abinit:
     One can use as_spinmode to construct the object via SpinMode.as_spinmode
@@ -375,14 +375,14 @@ class SpinMode(namedtuple("SpinMode", "mode nsppol nspinor nspden"), AbivarAble,
         return {"nsppol": self.nsppol, "nspinor": self.nspinor, "nspden": self.nspden}
 
     def as_dict(self) -> dict:
-        """Convert object to dict."""
+        """JSON-friendly dict representation of SpinMode."""
         out = {k: getattr(self, k) for k in self._fields}
         out.update({"@module": type(self).__module__, "@class": type(self).__name__})
         return out
 
     @classmethod
     def from_dict(cls, dct: dict) -> Self:
-        """Build object from dict."""
+        """Build from dict."""
         return cls(**{key: dct[key] for key in dct if key in cls._fields})
 
 
@@ -402,8 +402,8 @@ class Smearing(AbivarAble, MSONable):
     a `Smearing` object is via the class method Smearing.as_smearing(string).
     """
 
-    #: Mapping string_mode --> occopt
-    _mode2occopt = dict(
+    # Map string_mode to occopt
+    _mode2occopt: ClassVar[dict[str, int]] = dict(
         nosmearing=1,
         fermi_dirac=3,
         marzari4=4,
@@ -413,7 +413,11 @@ class Smearing(AbivarAble, MSONable):
     )
 
     def __init__(self, occopt: int, tsmear: float):
-        """Build object with occopt and tsmear"""
+        """
+        Args:
+            occopt: Integer specifying the smearing technique.
+            tsmear: Smearing parameter in Hartree units.
+        """
         self.occopt = occopt
         self.tsmear = tsmear
 
@@ -477,7 +481,7 @@ class Smearing(AbivarAble, MSONable):
 
     @staticmethod
     def nosmearing() -> Smearing:
-        """Build object for calculations without smearing."""
+        """For calculations without smearing."""
         return Smearing(1, 0.0)
 
     def to_abivars(self) -> dict:
@@ -497,15 +501,15 @@ class Smearing(AbivarAble, MSONable):
 
     @classmethod
     def from_dict(cls, dct: dict) -> Self:
-        """Build object from dict."""
+        """Build from dict."""
         return cls(dct["occopt"], dct["tsmear"])
 
 
 class ElectronsAlgorithm(dict, AbivarAble, MSONable):
     """Variables controlling the SCF/NSCF algorithm."""
 
-    # None indicates that we use abinit defaults.
-    _DEFAULT = dict(
+    # None indicates that we use abinit defaults
+    _DEFAULT: ClassVar[dict[str, int | None]] = dict(
         iprcell=None,
         iscf=None,
         diemac=None,
@@ -519,7 +523,19 @@ class ElectronsAlgorithm(dict, AbivarAble, MSONable):
     )
 
     def __init__(self, *args, **kwargs):
-        """Initialize object."""
+        """
+        Args:
+            iprcell: 1 if the cell is fixed, 2 if the cell is relaxed.
+            iscf: SCF algorithm.
+            diemac: Macroscopic dielectric constant.
+            diemix: Mixing parameter for the electric field.
+            diemixmag: Mixing parameter for the magnetic field.
+            dielam: Damping factor for the electric field.
+            diegap: Energy gap for the dielectric function.
+            dielng: Length of the electric field.
+            diecut: Cutoff for the dielectric function.
+            nstep: Maximum number of SCF iterations.
+        """
         super().__init__(*args, **kwargs)
 
         for key in self:
@@ -531,12 +547,12 @@ class ElectronsAlgorithm(dict, AbivarAble, MSONable):
         return self.copy()
 
     def as_dict(self) -> dict:
-        """Convert object to dict."""
+        """Get JSON-able dict representation."""
         return {"@module": type(self).__module__, "@class": type(self).__name__, **self.copy()}
 
     @classmethod
     def from_dict(cls, dct: dict) -> Self:
-        """Build object from dict."""
+        """Build from dict."""
         dct = dct.copy()
         dct.pop("@module", None)
         dct.pop("@class", None)
@@ -604,7 +620,7 @@ class Electrons(AbivarAble, MSONable):
 
     @classmethod
     def from_dict(cls, dct: dict) -> Self:
-        """Build object from dictionary."""
+        """Build from dict."""
         dct = dct.copy()
         dct.pop("@module", None)
         dct.pop("@class", None)
@@ -976,7 +992,7 @@ class KSampling(AbivarAble, MSONable):
         return self.abivars
 
     def as_dict(self) -> dict:
-        """Convert object to dict."""
+        """Get JSON-able dict representation."""
         enc = MontyEncoder()
         return {
             "mode": self.mode.name,
@@ -994,7 +1010,7 @@ class KSampling(AbivarAble, MSONable):
 
     @classmethod
     def from_dict(cls, dct: dict) -> Self:
-        """Build object from dict."""
+        """Build from dict."""
         dct = dct.copy()
         dct.pop("@module", None)
         dct.pop("@class", None)
@@ -1003,7 +1019,7 @@ class KSampling(AbivarAble, MSONable):
 
 
 class Constraints(AbivarAble):
-    """This object defines the constraints for structural relaxation."""
+    """Define the constraints for structural relaxation."""
 
     def to_abivars(self):
         """Dictionary with Abinit variables."""
@@ -1020,7 +1036,7 @@ class RelaxationMethod(AbivarAble, MSONable):
     The set of variables are constructed in to_abivars depending on ionmov and optcell.
     """
 
-    _default_vars = dict(
+    _default_vars: ClassVar[dict[str, Any]] = dict(
         ionmov=MANDATORY,
         optcell=MANDATORY,
         ntime=80,
@@ -1036,7 +1052,18 @@ class RelaxationMethod(AbivarAble, MSONable):
     OPTCELL_DEFAULT = 2
 
     def __init__(self, *args, **kwargs):
-        """Initialize object."""
+        """
+        Args:
+            ionmov: The type of relaxation for the ions.
+            optcell: The type of relaxation for the unit cell.
+            ntime: Maximum number of iterations.
+            dilatmx: Maximum allowed cell volume change.
+            ecutsm: Energy convergence criterion.
+            strfact: Stress convergence criterion.
+            tolmxf: Force convergence criterion.
+            strtarget: Target stress.
+            atoms_constraints: Constraints for the atoms.
+        """
         # Initialize abivars with the default values.
         self.abivars = {**self._default_vars}
 
@@ -1115,7 +1142,7 @@ class RelaxationMethod(AbivarAble, MSONable):
         return out_vars
 
     def as_dict(self):
-        """Convert object to dict."""
+        """Convert to dictionary."""
         dct = dict(self._default_vars)
         dct["@module"] = type(self).__module__
         dct["@class"] = type(self).__name__
@@ -1123,7 +1150,7 @@ class RelaxationMethod(AbivarAble, MSONable):
 
     @classmethod
     def from_dict(cls, dct: dict) -> Self:
-        """Build object from dictionary."""
+        """Build from dictionary."""
         dct = dct.copy()
         dct.pop("@module", None)
         dct.pop("@class", None)
@@ -1217,7 +1244,7 @@ class PPModel(AbivarAble, MSONable):
         return cls(mode="noppmodel", plasmon_freq=None)
 
     def as_dict(self) -> dict:
-        """Convert object to dictionary."""
+        """Get JSON-able dict representation."""
         return {
             "mode": self.mode.name,
             "plasmon_freq": self.plasmon_freq,
@@ -1227,7 +1254,7 @@ class PPModel(AbivarAble, MSONable):
 
     @classmethod
     def from_dict(cls, dct: dict) -> Self:
-        """Build object from dictionary."""
+        """Build from dict."""
         return cls(mode=dct["mode"], plasmon_freq=dct["plasmon_freq"])
 
 
@@ -1311,10 +1338,14 @@ class Screening(AbivarAble):
     """
 
     # Approximations used for W
-    _WTYPES = dict(RPA=0)
+    _WTYPES: ClassVar[dict[str, int]] = dict(RPA=0)
 
-    # Self-consistecy modes
-    _SC_MODES = dict(one_shot=0, energy_only=1, wavefunctions=2)
+    # Self-consistency modes
+    _SC_MODES: ClassVar[dict[str, int]] = dict(
+        one_shot=0,
+        energy_only=1,
+        wavefunctions=2,
+    )
 
     def __init__(
         self,
@@ -1396,9 +1427,9 @@ class Screening(AbivarAble):
 
 
 class SelfEnergy(AbivarAble):
-    """This object defines the parameters used for the computation of the self-energy."""
+    """Define the parameters used for the computation of the self-energy."""
 
-    _SIGMA_TYPES = dict(
+    _SIGMA_TYPES: ClassVar[dict[str, int]] = dict(
         gw=0,
         hartree_fock=5,
         sex=6,
@@ -1407,7 +1438,7 @@ class SelfEnergy(AbivarAble):
         model_gw_cd=9,
     )
 
-    _SC_MODES = dict(
+    _SC_MODES: ClassVar[dict[str, int]] = dict(
         one_shot=0,
         energy_only=1,
         wavefunctions=2,
@@ -1529,17 +1560,21 @@ class SelfEnergy(AbivarAble):
 
 
 class ExcHamiltonian(AbivarAble):
-    """This object contains the parameters for the solution of the Bethe-Salpeter equation."""
+    """Contain parameters for the solution of the Bethe-Salpeter equation."""
 
     # Types of excitonic Hamiltonian.
-    _EXC_TYPES = dict(
+    _EXC_TYPES: ClassVar[dict[str, int]] = dict(
         TDA=0,  # Tamm-Dancoff approximation.
         coupling=1,  # Calculation with coupling.
     )
 
     # Algorithms used to compute the macroscopic dielectric function
     # and/or the exciton wavefunctions.
-    _ALGO2VAR = dict(direct_diago=1, haydock=2, cg=3)
+    _ALGO2VAR: ClassVar[dict[str, int]] = dict(
+        direct_diago=1,
+        haydock=2,
+        cg=3,
+    )
 
     # Options specifying the treatment of the Coulomb term.
     _COULOMB_MODES = ("diago", "full", "model_df")

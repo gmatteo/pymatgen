@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 def alternate(*iterables):
     """
     [a[0], b[0], ... , a[1], b[1], ..., a[n], b[n] ...]
-    >>> alternate([1,4], [2,5], [3,6])
+    >>> alternate([1, 4], [2, 5], [3, 6])
     [1, 2, 3, 4, 5, 6].
     """
     items = []
@@ -84,7 +84,6 @@ class AbinitTimerParser(collections.abc.Iterable):
         return parser, paths, ok_files
 
     def __init__(self):
-        """Initialize object."""
         # List of files that have been parsed.
         self._filenames: list = []
 
@@ -599,11 +598,11 @@ class AbinitTimerSection:
         self.gflops = float(gflops)
 
     def to_tuple(self) -> tuple:
-        """Convert object to tuple."""
+        """Get the values as a tuple."""
         return tuple(self.__dict__[at] for at in AbinitTimerSection.FIELDS)
 
     def to_dict(self) -> dict:
-        """Convert object to dictionary."""
+        """Get the values as a dictionary."""
         return {at: self.__dict__[at] for at in AbinitTimerSection.FIELDS}
 
     def to_csvline(self, with_header=False) -> str:

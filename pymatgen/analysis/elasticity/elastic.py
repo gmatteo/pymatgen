@@ -9,7 +9,7 @@ from __future__ import annotations
 import itertools
 import math
 import warnings
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import sympy as sp
@@ -25,6 +25,7 @@ from pymatgen.util.due import Doi, due
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from typing import Literal
 
     from numpy.typing import ArrayLike
     from typing_extensions import Self
@@ -727,8 +728,8 @@ class ElasticTensorExpansion(TensorCollection):
         if not self.order <= 4:
             raise ValueError("Compliance tensor expansion only supported for fourth-order and lower")
         ce_exp = [ElasticTensor(self[0]).compliance_tensor]
-        ein_string = "ijpq,pqrsuv,rskl,uvmn->ijklmn"
-        ce_exp.append(np.einsum(ein_string, -ce_exp[-1], self[1], ce_exp[-1], ce_exp[-1]))
+        ein_str = "ijpq,pqrsuv,rskl,uvmn->ijklmn"
+        ce_exp.append(np.einsum(ein_str, -ce_exp[-1], self[1], ce_exp[-1], ce_exp[-1]))
         if self.order == 4:
             # Four terms in the Fourth-Order compliance tensor
             einstring_1 = "pqab,cdij,efkl,ghmn,abcdefgh"
@@ -914,8 +915,7 @@ def find_eq_stress(strains, stresses, tol: float = 1e-10):
 
 
 def get_strain_state_dict(strains, stresses, eq_stress=None, tol: float = 1e-10, add_eq=True, sort=True):
-    """
-    Creates a dictionary of voigt notation stress-strain sets
+    """Create a dictionary of voigt notation stress-strain sets
     keyed by "strain state", i. e. a tuple corresponding to
     the non-zero entries in ratios to the lowest nonzero value,
     e.g. [0, 0.1, 0, 0.2, 0, 0] -> (0,1,0,2,0,0)

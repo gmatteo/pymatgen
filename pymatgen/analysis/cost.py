@@ -75,10 +75,7 @@ class CostDB(abc.ABC):
 
 
 class CostDBCSV(CostDB):
-    """
-    Read a CSV file to get costs
-    Format is formula,cost_per_kg,name,BibTeX.
-    """
+    """Read a CSV file to get costs. Format is formula,cost_per_kg,name,BibTeX."""
 
     def __init__(self, filename):
         """
@@ -112,7 +109,7 @@ class CostDBCSV(CostDB):
 
 @singleton
 class CostDBElements(CostDBCSV):
-    """Singleton object that provides the cost data for elements."""
+    """Singleton that provides the cost data for elements."""
 
     def __init__(self):
         CostDBCSV.__init__(self, f"{module_dir}/costdb_elements.csv")

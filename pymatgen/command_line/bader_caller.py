@@ -22,7 +22,7 @@ from glob import glob
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 from monty.dev import deprecated
@@ -34,6 +34,8 @@ from pymatgen.io.vasp.inputs import Potcar
 from pymatgen.io.vasp.outputs import Chgcar
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from typing_extensions import Self
 
     from pymatgen.core import Structure
@@ -231,9 +233,8 @@ class BaderAnalysis:
         return data
 
     @deprecated(
-        message="parse_atomic_densities was deprecated on 2024-02-26 "
-        "and will be removed on 2025-02-26.\nSee https://"
-        "github.com/materialsproject/pymatgen/issues/3652 for details."
+        message="See issue #3652 for details.",
+        deadline=(2025, 2, 26),
     )
     def _parse_atomic_densities(self) -> list[dict]:
         """Parse atom-centered charge densities with excess zeros removed.

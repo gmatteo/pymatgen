@@ -36,7 +36,7 @@ try:
     from ase.calculators.calculator import Calculator
     from ase.calculators.emt import EMT
 except ImportError:
-    ase = None
+    ase = Atoms = Calculator = EMT = None
 
 
 enum_cmd = which("enum.x") or which("multienum.x")
@@ -168,6 +168,16 @@ class TestIStructure(PymatgenTest):
     def test_elements(self):
         assert self.struct.elements == [Element("Si")]
         assert self.propertied_structure.elements == [Element("Si")]
+
+    def test_chemical_system(self):
+        assert self.struct.chemical_system == "Si"
+        assert self.propertied_structure.chemical_system == "Si"
+        assert self.V2O3.chemical_system == "O-V"
+
+    def test_chemical_system_set(self):
+        assert self.struct.chemical_system_set == {"Si"}
+        assert self.propertied_structure.chemical_system_set == {"Si"}
+        assert self.V2O3.chemical_system_set == {"O", "V"}
 
     def test_specie_init(self):
         coords = [[0, 0, 0], [0.75, 0.5, 0.75]]
@@ -938,7 +948,7 @@ class TestStructure(PymatgenTest):
 
         # Test slice replacement.
         struct = PymatgenTest.get_structure("Li2O")
-        struct[0:2] = "S"
+        struct[:2] = "S"
         assert struct.formula == "Li1 S2"
 
     def test_not_hashable(self):
@@ -1559,7 +1569,7 @@ class TestStructure(PymatgenTest):
         assert struct.formula == "Si1 C1"
         struct[(0, 1)] = "Ge"
         assert struct.formula == "Ge2"
-        struct[0:2] = "Sn"
+        struct[:2] = "Sn"
         assert struct.formula == "Sn2"
 
         struct = self.struct.copy()
@@ -1848,6 +1858,13 @@ Sites (8)
         assert isinstance(atoms, Atoms)
         assert len(atoms) == len(self.struct)
         assert AseAtomsAdaptor.get_structure(atoms) == self.struct
+        assert Structure.from_ase_atoms(atoms) == self.struct
+
+        labeled_atoms = self.labeled_structure.to_ase_atoms()
+        assert Structure.from_ase_atoms(labeled_atoms) == self.labeled_structure
+
+        with pytest.raises(ValueError, match="ASE Atoms only supports ordered structures"):
+            self.disordered.to_ase_atoms()
 
     def test_struct_with_isotope(self):
         struct = Structure.from_file(f"{VASP_IN_DIR}/POSCAR_LiFePO4")
@@ -1884,7 +1901,7 @@ class TestIMolecule(PymatgenTest):
         assert mol.formula == "Si1 H4"
         mol[(0, 1)] = "Ge"
         assert mol.formula == "Ge2 H3"
-        mol[0:2] = "Sn"
+        mol[:2] = "Sn"
         assert mol.formula == "Sn2 H3"
 
         mol = self.mol.copy()
@@ -1958,6 +1975,12 @@ Site: H (-0.5134, 0.8892, -0.3630)"""
         )
         assert propertied_mol[0].magmom == 0.5
         assert propertied_mol[1].magmom == -0.5
+
+    def test_chemical_system(self):
+        assert self.mol.chemical_system == "C-H"
+
+    def test_chemical_system_set(self):
+        assert self.mol.chemical_system_set == {"C", "H"}
 
     def test_get_boxed_structure(self):
         struct = self.mol.get_boxed_structure(9, 9, 9)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from monty.io import zopen
 
@@ -15,6 +15,7 @@ from .utils import lower_and_check_unique, read_pattern, read_table_pattern
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Literal
 
     from typing_extensions import Self
 
@@ -369,8 +370,7 @@ class QCInput(InputFile):
 
     @staticmethod
     def write_multi_job_file(job_list: list[QCInput], filename: str):
-        """
-        Write a multijob file.
+        """Write a multijob file.
 
         Args:
             job_list (): List of jobs.
@@ -859,8 +859,7 @@ class QCInput(InputFile):
 
     @staticmethod
     def read_rem(string: str) -> dict:
-        """
-        Parse rem from string.
+        """Parse rem from string.
 
         Args:
             string (str): String

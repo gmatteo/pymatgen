@@ -8,9 +8,8 @@ from __future__ import annotations
 import logging
 import os
 import warnings
-from collections import namedtuple
 from enum import Enum, unique
-from typing import TYPE_CHECKING, Any, no_type_check
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy as np
 from monty.serialization import loadfn
@@ -27,6 +26,8 @@ from pymatgen.transformations.standard_transformations import AutoOxiStateDecora
 from pymatgen.util.due import Doi, due
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from numpy.typing import ArrayLike
 
 __author__ = "Matthew Horton"
@@ -160,7 +161,7 @@ class CollinearMagneticStructureAnalyzer:
             except ValueError:
                 warnings.warn(f"Could not assign valences for {structure.reduced_formula}")
 
-        # check to see if structure has magnetic moments
+        # Check if structure has magnetic moments
         # on site properties or species spin properties,
         # prioritize site properties
 
@@ -281,7 +282,6 @@ class CollinearMagneticStructureAnalyzer:
         self.structure = structure
         self.threshold_ordering = threshold_ordering
 
-    @no_type_check  # ignore seemingly false mypy errors
     @staticmethod
     def _round_magmoms(magmoms: ArrayLike, round_magmoms_mode: float) -> np.ndarray:
         """If round_magmoms_mode is an integer, simply round to that number
@@ -604,9 +604,7 @@ class MagneticStructureEnumerator:
         truncate_by_symmetry: bool = True,
         transformation_kwargs: dict | None = None,
     ):
-        """
-        This class will try generated different collinear
-        magnetic orderings for a given input structure.
+        """Generate different collinear magnetic orderings for a given input structure.
 
         If the input structure has magnetic moments defined, it
         is possible to use these as a hint as to which elements are
@@ -616,7 +614,7 @@ class MagneticStructureEnumerator:
         Args:
             structure: input structure
             default_magmoms: (optional, defaults provided) dict of
-                magnetic elements to their initial magnetic moments in µB, generally
+                magnetic elements to their initial magnetic moments in μB, generally
                 these are chosen to be high-spin since they can relax to a low-spin
                 configuration during a DFT electronic configuration
             strategies: different ordering strategies to use, choose from:
@@ -1013,7 +1011,7 @@ class MagneticStructureEnumerator:
 
             # ...and decide which ones to keep
             if len(max_symmetries) > self.truncate_by_symmetry:
-                max_symmetries = max_symmetries[0:5]
+                max_symmetries = max_symmetries[:5]
             structs_to_keep = [(idx, num) for idx, num in enumerate(num_sym_ops) if num in max_symmetries]
 
             # sort so that highest symmetry structs are first
@@ -1048,7 +1046,9 @@ class MagneticStructureEnumerator:
         return ordered_structures, ordered_structures_origins
 
 
-MagneticDeformation = namedtuple("MagneticDeformation", "type deformation")
+class MagneticDeformation(NamedTuple):
+    deformation: float
+    type: str
 
 
 @due.dcite(

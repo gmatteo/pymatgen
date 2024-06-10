@@ -15,8 +15,8 @@ import sys
 import tempfile
 import traceback
 import numpy as np
-from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING
+from collections import defaultdict
+from typing import TYPE_CHECKING, NamedTuple
 from xml.etree import ElementTree as Et
 from collections import defaultdict, namedtuple
 from typing import List, Any, Union, TYPE_CHECKING
@@ -35,7 +35,10 @@ from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
+    from typing import Any, ClassVar
+
     import matplotlib.pyplot as plt
+    from numpy.typing import NDArray
     from typing_extensions import Self
     from pymatgen.core import Structure
 
@@ -50,6 +53,7 @@ __maintainer__ = "Matteo Giantomassi"
 # Tools and helper functions.
 
 
+<<<<<<< HEAD
 def straceback() -> str:
     """Get a string with the traceback."""
 
@@ -61,6 +65,10 @@ def _read_nlines(filename: str, n_lines: int) -> list[str]:
     Read at most n_lines lines from file filename.
     If n_lines is < 0, the entire file is read.
     """
+=======
+def _read_nlines(filename: str, n_lines: int) -> list[str]:
+    """Read at most nlines from filename. If nlines is < 0, the entire file is read."""
+>>>>>>> trunk/master
     if n_lines < 0:
         with open(filename, encoding="utf-8") as file:
             return file.readlines()
@@ -140,13 +148,15 @@ class Pseudo(MSONable, abc.ABC):
         """String representation."""
 
         lines: list[str] = []
-        lines.append(f"<{type(self).__name__}: {self.basename}>")
-        lines.append("  summary: " + self.summary.strip())
-        lines.append(f"  number of valence electrons: {self.Z_val}")
-        lines.append(f"  maximum angular momentum: {l2str(self.l_max)}")
-        lines.append(f"  angular momentum for local part: {l2str(self.l_local)}")
-        lines.append(f"  XC correlation: {self.xc}")
-        lines.append(f"  supports spin-orbit: {self.supports_soc}")
+        lines += (
+            f"<{type(self).__name__}: {self.basename}>",
+            f"  summary: {self.summary.strip()}",
+            f"  number of valence electrons: {self.Z_val}",
+            f"  maximum angular momentum: {l2str(self.l_max)}",
+            f"  angular momentum for local part: {l2str(self.l_local)}",
+            f"  XC correlation: {self.xc}",
+            f"  supports spin-orbit: {self.supports_soc}",
+        )
 
         if self.isnc:
             lines.append(f"  radius for non-linear core correction: {self.nlcc_radius}")
@@ -675,7 +685,7 @@ def _int_from_str(string: str) -> int:
 class NcAbinitHeader(AbinitHeader):
     """The abinit header found in the NC pseudopotential files."""
 
-    _VARS = dict(
+    _VARS: ClassVar[dict[str, tuple]] = dict(
         zatom=(None, _int_from_str),
         zion=(None, float),
         pspdat=(None, float),
@@ -721,8 +731,7 @@ class NcAbinitHeader(AbinitHeader):
 
     @staticmethod
     def fhi_header(filename, ppdesc) -> NcAbinitHeader:
-        """
-        Parse the FHI abinit header. Example:
+        """Parse the FHI abinit header. Example:
 
         Troullier-Martins psp for element  Sc        Thu Oct 27 17:33:22 EDT 1994
             21.00000   3.00000    940714                zatom, zion, pspdat
@@ -743,8 +752,7 @@ class NcAbinitHeader(AbinitHeader):
 
     @staticmethod
     def hgh_header(filename, ppdesc) -> NcAbinitHeader:
-        """
-        Parse the HGH abinit header. Example:
+        """Parse the HGH abinit header. Example:
 
         Hartwigsen-Goedecker-Hutter psp for Ne,  from PRB58, 3641 (1998)
             10   8  010605 zatom,zion,pspdat
@@ -759,8 +767,7 @@ class NcAbinitHeader(AbinitHeader):
 
     @staticmethod
     def gth_header(filename, ppdesc) -> NcAbinitHeader:
-        """
-        Parse the GTH abinit header. Example:
+        """Parse the GTH abinit header. Example:
 
         Goedecker-Teter-Hutter  Wed May  8 14:27:44 EDT 1996
         1   1   960508                     zatom,zion,pspdat
@@ -779,8 +786,7 @@ class NcAbinitHeader(AbinitHeader):
 
     @staticmethod
     def oncvpsp_header(filename, ppdesc) -> NcAbinitHeader:
-        """
-        Parse the ONCVPSP abinit header. Example:
+        """Parse the ONCVPSP abinit header. Example:
 
         Li    ONCVPSP  r_core=  2.01  3.02
               3.0000      3.0000      140504    zatom,zion,pspd
@@ -808,8 +814,7 @@ class NcAbinitHeader(AbinitHeader):
 
     @staticmethod
     def tm_header(filename, ppdesc) -> NcAbinitHeader:
-        """
-        Parse the TM abinit header. Example:
+        """Parse the TM abinit header. Example:
 
         Troullier-Martins psp for element Fm         Thu Oct 27 17:28:39 EDT 1994
         100.00000  14.00000    940714                zatom, zion, pspdat
@@ -871,7 +876,7 @@ class NcAbinitHeader(AbinitHeader):
 class PawAbinitHeader(AbinitHeader):
     """The abinit header found in the PAW pseudopotential files."""
 
-    _VARS = dict(
+    _VARS: ClassVar[dict[str, tuple]] = dict(
         zatom=(None, _int_from_str),
         zion=(None, float),
         pspdat=(None, float),
@@ -919,8 +924,7 @@ class PawAbinitHeader(AbinitHeader):
 
     @staticmethod
     def paw_header(filename: str, ppdesc):
-        """
-        Parse the PAW abinit header. Examples:
+        """Parse the PAW abinit header. Examples:
 
         Paw atomic data for element Ni - Generated by AtomPAW (N. Holzwarth) + AtomPAW2Abinit v3.0.5
           28.000  18.000 20061204               : zatom,zion,pspdat
@@ -1009,11 +1013,16 @@ class PseudoParser:
 
     Error = PseudoParseError
 
-    # Supported values of pspcod
-    ppdesc = namedtuple("ppdesc", "pspcod name psp_type format")
+    class ppdesc(NamedTuple):
+        """Supported values of pspcod."""
+
+        pspcod: int
+        name: str
+        psp_type: str
+        format: None
 
     # TODO Recheck
-    _PSPCODES = {
+    _PSPCODES: ClassVar[dict[int, ppdesc]] = {
         1: ppdesc(1, "TM", "NC", None),
         2: ppdesc(2, "GTH", "NC", None),
         3: ppdesc(3, "HGH", "NC", None),
@@ -1024,8 +1033,6 @@ class PseudoParser:
         8: ppdesc(8, "ONCVPSP", "NC", None),
         10: ppdesc(10, "HGHK", "NC", None),
     }
-
-    del ppdesc
 
     # renumber functionals from oncvpsp todo confirm that 3 is 2
     # _FUNCTIONALS = {1: {'n': 4, 'name': 'Wigner'},
@@ -1162,7 +1169,9 @@ class PseudoParser:
         try:
             header = parsers[ppdesc.name](path, ppdesc)
         except Exception:
-            raise self.Error(f"{path}:\n{straceback()}")
+            str_traceback = "\n".join((traceback.format_exc(), str(sys.exc_info()[0])))
+
+            raise self.Error(f"{path}:\n{str_traceback}")
 
         if psp_type == "NC":
             pseudo = NcAbinitPseudo(path, header)
@@ -1174,11 +1183,14 @@ class PseudoParser:
         return pseudo
 
 
-# TODO use RadialFunction from pseudo_dojo.
-class RadialFunction(namedtuple("RadialFunction", "mesh values")):
-    """Radial Function class."""
+class RadialFunction(NamedTuple):
+    """Radial Function class.
 
-    __slots__ = ()
+    TODO: use RadialFunction from pseudo_dojo.
+    """
+
+    mesh: Any
+    values: NDArray
 
 
 class PawXmlSetup(Pseudo, PawPseudo):
@@ -1298,9 +1310,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
 
     @staticmethod
     def _eval_grid(grid_params):
-        """
-        This function receives a dictionary with the parameters defining the
-        radial mesh and returns a `ndarray` with the mesh.
+        """For a dictionary with the parameters defining the
+        radial mesh, get a `ndarray` with the mesh.
         """
         eq = grid_params.get("eq").replace(" ", "")
         istart, iend = int(grid_params.get("istart")), int(grid_params.get("iend"))
@@ -1513,7 +1524,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
     #    ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))
 
     #    for state, rfunc in self.potentials.items():
-    #        ax.plot(rfunc.mesh, rfunc.values, label="TPROJ: " + state)
+    #        ax.plot(rfunc.mesh, rfunc.values, label=f"TPROJ: {state}")
 
     #    ax.legend(loc="best")
     #    return fig

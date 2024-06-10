@@ -585,7 +585,7 @@ class GulpIO:
                 # read the site coordinates in the following lines
                 idx += 6
                 line = output_lines[idx]
-                while line[0:2] != "--":
+                while line[:2] != "--":
                     structure_lines.append(line)
                     idx += 1
                     line = output_lines[idx]
@@ -764,7 +764,7 @@ class GulpError(Exception):
         self.msg = msg
 
     def __str__(self):
-        return "GulpError : " + self.msg
+        return f"GulpError : {self.msg}"
 
 
 class GulpConvergenceError(Exception):

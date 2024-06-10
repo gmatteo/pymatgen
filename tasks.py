@@ -158,8 +158,7 @@ def post_discourse(version: str) -> None:
 
 @task
 def update_changelog(ctx: Context, version: str | None = None, dry_run: bool = False) -> None:
-    """
-    Create a preliminary change log using the git logs.
+    """Create a preliminary change log using the git logs.
 
     Args:
         ctx (invoke.Context): The context object.
@@ -184,7 +183,7 @@ def update_changelog(ctx: Context, version: str | None = None, dry_run: bool = F
             json_resp = response.json()
             if body := json_resp["body"]:
                 for ll in map(str.strip, body.split("\n")):
-                    if ll in ["", "## Summary"]:
+                    if ll in ("", "## Summary"):
                         continue
                     if ll.startswith(("## Checklist", "## TODO")):
                         break
@@ -249,5 +248,5 @@ def lint(ctx: Context) -> None:
     Args:
         ctx (invoke.Context): The context object.
     """
-    for cmd in ["ruff", "mypy", "ruff format"]:
+    for cmd in ("ruff", "mypy", "ruff format"):
         ctx.run(f"{cmd} pymatgen")

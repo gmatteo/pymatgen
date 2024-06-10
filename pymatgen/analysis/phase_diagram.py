@@ -11,7 +11,7 @@ import re
 import warnings
 from collections import defaultdict
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Literal, no_type_check
+from typing import TYPE_CHECKING, no_type_check
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,6 +38,7 @@ from pymatgen.util.string import htmlify, latexify
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterator, Sequence
     from io import StringIO
+    from typing import Any, Literal
 
     from numpy.typing import ArrayLike
     from typing_extensions import Self
@@ -2276,7 +2277,7 @@ class PDPlotter:
 
         X value is the negative value of the chemical potential reference to
         elemental chemical potential. For example, if choose Element("Li"),
-        X= -(µLi-µLi0), which corresponds to the voltage versus metal anode.
+        X= -(μLi-μLi0), which corresponds to the voltage versus metal anode.
         Y values represent for the number of element uptake in this composition
         (unit: per atom). All reactions are printed to help choosing the
         profile steps you want to show label in the plot.
@@ -2420,7 +2421,7 @@ class PDPlotter:
             comp = entry.composition
             is_x = comp.get_atomic_fraction(el0) < 0.01
             is_y = comp.get_atomic_fraction(el1) < 0.01
-            n = len(coords)
+            n_coords = len(coords)
             if not (is_x and is_y):
                 if is_x:
                     coords = sorted(coords, key=lambda c: c[1])
@@ -2438,11 +2439,11 @@ class PDPlotter:
                         plt.plot(x, y, "k")
                         center_x += coords[idx][0]
                         center_y += min(ylim)
-                xy = (center_x / (n + 2), center_y / (n + 2))
+                xy = (center_x / (n_coords + 2), center_y / (n_coords + 2))
             else:
                 center_x = sum(coord[0] for coord in coords) + xlim[0]
                 center_y = sum(coord[1] for coord in coords) + ylim[0]
-                xy = (center_x / (n + 1), center_y / (n + 1))
+                xy = (center_x / (n_coords + 1), center_y / (n_coords + 1))
 
             ax.annotate(
                 latexify(entry.name),

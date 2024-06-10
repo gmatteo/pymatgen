@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.linalg import norm
@@ -14,6 +14,8 @@ from scipy.spatial import ConvexHull
 from pymatgen.analysis.chemenv.utils.chemenv_errors import SolidAngleError
 
 if TYPE_CHECKING:
+    from typing import Callable
+
     from numpy.typing import ArrayLike
     from typing_extensions import Self
 
@@ -368,14 +370,19 @@ def solid_angle(center, coords):
     origin = np.array(center)
     r = [np.array(c) - origin for c in coords]
     r.append(r[0])
-    n = [np.cross(r[i + 1], r[i]) for i in range(len(r) - 1)]
-    n.append(np.cross(r[1], r[0]))
+    cross_products = [np.cross(r[i + 1], r[i]) for i in range(len(r) - 1)]
+    cross_products.append(np.cross(r[1], r[0]))
     phi = 0.0
-    for idx in range(len(n) - 1):
+    for idx in range(len(cross_products) - 1):
         try:
-            value = math.acos(-np.dot(n[idx], n[idx + 1]) / (np.linalg.norm(n[idx]) * np.linalg.norm(n[idx + 1])))
+            value = math.acos(
+                -np.dot(cross_products[idx], cross_products[idx + 1])
+                / (np.linalg.norm(cross_products[idx]) * np.linalg.norm(cross_products[idx + 1]))
+            )
         except ValueError:
-            cos = -np.dot(n[idx], n[idx + 1]) / (np.linalg.norm(n[idx]) * np.linalg.norm(n[idx + 1]))
+            cos = -np.dot(cross_products[idx], cross_products[idx + 1]) / (
+                np.linalg.norm(cross_products[idx]) * np.linalg.norm(cross_products[idx + 1])
+            )
             if 0.999999999999 < cos < 1.000000000001:
                 value = math.acos(1.0)
             elif -0.999999999999 > cos > -1.000000000001:
@@ -901,7 +908,7 @@ class Plane:
         xypps = []
         for pp in proj:
             xyzpp = np.dot(pp, PP)
-            xypps.append(xyzpp[0:2])
+            xypps.append(xyzpp[:2])
         if str(plane_center) == "mean":
             mean = np.zeros(2, float)
             for pp in xypps:
@@ -910,7 +917,7 @@ class Plane:
             xypps = [pp - mean for pp in xypps]
         elif plane_center is not None:
             projected_plane_center = self.projectionpoints([plane_center])[0]
-            xy_projected_plane_center = np.dot(projected_plane_center, PP)[0:2]
+            xy_projected_plane_center = np.dot(projected_plane_center, PP)[:2]
             xypps = [pp - xy_projected_plane_center for pp in xypps]
         return xypps
 
@@ -960,7 +967,7 @@ class Plane:
     @property
     def abcd(self):
         """A tuple with the plane coefficients."""
-        return tuple(self._coefficients[0:4])
+        return tuple(self._coefficients[:4])
 
     @property
     def a(self):

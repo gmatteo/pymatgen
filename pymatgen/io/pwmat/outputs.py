@@ -13,7 +13,7 @@ from pymatgen.io.pwmat.inputs import ACstrExtractor, AtomConfig, LineLocator
 
 if TYPE_CHECKING:
     from pymatgen.core import Structure
-    from pymatgen.util.typing import PathLike
+    from pymatgen.util.typing import PathLike, Tuple3Ints
 
 
 __author__ = "Hanyu Liu"
@@ -72,7 +72,7 @@ class Movement(MSONable):
 
     @property
     def atom_configs(self) -> list[Structure]:
-        """AtomConfig object for structures contained in MOVEMENT.
+        """AtomConfig for structures contained in MOVEMENT file.
 
         Returns:
             list[Structure]: List of Structure objects for the structure at each ionic step.
@@ -121,8 +121,7 @@ class Movement(MSONable):
         return np.array([step["virial"] for step in self.ionic_steps if ("virial" in step)])
 
     def _parse_sefv(self) -> list[dict]:
-        """
-        Parse the MOVEMENT file, return information ionic step structure containing
+        """Parse the MOVEMENT file, return information ionic step structure containing
         structures, energies, forces on atoms and virial tensor.
 
         Returns:
@@ -191,9 +190,8 @@ class Report(MSONable):
         self._eigenvalues = self._parse_eigen()
         self._kpts, self._kpts_weight, self._hsps = self._parse_kpt()
 
-    def _parse_band(self) -> tuple[int, int, int]:
-        """
-        Parse REPORT file to obtain spin switches, the number of kpoints
+    def _parse_band(self) -> Tuple3Ints:
+        """Parse REPORT file to obtain spin switches, the number of kpoints
         and the number of bands.
 
         Returns:

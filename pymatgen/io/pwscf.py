@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from monty.io import zopen
 from monty.re import regrep
@@ -14,6 +14,7 @@ from pymatgen.util.io_utils import clean_lines
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Any, ClassVar
 
     from typing_extensions import Self
 
@@ -213,8 +214,7 @@ class PWInput:
         )
 
     def write_file(self, filename):
-        """
-        Write the PWSCF input file.
+        """Write the PWSCF input file.
 
         Args:
             filename (str): The string filename to output to.
@@ -501,7 +501,7 @@ class PWInputError(BaseException):
 class PWOutput:
     """Parser for PWSCF output file."""
 
-    patterns = dict(
+    patterns: ClassVar[dict[str, str]] = dict(
         energies=r"total energy\s+=\s+([\d\.\-]+)\sRy",
         ecut=r"kinetic\-energy cutoff\s+=\s+([\d\.\-]+)\s+Ry",
         lattice_type=r"bravais\-lattice index\s+=\s+(\d+)",

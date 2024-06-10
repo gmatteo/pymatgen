@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from fractions import Fraction
 from itertools import product
-from typing import TYPE_CHECKING, ClassVar, Literal, overload
+from typing import TYPE_CHECKING, overload
 
 import numpy as np
 from monty.design_patterns import cached_class
@@ -21,16 +21,20 @@ from monty.serialization import loadfn
 from pymatgen.util.string import Stringify
 
 if TYPE_CHECKING:
+    from typing import ClassVar, Literal
+
     from numpy.typing import ArrayLike
     from typing_extensions import Self
 
-    # don't import at runtime to avoid circular import
     from pymatgen.core.lattice import Lattice
+
+    # Don't import at runtime to avoid circular import
     from pymatgen.core.operations import SymmOp  # noqa: TCH004
+
+    CrystalSystem = Literal["cubic", "hexagonal", "monoclinic", "orthorhombic", "tetragonal", "triclinic", "trigonal"]
 
 
 SYMM_DATA = loadfn(os.path.join(os.path.dirname(__file__), "symm_data.json"))
-CrystalSystem = Literal["cubic", "hexagonal", "monoclinic", "orthorhombic", "tetragonal", "triclinic", "trigonal"]
 
 
 class SymmetryGroup(Sequence, Stringify, ABC):
@@ -176,7 +180,7 @@ class SpaceGroup(SymmetryGroup):
     """
 
     SYMM_OPS = loadfn(os.path.join(os.path.dirname(__file__), "symm_ops.json"))
-    SG_SYMBOLS: ClassVar[set] = set(SYMM_DATA["space_group_encoding"])
+    SG_SYMBOLS: ClassVar[set[str]] = set(SYMM_DATA["space_group_encoding"])
     for op in SYMM_OPS:
         op["hermann_mauguin"] = re.sub(r" ", "", op["hermann_mauguin"])
         op["universal_h_m"] = re.sub(r" ", "", op["universal_h_m"])
@@ -187,8 +191,10 @@ class SpaceGroup(SymmetryGroup):
     # POINT_GROUP_ENC = SYMM_DATA["point_group_encoding"]
     sg_encoding = SYMM_DATA["space_group_encoding"]
     abbrev_sg_mapping = SYMM_DATA["abbreviated_spacegroup_symbols"]
-    translations = {k: Fraction(v) for k, v in SYMM_DATA["translations"].items()}
-    full_sg_mapping = {v["full_symbol"]: k for k, v in SYMM_DATA["space_group_encoding"].items()}
+    translations: ClassVar[dict[str, Fraction]] = {k: Fraction(v) for k, v in SYMM_DATA["translations"].items()}
+    full_sg_mapping: ClassVar[dict[str, str]] = {
+        v["full_symbol"]: k for k, v in SYMM_DATA["space_group_encoding"].items()
+    }
 
     def __init__(self, int_symbol: str) -> None:
         """Initialize a Space Group from its full or abbreviated international

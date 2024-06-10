@@ -11,7 +11,7 @@ import time
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 from monty.io import zopen
@@ -21,8 +21,11 @@ from pymatgen.core import Lattice, Molecule, Structure
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from typing import Any
 
     from typing_extensions import Self
+
+    from pymatgen.util.typing import Tuple3Floats, Tuple3Ints
 
 __author__ = "Thomas A. R. Purcell"
 __version__ = "1.0"
@@ -251,9 +254,9 @@ class AimsCube(MSONable):
     """
 
     type: str = field(default_factory=str)
-    origin: Sequence[float] | tuple[float, float, float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    origin: Sequence[float] | Tuple3Floats = field(default_factory=lambda: [0.0, 0.0, 0.0])
     edges: Sequence[Sequence[float]] = field(default_factory=lambda: 0.1 * np.eye(3))
-    points: Sequence[int] | tuple[int, int, int] = field(default_factory=lambda: [0, 0, 0])
+    points: Sequence[int] | Tuple3Ints = field(default_factory=lambda: [0, 0, 0])
     format: str = "cube"
     spin_state: int | None = None
     kpoint: int | None = None
@@ -289,10 +292,7 @@ class AimsCube(MSONable):
         if self.filename != other.filename:
             return False
 
-        if self.elf_type != other.elf_type:
-            return False
-
-        return True
+        return self.elf_type == other.elf_type
 
     def __post_init__(self) -> None:
         """Check the inputted variables to make sure they are correct

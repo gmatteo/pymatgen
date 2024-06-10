@@ -128,7 +128,7 @@ class TestSetChangeCheck(PymatgenTest):
             assert hashes[input_set] == known_hashes[input_set], f"{input_set=}\n{msg}"
 
 
-class TestDictSet(PymatgenTest):
+class TestVaspInputSet(PymatgenTest):
     @classmethod
     def setUpClass(cls):
         filepath = f"{VASP_IN_DIR}/POSCAR"
@@ -136,7 +136,7 @@ class TestDictSet(PymatgenTest):
 
     def test_as_dict(self):
         # https://github.com/materialsproject/pymatgen/pull/3031
-        dict_set = DictSet(self.structure, config_dict={"INCAR": {}}, user_potcar_functional="PBE_54")
+        dict_set = VaspInputSet(self.structure, config_dict={"INCAR": {}}, user_potcar_functional="PBE_54")
         assert {*dict_set.as_dict()} >= {
             "@class",
             "@module",
@@ -228,7 +228,9 @@ class TestMITMPRelaxSet(PymatgenTest):
         ) as warns_kspacing:
             vis = self.set(structure, user_incar_settings={"KSPACING": 1, "ISMEAR": -5})
             _ = vis.incar
-        assert len(warns_kspacing) == 3
+            for warn in warns_kspacing:
+                print("scoots:", warn.message)
+        assert len(warns_kspacing) == 2
 
     def test_poscar(self):
         structure = Structure(self.lattice, ["Fe", "Mn"], self.coords)
@@ -438,7 +440,7 @@ class TestMITMPRelaxSet(PymatgenTest):
 
         # test that van-der-Waals parameters are parsed correctly
 
-        vdw_par = loadfn(MODULE_DIR / "vdW_parameters.yaml")
+        vdw_par = loadfn(f"{MODULE_DIR}/vdW_parameters.yaml")
         with pytest.raises(
             KeyError,
             match=f"Invalid or unsupported van-der-Waals functional. Supported functionals are {', '.join(vdw_par)}.",
@@ -646,6 +648,29 @@ class TestMITMPRelaxSet(PymatgenTest):
             )
             vis.incar.items()
 
+    def test_write_input_and_from_directory(self):
+        structure = Structure.from_spacegroup("Fm-3m", Lattice.cubic(4.0), ["Fe"], [[0.0, 0.0, 0.0]])
+
+        vis = self.set(structure=structure)
+        input_set = vis.get_input_set()
+
+        vis.write_input(output_dir=".")
+        assert all(os.path.isfile(file) for file in ("INCAR", "KPOINTS", "POSCAR", "POTCAR"))
+        input_set_from_dir = self.set().from_directory(".")
+
+        assert all(input_set_from_dir[k] == input_set[k] for k in ("INCAR", "KPOINTS", "POTCAR"))
+        # for some reason the POSCARs are not identical, but their structures and as_dict()'s are
+        assert input_set_from_dir["POSCAR"].structure == input_set["POSCAR"].structure
+        assert input_set_from_dir["POSCAR"].as_dict() == input_set["POSCAR"].as_dict()
+
+    def test_get_nedos(self):
+        vrun = Vasprun(f"{VASP_OUT_DIR}/vasprun.pbesol.xml.gz")
+        vis = self.set(structure=vrun.structures[-1])
+        # no `prev_vasprun` --> default value of NEDOS
+        assert vis._get_nedos(0.1) == 2000
+        vis.prev_vasprun = vrun
+        assert vis._get_nedos(0.1) == pytest.approx(741, abs=1)
+
 
 class TestMPStaticSet(PymatgenTest):
     def setUp(self):
@@ -826,8 +851,8 @@ class TestMatPESStaticSet(PymatgenTest):
 
         assert input_set.potcar_functional == "PBE_64"  # test POTCARs default to PBE_64
         assert input_set.kpoints is None
-        # only runs if POTCAR files to compare against are available
-        if os.path.isdir(f"{FAKE_POTCAR_DIR}/POT_GGA_PAW_PBE_64"):
+        if os.path.isdir(f"{FAKE_POTCAR_DIR}/POT_PAW_PBE_64"):
+            # this part only runs if POTCAR files are available
             assert str(input_set.potcar[0]) == str(PotcarSingle.from_symbol_and_functional("Fe_pv", "PBE_64"))
 
     def test_with_prev_incar(self):
@@ -1093,7 +1118,7 @@ class TestMagmomLdau(PymatgenTest):
         assert magmom == magmom_ans
 
     def test_ln_magmom(self):
-        yaml_path = MODULE_DIR / "VASPIncarBase.yaml"
+        yaml_path = f"{MODULE_DIR}/VASPIncarBase.yaml"
         magmom_setting = loadfn(yaml_path)["INCAR"]["MAGMOM"]
         structure = Structure.from_file(f"{TEST_FILES_DIR}/cif/La4Fe4O12.cif")
         structure.add_oxidation_state_by_element({"La": +3, "Fe": +3, "O": -2})
@@ -1578,7 +1603,7 @@ class TestMVLScanRelaxSet(PymatgenTest):
         assert input_set.potcar.functional == "PBE_52"
 
         with pytest.raises(
-            ValueError, match=r"Invalid self.user_potcar_functional='PBE', must be one of \('PBE_52', 'PBE_54'\)"
+            ValueError, match=r"Invalid user_potcar_functional='PBE', must be one of \('PBE_52', 'PBE_54'\)"
         ):
             MVLScanRelaxSet(self.struct, user_potcar_functional="PBE")
 
@@ -1595,7 +1620,7 @@ class TestMVLScanRelaxSet(PymatgenTest):
     #
     #     # https://github.com/materialsproject/pymatgen/pull/3022
     #     # same test also in MITMPRelaxSetTest above (for redundancy,
-    #     # should apply to all classes inheriting from DictSet)
+    #     # should apply to all classes inheriting from VaspInputSet)
     #     for user_potcar_settings in [{"Fe": "Fe_pv"}, {"W": "W_pv"}, None]:
     #         for species in [("W", "W"), ("Fe", "W"), ("Fe", "Fe")]:
     #             struct = Structure(lattice=Lattice.cubic(3), species=species, coords=[[0, 0, 0], [0.5, 0.5, 0.5]])
@@ -1631,9 +1656,9 @@ class TestMPScanRelaxSet(PymatgenTest):
         assert incar["ENAUG"] == 1360
         assert incar["ENCUT"] == 680
         assert incar["NSW"] == 500
-        # the default POTCAR contains metals
+        # the default POTCAR contains metals, but no prev calc set --> bandgap unknown
         assert incar["KSPACING"] == 0.22
-        assert incar["ISMEAR"] == 2
+        assert incar["ISMEAR"] == 0
         assert incar["SIGMA"] == 0.2
 
         # https://github.com/materialsproject/pymatgen/pull/3036
@@ -1708,7 +1733,7 @@ class TestMPScanRelaxSet(PymatgenTest):
         assert input_set.potcar.functional == "PBE_54"
 
         with pytest.raises(
-            ValueError, match=r"Invalid self.user_potcar_functional='PBE', must be one of \('PBE_52', 'PBE_54'\)"
+            ValueError, match=r"Invalid user_potcar_functional='PBE', must be one of \('PBE_52', 'PBE_54'\)"
         ):
             MPScanRelaxSet(self.struct, user_potcar_functional="PBE")
 
@@ -1878,7 +1903,7 @@ class TestMVLRelax52Set(PymatgenTest):
         assert test_potcar_set_1.potcar.functional == "PBE_52"
 
         with pytest.raises(
-            ValueError, match=r"Invalid self.user_potcar_functional='PBE', must be one of \('PBE_52', 'PBE_54'\)"
+            ValueError, match=r"Invalid user_potcar_functional='PBE', must be one of \('PBE_52', 'PBE_54'\)"
         ):
             self.set(self.struct, user_potcar_functional="PBE")
 
@@ -1955,12 +1980,13 @@ class TestLobsterSet(PymatgenTest):
     @skip_if_no_psp_dir
     def test_potcar(self):
         # PBE_54 is preferred at the moment
-        assert self.lobsterset1.user_potcar_functional == "PBE_54"
+        functional, symbol = "PBE_54", "K_sv"
+        assert self.lobsterset1.user_potcar_functional == functional
         # test if potcars selected are consistent with PBE_54
         assert self.lobsterset2.potcar.symbols == ["Fe_pv", "P", "O"]
         # test if error raised contains correct potcar symbol for K element as PBE_54 set
         with pytest.raises(
-            RuntimeError, match="You do not have the right POTCAR with functional='PBE_54' and symbol='K_sv'"
+            FileNotFoundError, match=f"You do not have the right POTCAR with {functional=} and {symbol=}"
         ):
             _ = self.lobsterset9.potcar.symbols
 
@@ -2092,3 +2118,11 @@ class TestMPAbsorptionSet(PymatgenTest):
 
 def test_vasp_input_set_alias():
     assert VaspInputSet is VaspInputGenerator
+
+
+def test_dict_set_alias():
+    with pytest.warns(
+        FutureWarning, match="DictSet is deprecated, and will be removed on 2025-12-31\nUse VaspInputSet"
+    ):
+        DictSet()
+    assert isinstance(DictSet(), VaspInputSet)

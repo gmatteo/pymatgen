@@ -13,7 +13,7 @@ from __future__ import annotations
 import datetime
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Literal
+from typing import TYPE_CHECKING
 
 from monty.io import zopen
 from monty.json import MSONable
@@ -26,10 +26,11 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from datetime import date
     from pathlib import Path
+    from typing import Any, Callable, Literal
 
     from typing_extensions import Self
 
-    from pymatgen.util.typing import Vector3D
+    from pymatgen.util.typing import Tuple3Ints, Vector3D
 
 
 @dataclass(frozen=True)
@@ -259,7 +260,7 @@ class ResWriter:
     def _sfac_from_sites(cls, sites: list[PeriodicSite]) -> ResSFAC:
         """Produce a SFAC block from a list of pymatgen PeriodicSite."""
         ions: list[Ion] = []
-        species: list[str] = list()
+        species: list[str] = []
 
         for site in sites:
             for specie, occ in site.species.items():
@@ -487,7 +488,7 @@ class AirssProvider(ResProvider):
         self._raise_or_none(ResParseError("Could not find line with cut-off energy."))
         return None
 
-    def get_mpgrid_offset_nkpts_spacing(self) -> tuple[tuple[int, int, int], Vector3D, int, float] | None:
+    def get_mpgrid_offset_nkpts_spacing(self) -> tuple[Tuple3Ints, Vector3D, int, float] | None:
         """
         Retrieves the MP grid, the grid offsets, number of kpoints, and maximum kpoint spacing.
 

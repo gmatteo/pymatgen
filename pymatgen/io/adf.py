@@ -15,6 +15,7 @@ from pymatgen.core.structure import Molecule
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from typing import ClassVar
 
     from typing_extensions import Self
 
@@ -369,7 +370,7 @@ class AdfTask(MSONable):
         ADF does not support calculating force/gradient.
     """
 
-    operations = dict(
+    operations: ClassVar[dict[str, str]] = dict(
         energy="Evaluate the single point energy.",
         optimize="Minimize the energy by varying the molecular structure.",
         frequencies="Compute second derivatives and print out an analysis of molecular vibrations.",
@@ -532,8 +533,7 @@ class AdfInput:
         self.task = task
 
     def write_file(self, molecule, inp_file):
-        """
-        Write an ADF input file.
+        """Write an ADF input file.
 
         Args:
             molecule (Molecule): The molecule for this task.
@@ -592,8 +592,7 @@ class AdfOutput:
         self._parse()
 
     def _parse(self):
-        """
-        Parse the ADF outputs. There are two files: one is 'logfile', the other
+        """Parse the ADF outputs. There are two files: one is 'logfile', the other
         is the ADF output file. The final energy and structures are parsed from
         the 'logfile'. Frequencies and normal modes are parsed from the ADF
         output file.

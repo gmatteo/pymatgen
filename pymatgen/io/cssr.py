@@ -52,8 +52,7 @@ class Cssr:
         return "\n".join(output)
 
     def write_file(self, filename):
-        """
-        Write out a CSSR file.
+        """Write out a CSSR file.
 
         Args:
             filename (str): Filename to write to.
@@ -76,7 +75,7 @@ class Cssr:
         tokens = lines[0].split()
         lengths = [float(tok) for tok in tokens]
         tokens = lines[1].split()
-        angles = [float(tok) for tok in tokens[0:3]]
+        angles = [float(tok) for tok in tokens[:3]]
         lattice = Lattice.from_parameters(*lengths, *angles)
         sp, coords = [], []
         for line in lines[4:]:

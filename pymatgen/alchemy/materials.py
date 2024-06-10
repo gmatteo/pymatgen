@@ -8,7 +8,7 @@ from __future__ import annotations
 import datetime
 import json
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from warnings import warn
 
 from monty.json import MSONable, jsanitize
@@ -22,6 +22,7 @@ from pymatgen.util.provenance import StructureNL
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from typing import Any
 
     from typing_extensions import Self
 
@@ -29,8 +30,7 @@ if TYPE_CHECKING:
 
 
 class TransformedStructure(MSONable):
-    """Container object for new structures that include history of
-    transformations.
+    """Container for new structures that include history of transformations.
 
     Each transformed structure is made up of a sequence of structures with
     associated transformation history.
@@ -291,7 +291,7 @@ class TransformedStructure(MSONable):
             TransformedStructure
         """
         parser = CifParser.from_str(cif_string, occupancy_tolerance=occupancy_tolerance)
-        raw_string = re.sub(r"'", '"', cif_string)
+        raw_str = re.sub(r"'", '"', cif_string)
         cif_dict = parser.as_dict()
         cif_keys = list(cif_dict)
         struct = parser.parse_structures(primitive=primitive)[0]
@@ -303,7 +303,7 @@ class TransformedStructure(MSONable):
         source_info = {
             "source": source,
             "datetime": str(datetime.datetime.now()),
-            "original_file": raw_string,
+            "original_file": raw_str,
             "cif_data": cif_dict[cif_keys[0]],
         }
         return cls(struct, transformations, history=[source_info])
@@ -326,12 +326,12 @@ class TransformedStructure(MSONable):
             raise ValueError(
                 "Transformation can be created only from POSCAR strings with proper VASP5 element symbols."
             )
-        raw_string = re.sub(r"'", '"', poscar_string)
+        raw_str = re.sub(r"'", '"', poscar_string)
         struct = poscar.structure
         source_info = {
             "source": "POSCAR",
             "datetime": str(datetime.datetime.now()),
-            "original_file": raw_string,
+            "original_file": raw_str,
         }
         return cls(struct, transformations, history=[source_info])
 

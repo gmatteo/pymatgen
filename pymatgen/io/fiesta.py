@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
+    from pymatgen.util.typing import Tuple3Ints
+
 __author__ = "ndardenne"
 __copyright__ = "Copyright 2012, The Materials Project"
 __version__ = "0.1"
@@ -103,9 +105,7 @@ class FiestaRun(MSONable):
         otherwise it breaks.
     """
 
-    def __init__(
-        self, folder: str | None = None, grid: tuple[int, int, int] = (2, 2, 2), log_file: str = "log"
-    ) -> None:
+    def __init__(self, folder: str | None = None, grid: Tuple3Ints = (2, 2, 2), log_file: str = "log") -> None:
         """
         Args:
             folder: Folder to look for runs.
@@ -528,8 +528,7 @@ $geometry
         )
 
     def write_file(self, filename: str | Path) -> None:
-        """
-        Write FiestaInput to a file
+        """Write FiestaInput to a file
 
         Args:
             filename: Filename.
@@ -686,7 +685,7 @@ $geometry
         while i != 0:
             line = lines.pop(0).strip()
             tokens = line.split()
-            coords.append([float(j) for j in tokens[0:3]])
+            coords.append([float(j) for j in tokens[:3]])
             species.append(atname[int(tokens[3]) - 1])
             i -= 1
 
