@@ -53,22 +53,14 @@ __maintainer__ = "Matteo Giantomassi"
 # Tools and helper functions.
 
 
-<<<<<<< HEAD
-def straceback() -> str:
-    """Get a string with the traceback."""
+#def straceback() -> str:
+#    """Get a string with the traceback."""
+#
+#    return "\n".join((traceback.format_exc(), str(sys.exc_info()[0])))
 
-    return "\n".join((traceback.format_exc(), str(sys.exc_info()[0])))
 
-
-def _read_nlines(filename: str, n_lines: int) -> list[str]:
-    """
-    Read at most n_lines lines from file filename.
-    If n_lines is < 0, the entire file is read.
-    """
-=======
 def _read_nlines(filename: str, n_lines: int) -> list[str]:
     """Read at most nlines from filename. If nlines is < 0, the entire file is read."""
->>>>>>> trunk/master
     if n_lines < 0:
         with open(filename, encoding="utf-8") as file:
             return file.readlines()
