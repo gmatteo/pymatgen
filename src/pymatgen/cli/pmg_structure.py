@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 
+from tabulate import tabulate
+
 from pymatgen.analysis.structure_matcher import ElementComparator, StructureMatcher
 from pymatgen.core.structure import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from tabulate import tabulate
 
 __author__ = "Shyue Ping Ong"
 __copyright__ = "Copyright 2012, The Materials Project"
@@ -55,7 +56,7 @@ def analyze_localenv(args):
     for bond in args.localenv:
         tokens = bond.split("=")
         species = tokens[0].split("-")
-        bonds[(species[0], species[1])] = float(tokens[1])
+        bonds[species[0], species[1]] = float(tokens[1])
     for filename in args.filenames:
         print(f"Analyzing {filename}...")
         data = []

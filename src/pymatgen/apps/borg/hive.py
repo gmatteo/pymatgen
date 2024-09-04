@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from monty.io import zopen
 from monty.json import MSONable
+
 from pymatgen.entries.computed_entries import ComputedEntry, ComputedStructureEntry
 from pymatgen.io.gaussian import GaussianOutput
 from pymatgen.io.vasp.inputs import Incar, Poscar, Potcar
@@ -417,8 +418,7 @@ class GaussianToComputedEntryDrone(AbstractDrone):
 
 def _get_transformation_history(path):
     """Check for a transformations.json* file and returns the history."""
-    trans_json = glob(f"{path}/transformations.json*")
-    if trans_json:
+    if trans_json := glob(f"{path}/transformations.json*"):
         try:
             with zopen(trans_json[0]) as file:
                 return json.load(file)["history"]

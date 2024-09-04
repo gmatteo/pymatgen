@@ -16,17 +16,19 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 from monty.dev import deprecated
 from monty.json import MSONable
+from scipy.spatial import Voronoi
+
 from pymatgen.util.coord import pbc_shortest_vectors
 from pymatgen.util.due import Doi, due
-from scipy.spatial import Voronoi
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from numpy.typing import ArrayLike
+    from typing_extensions import Self
+
     from pymatgen.core.operations import SymmOp
     from pymatgen.util.typing import MillerIndex, PbcLike, Vector3D
-    from typing_extensions import Self
 
 __author__ = "Shyue Ping Ong, Michael Kocher"
 __copyright__ = "Copyright 2011, The Materials Project"
@@ -441,7 +443,7 @@ class Lattice(MSONable):
         dct: dict,
         fmt: str | None = None,
         **kwargs,
-    ) -> Self:  # type: ignore[override]
+    ) -> Self:
         """Create a Lattice from a dictionary.
 
         If fmt is None, the dict should contain the a, b, c,
@@ -1298,8 +1300,7 @@ class Lattice(MSONable):
         Args:
             coords_a: Array-like coordinates.
             coords_b: Array-like coordinates.
-            frac_coords (bool): Boolean stating whether the vector
-                corresponds to fractional or Cartesian coordinates.
+            frac_coords (bool): True if the vectors are fractional (as opposed to Cartesian) coordinates.
 
         Returns:
             one-dimensional `numpy` array.
@@ -1802,17 +1803,17 @@ def get_points_in_spheres(
 
         # Temporarily hold the fractional coordinates
         image_offsets = lattice.get_fractional_coords(all_coords)
-        all_fcoords = []
+        all_frac_coords = []
 
         # Only wrap periodic boundary
         for kk in range(3):
             if _pbc[kk]:
-                all_fcoords.append(np.mod(image_offsets[:, kk : kk + 1], 1))
+                all_frac_coords.append(np.mod(image_offsets[:, kk : kk + 1], 1))
             else:
-                all_fcoords.append(image_offsets[:, kk : kk + 1])
-        all_fcoords = np.concatenate(all_fcoords, axis=1)
-        image_offsets = image_offsets - all_fcoords
-        coords_in_cell = np.dot(all_fcoords, matrix)
+                all_frac_coords.append(image_offsets[:, kk : kk + 1])
+        all_frac_coords = np.concatenate(all_frac_coords, axis=1)
+        image_offsets = image_offsets - all_frac_coords
+        coords_in_cell = np.dot(all_frac_coords, matrix)
 
         # Filter out those beyond max range
         valid_coords = []

@@ -10,6 +10,7 @@ import re
 import subprocess
 
 from monty.tempfile import ScratchDir
+
 from pymatgen.analysis.bond_valence import BVAnalyzer
 from pymatgen.core import Element, Lattice, Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
@@ -22,7 +23,7 @@ __email__ = "bkmedasani@lbl.gov,wenhao@mit.edu"
 __status__ = "Production"
 __date__ = "Jun 22, 2013M"
 
-module_dir = os.path.dirname(os.path.abspath(__file__))
+MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 _anions = set(map(Element, ["O", "S", "F", "Cl", "Br", "N", "P"]))
 _cations = set(
@@ -867,7 +868,7 @@ class TersoffPotential:
 
     def __init__(self):
         """Init TersoffPotential."""
-        with open(f"{module_dir}/OxideTersoffPotentials") as file:
+        with open(f"{MODULE_DIR}/OxideTersoffPotentials") as file:
             data = {}
             for row in file:
                 metaloxi = row.split()[0]

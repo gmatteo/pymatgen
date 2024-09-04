@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import logging
 import math
 import os
 import re
@@ -16,6 +15,7 @@ import numpy as np
 import pandas as pd
 from monty.io import zopen
 from monty.json import MSONable, jsanitize
+
 from pymatgen.analysis.graphs import MoleculeGraph
 from pymatgen.analysis.local_env import OpenBabelNN
 from pymatgen.core import Molecule
@@ -43,8 +43,6 @@ __version__ = "0.1"
 __maintainer__ = "Samuel Blau"
 __email__ = "samblau1@gmail.com"
 __credits__ = "Gabe Gomes"
-
-logger = logging.getLogger(__name__)
 
 
 class QCOutput(MSONable):

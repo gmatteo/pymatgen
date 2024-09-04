@@ -9,13 +9,14 @@ from typing import TYPE_CHECKING
 import numpy as np
 import scipy.constants as cst
 from monty.io import zopen
+from scipy.stats import norm
+
 from pymatgen.core import Composition, Element, Molecule
 from pymatgen.core.operations import SymmOp
 from pymatgen.core.units import Ha_to_eV
 from pymatgen.electronic_structure.core import Spin
 from pymatgen.util.coord import get_angle
 from pymatgen.util.plotting import pretty_plot
-from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -886,7 +887,7 @@ class GaussianOutput:
                         self.bond_orders = {}
                         for atom_idx in range(n_atoms):
                             for atom_jdx in range(atom_idx + 1, n_atoms):
-                                self.bond_orders[(atom_idx, atom_jdx)] = matrix[atom_idx][atom_jdx]
+                                self.bond_orders[atom_idx, atom_jdx] = matrix[atom_idx][atom_jdx]
                         parse_bond_order = False
 
                     elif termination_patt.search(line):
@@ -1002,7 +1003,7 @@ class GaussianOutput:
             structure: structure in the output file
         """
         # read Hessian matrix under "Force constants in Cartesian coordinates"
-        # Hessian matrix is in the input  orientation framework
+        # Hessian matrix is in the input orientation framework
         # WARNING : need #P in the route line
 
         ndf = 3 * len(structure)

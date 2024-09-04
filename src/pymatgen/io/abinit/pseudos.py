@@ -17,20 +17,21 @@ import traceback
 import numpy as np
 from collections import defaultdict
 from typing import TYPE_CHECKING, NamedTuple
-from xml.etree import ElementTree as Et
-from collections import defaultdict, namedtuple
-from typing import List, Any, Union, TYPE_CHECKING
-from xml.etree import ElementTree
+from xml.etree import ElementTree as ET
+#from xml.etree import ElementTree as Et
+#from collections import namedtuple
+#from typing import List, Any, Union, TYPE_CHECKING
 from monty.collections import AttrDict, Namespace
 from monty.functools import lazy_property
 from monty.itertools import iterator_from_slice
 from monty.json import MontyDecoder, MSONable
 from monty.os.path import find_exts
+from tabulate import tabulate
+
 from pymatgen.core import Element
 from pymatgen.core.xcfunc import XcFunc
 from pymatgen.io.core import ParseError
 from pymatgen.util.plotting import add_fig_kwargs, get_ax_fig
-from tabulate import tabulate
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -39,6 +40,8 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     from numpy.typing import NDArray
     from typing_extensions import Self
+    from pymatgen.core import Structure
+
     from pymatgen.core import Structure
 
 logger = logging.getLogger(__name__)
@@ -1256,7 +1259,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
     @lazy_property
     def root(self):
         """Root tree of XML."""
-        tree = Et.parse(self.filepath)
+        tree = ET.parse(self.filepath)
         return tree.getroot()
 
     @property
@@ -1576,7 +1579,7 @@ class UpfPseudo(Pseudo):
         """
         Root tree of XML.
         """
-        return ElementTree.parse(self.filepath).getroot()
+        return ET.parse(self.filepath).getroot()
 
     @lazy_property
     def rmesh(self) -> np.ndarray:
@@ -1881,8 +1884,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
             for filepath in [os.path.join(top, fn) for fn in os.listdir(top)]:
                 if os.path.isfile(filepath):
                     try:
-                        pseudo = Pseudo.from_file(filepath)
-                        if pseudo:
+                        if pseudo := Pseudo.from_file(filepath):
                             pseudos.append(pseudo)
                         else:
                             logger.info(f"Skipping file {filepath}")

@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import scipy.constants as sc
+
 from pymatgen.analysis.diffraction.core import AbstractDiffractionPatternCalculator
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.util.string import latexify_spacegroup, unicodeify_spacegroup
@@ -18,6 +19,7 @@ from pymatgen.util.typing import Tuple3Ints
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+
     from pymatgen.core import Structure
 
 __author__ = "Frank Wan, Jason Liang"
@@ -28,8 +30,8 @@ __email__ = "fwan@berkeley.edu, yhljason@berkeley.edu"
 __date__ = "03/31/2020"
 
 
-module_dir = os.path.dirname(__file__)
-with open(f"{module_dir}/atomic_scattering_params.json", encoding="utf-8") as file:
+MODULE_DIR = os.path.dirname(__file__)
+with open(f"{MODULE_DIR}/atomic_scattering_params.json", encoding="utf-8") as file:
     ATOMIC_SCATTERING_PARAMS = json.load(file)
 
 
@@ -336,8 +338,7 @@ class TEMCalculator(AbstractDiffractionPatternCalculator):
         plane: Tuple3Ints,
         other_plane: Tuple3Ints,
     ) -> bool:
-        """
-        Checks if two hkl planes are parallel in reciprocal space.
+        """Checks if two hkl planes are parallel in reciprocal space.
 
         Args:
             structure (Structure): The input structure.
@@ -345,7 +346,7 @@ class TEMCalculator(AbstractDiffractionPatternCalculator):
             other_plane (3-tuple): The other plane to be compared.
 
         Returns:
-            boolean
+            bool: True if the planes are parallel, False otherwise.
         """
         phi = self.get_interplanar_angle(structure, plane, other_plane)
         return phi in (180, 0) or np.isnan(phi)
@@ -483,7 +484,7 @@ class TEMCalculator(AbstractDiffractionPatternCalculator):
             points.remove((0, 0, 0))
         points.remove(first_point)
         points.remove(second_point)
-        positions[(0, 0, 0)] = np.array([0, 0])
+        positions[0, 0, 0] = np.array([0, 0])
         r1 = self.wavelength_rel() * self.camera_length / first_d
         positions[first_point] = np.array([r1, 0])
         r2 = self.wavelength_rel() * self.camera_length / second_d

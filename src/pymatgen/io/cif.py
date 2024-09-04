@@ -19,6 +19,7 @@ import numpy as np
 from monty.dev import deprecated
 from monty.io import zopen
 from monty.serialization import loadfn
+
 from pymatgen.core import Composition, DummySpecies, Element, Lattice, PeriodicSite, Species, Structure, get_el_sp
 from pymatgen.core.operations import MagSymmOp, SymmOp
 from pymatgen.electronic_structure.core import Magmom
@@ -32,8 +33,9 @@ if TYPE_CHECKING:
     from typing import Any
 
     from numpy.typing import NDArray
-    from pymatgen.util.typing import PathLike, Vector3D
     from typing_extensions import Self
+
+    from pymatgen.util.typing import PathLike, Vector3D
 
 __author__ = "Shyue Ping Ong, Will Richards, Matthew Horton"
 
@@ -577,7 +579,7 @@ class CifParser:
 
                     for comparison_frac in important_fracs:
                         if abs(1 - frac / comparison_frac) < self._frac_tolerance:
-                            fracs_to_change[(label, idx)] = str(comparison_frac)
+                            fracs_to_change[label, idx] = str(comparison_frac)
 
         if fracs_to_change:
             self.warnings.append(

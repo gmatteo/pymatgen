@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, NamedTuple
 import numpy as np
 from monty.collections import AttrDict
 from monty.json import MSONable
+
 from pymatgen.core.structure import Structure
 from pymatgen.io.abinit import abiobjects as aobj
 from pymatgen.io.abinit.pseudos import Pseudo, PseudoTable
@@ -1058,8 +1059,7 @@ class BasicMultiDataset:
             pseudo_dir = os.path.abspath(pseudo_dir)
             pseudo_paths = [os.path.join(pseudo_dir, p) for p in pseudos]
 
-            missing = [p for p in pseudo_paths if not os.path.isfile(p)]
-            if missing:
+            if missing := [p for p in pseudo_paths if not os.path.isfile(p)]:
                 raise self.Error(f"Cannot find the following pseudopotential files:\n{missing}")
 
             pseudos = PseudoTable(pseudo_paths)

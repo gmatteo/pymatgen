@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import os
-
 import pytest
 from numpy.testing import assert_array_equal
+
 from pymatgen.io.shengbte import Control
 from pymatgen.util.testing import TEST_FILES_DIR, PymatgenTest
 
 f90nml = pytest.importorskip("f90nml")
 TEST_DIR = f"{TEST_FILES_DIR}/io/shengbte"
-
-module_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class TestShengBTE(PymatgenTest):
