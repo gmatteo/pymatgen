@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from unittest import TestCase
 
 import numpy as np
@@ -249,7 +250,7 @@ class TestCompleteDos(TestCase):
         assert kurtosis == approx(7.764506941340621)
 
     def test_get_dos_fp(self):
-        # normalize=True
+        # normalize is True
         dos_fp = self.dos.get_dos_fp(fp_type="s", min_e=-10, max_e=0, n_bins=56, normalize=True)
         bin_width = np.diff(dos_fp.energies)[0][0]
         assert max(dos_fp.energies[0]) <= 0
@@ -257,12 +258,12 @@ class TestCompleteDos(TestCase):
         assert len(dos_fp.energies[0]) == 56
         assert dos_fp.fp_type == "s"
         assert sum(dos_fp.densities * bin_width) == approx(1)
-        # normalize=False
+        # normalize is False
         dos_fp2 = self.dos.get_dos_fp(fp_type="s", min_e=-10, max_e=0, n_bins=56, normalize=False)
         bin_width2 = np.diff(dos_fp2.energies)[0][0]
         assert sum(dos_fp2.densities * bin_width2) == approx(7.279303571428509)
         assert dos_fp2.bin_width == approx(bin_width2)
-        # binning=False
+        # binning is False
         dos_fp = self.dos.get_dos_fp(fp_type="s", min_e=None, max_e=None, n_bins=56, normalize=True, binning=False)
         assert dos_fp.n_bins == len(self.dos.energies)
 
@@ -299,19 +300,18 @@ class TestCompleteDos(TestCase):
             "projections unavailable in input DOS or there's a typo in type.",
         ):
             self.dos.get_dos_fp(fp_type="k", min_e=-10, max_e=0, n_bins=56, normalize=True)
-        with pytest.raises(
-            ValueError,
-            match="Requested metric not implemented. Currently implemented metrics are "
-            "tanimoto, wasserstien and cosine-sim.",
-        ):
-            self.dos.get_dos_fp_similarity(dos_fp, dos_fp2, col=1, metric="Dot", normalize=False)
+
+        valid_metrics = ("tanimoto", "wasserstein", "cosine-sim")
+        metric = "Dot"
+        with pytest.raises(ValueError, match=re.escape(f"Invalid {metric=}, choose from {valid_metrics}.")):
+            self.dos.get_dos_fp_similarity(dos_fp, dos_fp2, col=1, metric=metric, normalize=False)
 
 
 class TestDOS(PymatgenTest):
     def setUp(self):
         with open(f"{TEST_DIR}/complete_dos.json") as file:
             dct = json.load(file)
-            ys = list(zip(dct["densities"]["1"], dct["densities"]["-1"]))
+            ys = list(zip(dct["densities"]["1"], dct["densities"]["-1"], strict=True))
             self.dos = DOS(dct["energies"], ys, dct["efermi"])
 
     def test_get_gap(self):

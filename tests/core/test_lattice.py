@@ -387,7 +387,7 @@ class TestLattice(PymatgenTest):
         assert len(result) == 4
         assert all(len(arr) == 0 for arr in result)
         types = {*map(type, result)}
-        assert types == {np.ndarray}, f"Expected only np.ndarray, got {types}"
+        assert types == {np.ndarray}, f"Expected only np.ndarray, got {[t.__name__ for t in types]}"
 
     def test_get_all_distances(self):
         frac_coords = np.array(
@@ -534,7 +534,7 @@ class TestLattice(PymatgenTest):
             all_coords=np.array(points),
             center_coords=np.array(center_points),
             r=3,
-            pbc=np.array([0, 0, 0], dtype=int),
+            pbc=np.array([0, 0, 0], dtype=np.int64),
             lattice=lattice,
             numerical_tol=1e-8,
         )
@@ -555,7 +555,7 @@ class TestLattice(PymatgenTest):
             all_coords=np.array(points),
             center_coords=np.array(center_points),
             r=3,
-            pbc=np.array([True, False, False], dtype=int),
+            pbc=np.array([True, False, False], dtype=np.int64),
             lattice=lattice,
         )
         assert len(nns[0]) == 4

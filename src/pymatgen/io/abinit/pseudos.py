@@ -636,7 +636,7 @@ def _dict_from_lines(lines: list[str], key_nums: list[int], sep=None) -> dict:
         if len(values) != len(keys):
             raise ValueError(f"{line=}\n {len(keys)=} must equal {len(values)=}")
 
-        kwargs.update(zip(keys, values))
+        kwargs.update(zip(keys, values, strict=True))
 
     return kwargs
 
@@ -1237,7 +1237,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
         self.valence_states: dict = {}
         for node in root.find("valence_states"):
             attrib = AttrDict(node.attrib)
-            assert attrib.id not in self.valence_states
+            if attrib.id in self.valence_states:
+                raise ValueError(f"{attrib.id=} should not be in {self.valence_states=}")
             self.valence_states[attrib.id] = attrib
 
         # Parse the radial grids
@@ -1245,7 +1246,8 @@ class PawXmlSetup(Pseudo, PawPseudo):
         for node in root.findall("radial_grid"):
             grid_params = node.attrib
             gid = grid_params["id"]
-            assert gid not in self.rad_grids
+            if gid in self.rad_grids:
+                raise ValueError(f"{gid=} should not be in {self.rad_grids=}")
 
             self.rad_grids[gid] = self._eval_grid(grid_params)
 
@@ -1418,7 +1420,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
         for idx, density_name in enumerate(["ae_core_density", "pseudo_core_density"]):
             rden = getattr(self, density_name)
             label = "$n_c$" if idx == 1 else r"$\tilde{n}_c$"
-            ax.plot(rden.mesh, rden.mesh * rden.values, label=label, lw=2)  # noqa: PD011
+            ax.plot(rden.mesh, rden.mesh * rden.values, label=label, lw=2)
 
         ax.legend(loc="best")
 
@@ -1445,10 +1447,10 @@ class PawXmlSetup(Pseudo, PawPseudo):
         # ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))
 
         for state, rfunc in self.pseudo_partial_waves.items():
-            ax.plot(rfunc.mesh, rfunc.mesh * rfunc.values, lw=2, label=f"PS-WAVE: {state}")  # noqa: PD011
+            ax.plot(rfunc.mesh, rfunc.mesh * rfunc.values, lw=2, label=f"PS-WAVE: {state}")
 
         for state, rfunc in self.ae_partial_waves.items():
-            ax.plot(rfunc.mesh, rfunc.mesh * rfunc.values, lw=2, label=f"AE-WAVE: {state}")  # noqa: PD011
+            ax.plot(rfunc.mesh, rfunc.mesh * rfunc.values, lw=2, label=f"AE-WAVE: {state}")
 
         ax.legend(loc="best", shadow=True, fontsize=fontsize)
 
@@ -1474,7 +1476,7 @@ class PawXmlSetup(Pseudo, PawPseudo):
         # ax.annotate("$r_c$", xy=(self.paw_radius + 0.1, 0.1))
 
         for state, rfunc in self.projector_functions.items():
-            ax.plot(rfunc.mesh, rfunc.mesh * rfunc.values, label=f"TPROJ: {state}")  # noqa: PD011
+            ax.plot(rfunc.mesh, rfunc.mesh * rfunc.values, label=f"TPROJ: {state}")
 
         ax.legend(loc="best", shadow=True, fontsize=fontsize)
 
@@ -1941,7 +1943,8 @@ class PseudoTable(collections.abc.Sequence, MSONable):
     def __getitem__(self, Z):
         """Retrieve pseudos for the atomic number z. Accepts both int and slice objects."""
         if isinstance(Z, slice):
-            assert Z.stop is not None
+            if Z.stop is None:
+                raise ValueError("Z.stop is None")
             pseudos = []
             for znum in iterator_from_slice(Z):
                 pseudos.extend(self._pseudos_with_z[znum])
@@ -2173,7 +2176,7 @@ class PseudoTable(collections.abc.Sequence, MSONable):
         """Get new class:`PseudoTable` object with pseudos in the given rows of the periodic table.
         rows can be either a int or a list of integers.
         """
-        if not isinstance(rows, (list, tuple)):
+        if not isinstance(rows, list | tuple):
             rows = [rows]
         return type(self)([p for p in self if p.element.row in rows])
 

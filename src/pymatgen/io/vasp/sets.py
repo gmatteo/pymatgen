@@ -57,15 +57,16 @@ from pymatgen.util.due import Doi, due
 from pymatgen.util.typing import Kpoint
 
 if TYPE_CHECKING:
-    from typing import Callable, Literal, Union
+    from collections.abc import Callable
+    from typing import Literal
 
     from typing_extensions import Self
 
     from pymatgen.util.typing import PathLike, Tuple3Ints, Vector3D
 
-    UserPotcarFunctional = Union[
-        Literal["PBE", "PBE_52", "PBE_54", "PBE_64", "LDA", "LDA_52", "LDA_54", "PW91", "LDA_US", "PW91_US"], None
-    ]
+    UserPotcarFunctional = (
+        Literal["PBE", "PBE_52", "PBE_54", "PBE_64", "LDA", "LDA_52", "LDA_54", "PW91", "LDA_US", "PW91_US"] | None
+    )
 
 MODULE_DIR = os.path.dirname(__file__)
 
@@ -144,7 +145,7 @@ class VaspInputSet(InputGenerator, abc.ABC):
             atomic species are grouped together.
         user_potcar_functional (str): Functional to use. Default (None) is to use the
             functional in the config dictionary. Valid values: "PBE", "PBE_52",
-            "PBE_54", "LDA", "LDA_52", "LDA_54", "PW91", "LDA_US", "PW91_US".
+            "PBE_54", "PBE_64", "LDA", "LDA_52", "LDA_54", "PW91", "LDA_US", "PW91_US".
         force_gamma (bool): Force gamma centered kpoint generation. Default (False) is
             to use the Automatic Density kpoint scheme, which will use the Gamma
             centered generation scheme for hexagonal cells, and Monkhorst-Pack otherwise.
@@ -300,10 +301,10 @@ class VaspInputSet(InputGenerator, abc.ABC):
         else:
             self.structure = self.structure
 
-        if isinstance(self.prev_incar, (Path, str)):
+        if isinstance(self.prev_incar, Path | str):
             self.prev_incar = Incar.from_file(self.prev_incar)
 
-        if isinstance(self.prev_kpoints, (Path, str)):
+        if isinstance(self.prev_kpoints, Path | str):
             self.prev_kpoints = Kpoints.from_file(self.prev_kpoints)
 
         self.prev_vasprun: Vasprun | None = None
@@ -341,15 +342,19 @@ class VaspInputSet(InputGenerator, abc.ABC):
             zip_output (bool): If True, output will be zipped into a file with the
                 same name as the InputSet (e.g., MPStaticSet.zip).
         """
+        vasp_input = None
         try:
             vasp_input = self.get_input_set(potcar_spec=potcar_spec)
-        except PMG_VASP_PSP_DIR_Error:
-            assert potcar_spec is False
-            raise ValueError(
-                "PMG_VASP_PSP_DIR is not set."
-                "  Please set the PMG_VASP_PSP_DIR in .pmgrc.yaml"
-                " or use potcar_spec=True argument."
-            )
+        except PMG_VASP_PSP_DIR_Error as exc:
+            if not potcar_spec:
+                raise ValueError(
+                    "PMG_VASP_PSP_DIR is not set."
+                    "  Please set the PMG_VASP_PSP_DIR in .pmgrc.yaml"
+                    " or use potcar_spec=True argument."
+                ) from exc
+
+        if vasp_input is None:
+            raise ValueError("vasp_input is None")
 
         cif_name = None
         if include_cif:
@@ -518,7 +523,7 @@ class VaspInputSet(InputGenerator, abc.ABC):
         prev_incar: dict[str, Any] = {}
         if self.inherit_incar is True and self.prev_incar:
             prev_incar = cast(dict[str, Any], self.prev_incar)
-        elif isinstance(self.inherit_incar, (list, tuple)) and self.prev_incar:
+        elif isinstance(self.inherit_incar, list | tuple) and self.prev_incar:
             prev_incar = {
                 k: cast(dict[str, Any], self.prev_incar)[k] for k in self.inherit_incar if k in self.prev_incar
             }
@@ -584,7 +589,7 @@ class VaspInputSet(InputGenerator, abc.ABC):
                         # Else, use fallback LDAU value if it exists
                     else:
                         incar[key] = [
-                            setting.get(sym, 0) if isinstance(setting.get(sym, 0), (float, int)) else 0
+                            setting.get(sym, 0) if isinstance(setting.get(sym, 0), float | int) else 0
                             for sym in poscar.site_symbols
                         ]
 
@@ -810,6 +815,7 @@ class VaspInputSet(InputGenerator, abc.ABC):
                     "added_kpoints, or zero weighted k-points."
                 )
             # If length is in kpoints settings use Kpoints.automatic
+            warnings.filterwarnings("ignore", message="Please use INCAR KSPACING tag")
             return Kpoints.automatic(kconfig["length"])
 
         base_kpoints = None
@@ -1279,7 +1285,7 @@ class MPScanRelaxSet(VaspInputSet):
 
         2. Meta-GGA calculations require POTCAR files that include
         information on the kinetic energy density of the core-electrons,
-        i.e. "PBE_52" or "PBE_54". Make sure the POTCARs include the
+        i.e. "PBE_52", "PBE_54" or "PBE_64". Make sure the POTCARs include the
         following lines (see VASP wiki for more details):
 
             $ grep kinetic POTCAR
@@ -1320,7 +1326,7 @@ class MPScanRelaxSet(VaspInputSet):
     user_potcar_functional: UserPotcarFunctional = "PBE_54"
     auto_ismear: bool = True
     CONFIG = _load_yaml_config("MPSCANRelaxSet")
-    _valid_potcars: Sequence[str] | None = ("PBE_52", "PBE_54")
+    _valid_potcars: Sequence[str] | None = ("PBE_52", "PBE_54", "PBE_64")
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -1355,9 +1361,29 @@ class MPMetalRelaxSet(VaspInputSet):
 
 @dataclass
 class MPHSERelaxSet(VaspInputSet):
-    """Same as the MPRelaxSet, but with HSE parameters."""
+    """Same as the MPRelaxSet, but with HSE parameters and vdW corrections."""
 
     CONFIG = _load_yaml_config("MPHSERelaxSet")
+    vdw: Literal["dftd3", "dftd3-bj"] | None = None
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self._config_dict["INCAR"]["LASPH"] = True
+
+    @property
+    def incar_updates(self) -> dict[str, Any]:
+        """Updates to the INCAR config for this calculation type."""
+        updates: dict[str, Any] = {}
+
+        if self.vdw:
+            hse_vdw_par = {
+                "dftd3": {"VDW_SR": 1.129, "VDW_S8": 0.109},
+                "dftd3-bj": {"VDW_A1": 0.383, "VDW_S8": 2.310, "VDW_A2": 5.685},
+            }
+            if vdw_param := hse_vdw_par.get(self.vdw):
+                updates.update(vdw_param)
+
+        return updates
 
 
 @dataclass
@@ -1878,7 +1904,8 @@ class MPSOCSet(VaspInputSet):
                 # Project MAGMOM to z-axis
                 structure = structure.copy(site_properties={"magmom": [[0, 0, site.magmom] for site in structure]})
 
-        assert VaspInputSet.structure is not None
+        if VaspInputSet.structure is None:
+            raise ValueError("structure is None")
         VaspInputSet.structure.fset(self, structure)
 
 
@@ -1964,7 +1991,7 @@ class MPNMRSet(VaspInputSet):
 class MVLElasticSet(VaspInputSet):
     """
     MVL denotes VASP input sets that are implemented by the Materials Virtual
-    Lab (http://materialsvirtuallab.org) for various research.
+    Lab (https://materialsvirtuallab.org) for various research.
 
     This input set is used to calculate elastic constants in VASP. It is used
     in the following work::
@@ -1997,7 +2024,7 @@ class MVLElasticSet(VaspInputSet):
 class MVLGWSet(VaspInputSet):
     """
     MVL denotes VASP input sets that are implemented by the Materials Virtual
-    Lab (http://materialsvirtuallab.org) for various research. This is a
+    Lab (https://materialsvirtuallab.org) for various research. This is a
     flexible input set for GW calculations.
 
     Note that unlike all other input sets in this module, the PBE_54 series of
@@ -2158,7 +2185,8 @@ class MVLSlabSet(VaspInputSet):
         # attributes aren't going to affect the VASP inputs anyways so
         # converting the slab into a structure should not matter
         # use k_product to calculate kpoints, k_product = kpts[0][0] * a
-        assert self.structure is not None
+        if self.structure is None:
+            raise ValueError("structure is None")
         lattice_abc = self.structure.lattice.abc
         kpt_calc = [
             int(self.k_product / lattice_abc[0] + 0.5),
@@ -2273,13 +2301,13 @@ class MVLRelax52Set(VaspInputSet):
 
     Args:
         structure (Structure): input structure.
-        user_potcar_functional (str): choose from "PBE_52" and "PBE_54".
+        user_potcar_functional (str): choose from "PBE_52", "PBE_54" and "PBE_64".
         **kwargs: Other kwargs supported by VaspInputSet.
     """
 
     user_potcar_functional: UserPotcarFunctional = "PBE_52"
     CONFIG = _load_yaml_config("MVLRelax52Set")
-    _valid_potcars: Sequence[str] | None = ("PBE_52", "PBE_54")
+    _valid_potcars: Sequence[str] | None = ("PBE_52", "PBE_54", "PBE_64")
 
 
 class MITNEBSet(VaspInputSet):
@@ -2362,7 +2390,8 @@ class MITNEBSet(VaspInputSet):
         if make_dir_if_not_present and not output_dir.exists():
             output_dir.mkdir(parents=True)
         self.incar.write_file(str(output_dir / "INCAR"))
-        assert self.kpoints is not None
+        if self.kpoints is None:
+            raise ValueError("kpoints is None")
         self.kpoints.write_file(str(output_dir / "KPOINTS"))
         self.potcar.write_file(str(output_dir / "POTCAR"))
 
@@ -2378,7 +2407,8 @@ class MITNEBSet(VaspInputSet):
 
             for image in ("00", str(len(self.structures) - 1).zfill(2)):
                 end_point_param.incar.write_file(str(output_dir / image / "INCAR"))
-                assert end_point_param.kpoints is not None
+                if end_point_param.kpoints is None:
+                    raise ValueError("kpoints of end_point_param is None")
                 end_point_param.kpoints.write_file(str(output_dir / image / "KPOINTS"))
                 end_point_param.potcar.write_file(str(output_dir / image / "POTCAR"))
         if write_path_cif:
@@ -2558,7 +2588,8 @@ class MVLNPTMDSet(VaspInputSet):
     def incar_updates(self) -> dict[str, Any]:
         """Updates to the INCAR config for this calculation type."""
         # NPT-AIMD default settings
-        assert self.structure is not None
+        if self.structure is None:
+            raise ValueError("structure is None")
         updates = {
             "ALGO": "Fast",
             "ISIF": 3,
@@ -2613,7 +2644,7 @@ class MVLScanRelaxSet(VaspInputSet):
 
         2. Meta-GGA calculations require POTCAR files that include
         information on the kinetic energy density of the core-electrons,
-        i.e. "PBE_52" or "PBE_54". Make sure the POTCAR including the
+        i.e. "PBE_52", "PBE_54" or "PBE_64". Make sure the POTCAR including the
         following lines (see VASP wiki for more details):
 
             $ grep kinetic POTCAR
@@ -2630,13 +2661,13 @@ class MVLScanRelaxSet(VaspInputSet):
     """
 
     user_potcar_functional: UserPotcarFunctional = "PBE_52"
-    _valid_potcars: Sequence[str] | None = ("PBE_52", "PBE_54")
+    _valid_potcars: Sequence[str] | None = ("PBE_52", "PBE_54", "PBE_64")
     CONFIG = MPRelaxSet.CONFIG
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        if self.user_potcar_functional not in {"PBE_52", "PBE_54"}:
-            raise ValueError("SCAN calculations require PBE_52 or PBE_54!")
+        if self.user_potcar_functional not in {"PBE_52", "PBE_54", "PBE_64"}:
+            raise ValueError("SCAN calculations require PBE_52, PBE_54, or PBE_64!")
 
     @property
     def incar_updates(self) -> dict[str, Any]:
@@ -2686,12 +2717,19 @@ class LobsterSet(VaspInputSet):
     user_potcar_functional: UserPotcarFunctional = "PBE_54"
 
     CONFIG = MPRelaxSet.CONFIG
-    _valid_potcars: Sequence[str] | None = ("PBE_52", "PBE_54")
+    _valid_potcars: Sequence[str] | None = ("PBE_52", "PBE_54", "PBE_64")
 
     def __post_init__(self) -> None:
         super().__post_init__()
         warnings.warn("Make sure that all parameters are okay! This is a brand new implementation.")
 
+        if self.user_potcar_functional in ["PBE_52", "PBE_64"]:
+            warnings.warn(
+                f"Using {self.user_potcar_functional} POTCARs with basis functions generated for PBE_54 POTCARs. "
+                "Basis functions for elements with obsoleted, updated or newly added POTCARs in "
+                f"{self.user_potcar_functional} will not be available and may cause errors or inaccuracies.",
+                BadInputSetWarning,
+            )
         if self.isym not in {-1, 0}:
             raise ValueError("Lobster cannot digest WAVEFUNCTIONS with symmetry. isym must be -1 or 0")
         if self.ismear not in {-5, 0}:
@@ -2959,7 +2997,7 @@ def get_valid_magmom_struct(
         for site in structure:
             if "magmom" not in site.properties or site.properties["magmom"] is None:
                 pass
-            elif isinstance(site.properties["magmom"], (float, int)):
+            elif isinstance(site.properties["magmom"], float | int):
                 if mode == "v":
                     raise TypeError("Magmom type conflict")
                 mode = "s"

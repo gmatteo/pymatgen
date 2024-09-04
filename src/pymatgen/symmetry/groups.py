@@ -357,7 +357,8 @@ class SpaceGroup(SymmetryGroup):
                         gen_ops.append(op)
                         symm_ops = np.append(symm_ops, [op], axis=0)
             new_ops = gen_ops  # type: ignore[assignment]
-        assert len(symm_ops) == self.order
+        if len(symm_ops) != self.order:
+            raise ValueError("Symmetry operations and its order mismatch.")
         return symm_ops
 
     @classmethod
@@ -468,7 +469,7 @@ class SpaceGroup(SymmetryGroup):
         crys_system = self.crystal_system
 
         def check(param, ref, tolerance):
-            return all(abs(i - j) < tolerance for i, j in zip(param, ref) if j is not None)
+            return all(abs(i - j) < tolerance for i, j in zip(param, ref, strict=True) if j is not None)
 
         if crys_system == "cubic":
             a = abc[0]
