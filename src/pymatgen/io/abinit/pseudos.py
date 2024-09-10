@@ -42,7 +42,6 @@ if TYPE_CHECKING:
     from typing_extensions import Self
     from pymatgen.core import Structure
 
-    from pymatgen.core import Structure
 
 logger = logging.getLogger(__name__)
 
@@ -101,12 +100,11 @@ class Pseudo(MSONable, abc.ABC):
     """
 
     @classmethod
-    def as_pseudo(cls, obj: Union[Pseudo, str]):
-        """
-        Convert obj into a pseudo. Accepts:
+    def as_pseudo(cls, obj: Self | str) -> Self:
+        """Convert obj into a Pseudo.
 
-            * Pseudo object.
-            * string defining a valid path.
+        Args:
+            obj (str | Pseudo): Path to the pseudo file or a Pseudo object.
         """
         return obj if isinstance(obj, cls) else cls.from_file(obj)
 
@@ -238,7 +236,7 @@ class Pseudo(MSONable, abc.ABC):
             text = file.read()
             # usedforsecurity=False needed in FIPS mode (Federal Information Processing Standards)
             # https://github.com/materialsproject/pymatgen/issues/2804
-            md5 = hashlib.new("md5", usedforsecurity=False)  # hashlib.md5(usedforsecurity=False) is py39+
+            md5 = hashlib.md5(usedforsecurity=False)
             md5.update(text.encode("utf-8"))
             return md5.hexdigest()
 
