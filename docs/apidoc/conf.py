@@ -19,7 +19,7 @@ import sys
 from pymatgen.core import __author__, __file__, __version__
 
 project = "pymatgen"
-copyright = "2011, Materials Project"
+copyright = "2011, Materials Project"  # noqa: A001
 author = __author__
 
 
@@ -64,7 +64,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pymatgen"
-copyright = "2011, " + __author__
+copyright = f"2011, {__author__}"  # noqa: A001
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -320,7 +320,7 @@ epub_copyright = copyright
 # The format is a list of tuples containing the path and title.
 # epub_pre_files = []
 
-# HTML files shat should be inserted after the pages created by sphinx.
+# HTML files that should be inserted after the pages created by sphinx.
 # The format is a list of tuples containing the path and title.
 # epub_post_files = []
 
@@ -362,4 +362,4 @@ def linkcode_resolve(domain, info):
         # no need to be relative to core here as module includes full path.
         filename = info["module"].replace(".", "/") + ".py"
 
-    return f"https://github.com/materialsproject/pymatgen/blob/v{__version__}/{filename}"
+    return f"https://github.com/materialsproject/pymatgen/blob/v{__version__}/src/{filename}"

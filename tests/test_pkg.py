@@ -18,10 +18,10 @@ def test_egg_sources_txt_is_complete():
 
     # check that all files listed in SOURCES.txt exist
     for src_file in sources.splitlines():
-        assert os.path.exists(src_file), f"{src_file!r} does not exist!"
+        assert os.path.isfile(src_file), f"{src_file!r} does not exist!"
 
     # check that all files in pymatgen/ are listed in SOURCES.txt
-    for ext in ("py", "json", "json.gz", "yaml", "csv"):
+    for ext in ("py", "json*", "yaml", "csv"):
         for filepath in glob(f"pymatgen/**/*.{ext}", recursive=True):
             unix_path = filepath.replace("\\", "/")
             if unix_path.endswith("dao.py"):
