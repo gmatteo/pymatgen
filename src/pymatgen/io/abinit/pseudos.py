@@ -18,10 +18,9 @@ import numpy as np
 from collections import defaultdict
 from typing import TYPE_CHECKING, NamedTuple
 from xml.etree import ElementTree as ET
-#from xml.etree import ElementTree as Et
-#from collections import namedtuple
-#from typing import List, Any, Union, TYPE_CHECKING
-from monty.collections import AttrDict, Namespace
+
+import numpy as np
+from monty.collections import AttrDict
 from monty.functools import lazy_property
 from monty.itertools import iterator_from_slice
 from monty.json import MontyDecoder, MSONable
@@ -613,7 +612,9 @@ def _dict_from_lines(lines: list[str], key_nums: list[int], sep=None) -> dict:
     if len(lines) != len(key_nums):
         raise ValueError(f"{lines = }\n{key_nums = }")
 
-    kwargs = Namespace()
+    # TODO: PR 4223: kwargs was using `monty.collections.Namespace`,
+    # revert to original implementation if needed
+    kwargs: dict = {}
 
     for idx, nk in enumerate(key_nums):
         if nk == 0:
