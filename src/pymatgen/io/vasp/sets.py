@@ -181,10 +181,11 @@ class VaspInputSet(InputGenerator, abc.ABC):
             Curtarolo) for monoclinic. Defaults True.
         validate_magmom (bool): Ensure that the missing magmom values are filled in with
             the VASP default value of 1.0.
-        inherit_incar (bool): Whether to inherit INCAR settings from previous
+        inherit_incar (bool | list[str]): Whether to inherit INCAR settings from previous
             calculation. This might be useful to port Custodian fixes to child jobs but
             can also be dangerous e.g. when switching from GGA to meta-GGA or relax to
             static jobs. Defaults to True.
+            Can also be a list of strings to specify which parameters are inherited.
         auto_kspacing (bool): If true, determines the value of KSPACING from the bandgap
             of a previous calculation.
         auto_ismear (bool): If true, the values for ISMEAR and SIGMA will be set
@@ -320,7 +321,7 @@ class VaspInputSet(InputGenerator, abc.ABC):
             self.structure = self.structure
 
         if isinstance(self.prev_incar, Path | str):
-            self.prev_incar = Incar.from_file(self.prev_incar)
+            self.prev_incar = Incar.from_file(self.prev_incar)  # type:ignore[assignment]
 
         if isinstance(self.prev_kpoints, Path | str):
             self.prev_kpoints = Kpoints.from_file(self.prev_kpoints)
@@ -487,7 +488,7 @@ class VaspInputSet(InputGenerator, abc.ABC):
         )
 
     @deprecated(get_input_set, deadline=(2026, 6, 6))
-    def get_vasp_input(self, structure: Structure | None = None) -> Self:
+    def get_vasp_input(self, structure: Structure | None = None) -> VaspInput:
         """Get a VaspInput object.
 
         Returns:
@@ -520,7 +521,7 @@ class VaspInputSet(InputGenerator, abc.ABC):
         vasprun, outcar = get_vasprun_outcar(prev_dir)
         self.prev_vasprun = vasprun
         self.prev_outcar = outcar
-        self.prev_incar = vasprun.incar
+        self.prev_incar = vasprun.incar  # type:ignore[assignment]
         self.prev_kpoints = Kpoints.from_dict(vasprun.kpoints.as_dict())
 
         if vasprun.efermi is None:
@@ -3360,7 +3361,7 @@ def get_valid_magmom_struct(
     structure: Structure | IStructure,
     inplace: bool = True,
     spin_mode: str = "auto",
-) -> Structure:
+) -> IStructure | Structure:
     """
     Make sure that the structure has valid magmoms based on the kind of calculation.
 
@@ -3564,7 +3565,7 @@ def _combine_kpoints(*kpoints_objects: Kpoints | None) -> Kpoints:
 
     labels = np.concatenate(_labels).tolist()
     kpoints = np.concatenate(_kpoints).tolist()
-    weights = np.concatenate(_weights).tolist()
+    weights = np.concatenate(_weights).tolist()  # type:ignore[arg-type]
 
     return Kpoints(
         comment="Combined k-points",
