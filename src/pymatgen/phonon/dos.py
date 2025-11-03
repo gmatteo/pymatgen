@@ -8,14 +8,13 @@ import numpy as np
 import scipy.constants as const
 from monty.functools import lazy_property
 from monty.json import MSONable
-from packaging import version
 from scipy.ndimage import gaussian_filter1d
 from scipy.stats import wasserstein_distance
 
 from pymatgen.core.structure import Structure
 from pymatgen.util.coord import get_linear_interpolated_value
 
-if version.parse(np.__version__) < version.parse("2.0.0"):
+if np.lib.NumpyVersion(np.__version__) < "2.0.0":
     np.trapezoid = np.trapz  # type:ignore[assignment]  # noqa: NPY201
 
 if TYPE_CHECKING:
@@ -425,6 +424,13 @@ class PhononDos(MSONable):
         normalize: bool = True,
     ) -> PhononDosFingerprint:
         """Generate the DOS fingerprint.
+
+        Based on the work of:
+            F. Knoop, T. A. r Purcell, M. Scheffler, C. Carbogno, J. Open Source Softw. 2020, 5, 2671.
+            Source - https://gitlab.com/vibes-developers/vibes/-/tree/master/vibes/materials_fp
+            Copyright (c) 2020 Florian Knoop, Thomas A.R.Purcell, Matthias Scheffler, Christian Carbogno.
+            Please also see and cite related work by:
+            M. Kuban, S. Rigamonti, C. Draxl, Digital Discovery 2024, 3, 2448.
 
         Args:
             binning (bool): If true, the DOS fingerprint is binned using np.linspace and n_bins.

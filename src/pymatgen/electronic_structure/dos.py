@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import functools
+import logging
 import warnings
 from typing import TYPE_CHECKING, NamedTuple, cast
 
 import numpy as np
 from monty.json import MSONable
-from packaging import version
 from scipy.constants import value as _constant
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import hilbert
@@ -20,7 +20,7 @@ from pymatgen.core.spectrum import Spectrum
 from pymatgen.electronic_structure.core import Orbital, OrbitalType, Spin
 from pymatgen.util.coord import get_linear_interpolated_value
 
-if version.parse(np.__version__) < version.parse("2.0.0"):
+if np.lib.NumpyVersion(np.__version__) < "2.0.0":
     np.trapezoid = np.trapz  # type:ignore[assignment] # noqa: NPY201
 
 if TYPE_CHECKING:
@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 
     from pymatgen.core.sites import PeriodicSite
     from pymatgen.util.typing import SpeciesLike
+
+logger = logging.getLogger(__name__)
 
 
 class DOS(Spectrum):
@@ -1201,6 +1203,8 @@ class CompleteDos(Dos):
             F. Knoop, T. A. r Purcell, M. Scheffler, C. Carbogno, J. Open Source Softw. 2020, 5, 2671.
             Source - https://gitlab.com/vibes-developers/vibes/-/tree/master/vibes/materials_fp
             Copyright (c) 2020 Florian Knoop, Thomas A.R.Purcell, Matthias Scheffler, Christian Carbogno.
+            Please also see and cite related work by:
+            M. Kuban, S. Rigamonti, C. Draxl, Digital Discovery 2024, 3, 2448.
 
         Args:
             fp_type (str): The FingerPrint type, can be "{s/p/d/f/summed}_{pdos/tdos}"
@@ -1573,7 +1577,7 @@ def _get_orb_type_lobster(orb: str) -> OrbitalType | None:
         return orbital.orbital_type
 
     except AttributeError:
-        print("Orb not in list")
+        logger.exception("Orb not in list")
     return None
 
 
@@ -1590,5 +1594,5 @@ def _get_orb_lobster(orb: str) -> Orbital | None:
         return Orbital(_lobster_orb_labs.index(orb[1:]))
 
     except AttributeError:
-        print("Orb not in list")
+        logger.exception("Orb not in list")
         return None
